@@ -19,7 +19,7 @@ st.set_page_config(
 GROQ_KEY    = os.getenv("GROQ_API_KEY", "")
 KAGGLE_USER = os.getenv("KAGGLE_USERNAME", "")
 KAGGLE_KEY  = os.getenv("KAGGLE_KEY", "")
-PIXABAY_KEY = os.getenv("PIXABAY_KEY", "")
+PIXABAY_KEY = os.getenv("PIXABAY_KEY", "") or os.getenv("PIXABAY_API_KEY", "")
 
 st.markdown("""
 <style>
@@ -389,7 +389,27 @@ c_np, c_sp = st.columns([3, 5])
 nombre_proyecto = c_np.text_input(
     "📁 Nombre del proyecto", value=s['nombre_proyecto'],
     key="np_k", label_visibility="visible")
-s['no# ══════════════════════════════════════════════════════════════
+s['nombre_proyecto'] = nombre_proyecto
+pdir = Path(f"proyectos/{nombre_proyecto}")
+pdir.mkdir(parents=True, exist_ok=True)
+
+# ── API check ────────────────────────────────────────────────
+try:
+    import api_client
+    API_DISPONIBLE = api_client.health()
+except Exception:
+    API_DISPONIBLE = False
+
+c_sp.markdown(f"""<div style="display:flex;align-items:center;gap:6px;height:100%;padding-top:28px">
+<span class="dot {'on' if API_DISPONIBLE else 'off'}"></span>
+<span style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace">
+{'agentes conectados' if API_DISPONIBLE else 'modo local (agentes no disponibles)'}</span>
+</div>""", unsafe_allow_html=True)
+
+# ── Tabs ─────────────────────────────────────────────────────
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar"])
+
+# ══════════════════════════════════════════════════════════════
 # TAB 1 — GUIÓN (Modo Pro — Sistema de 3 Fases)
 # ══════════════════════════════════════════════════════════════
 with tab1:
@@ -426,22 +446,44 @@ with tab1:
         st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
 
         if st.button("📊  Analizar nicho y detectar frameworks",use_container_width=True):
-            if not GROQ_KEY: st.error("❌  GROQ_API_KEY no encontrada en `.env`")
+            if not GROQ_KEY and not API_DISPONIBLE: st.error("❌  GROQ_API_KEY no encontrada en `.env`")
             elif not nicho_input.strip(): st.error("❌  Ingresa el nicho del canal")
             else:
                 s["nicho"] = nicho_input
                 s["idioma_canal"] = idioma_canal
                 with st.spinner("🔍  Analizando nicho y patrones virales..."):
                     try:
-                        from groq import Groq
-                        c = Groq(api_key=GROQ_KEY)
-                        buscar_txt = f"""
+                        if API_DISPONIBLE:
+                            proy_id = f"proy_{s['nombre_proyecto']}"
+                            try:
+                                api_client.crear_proyecto(proy_id, s['nombre_proyecto'])
+                            except Exception:
+                                pass
+                            output = api_client.analizar_nicho(proy_id, nicho_input)
+                            analisis = {
+                                "nicho": nicho_input,
+                                "idioma": idioma_canal,
+                                "analisis": {"descripcion": "", "tipo_audiencia": "",
+                                             "mejor_formato": "", "duracion_ideal": ""},
+                                "triggers_emocionales": [],
+                                "palabras_power": [],
+                                "frameworks_titulo": [],
+                                "patrones_virales": output.get("patrones_virales", []),
+                            }
+                            s["analisis_nicho"]  = analisis
+                            s["nicho_analizado"] = True
+                            st.success(f"✅  Nicho analizado via agentes — {len(output.get('patrones_virales',[]))} patrones detectados")
+                            st.rerun()
+                        else:
+                            from groq import Groq
+                            c = Groq(api_key=GROQ_KEY)
+                            buscar_txt = f"""
 Analiza los videos más virales del nicho "{nicho_input}" en YouTube.
 Considera: títulos que generan más clics, emociones dominantes,
 formatos que funcionan mejor, palabras power más repetidas.
 Usa ese análisis para adaptar los frameworks.""" if buscar_virales else ""
 
-                        prompt_a = f"""Eres estratega experto en canales de YouTube virales.
+                            prompt_a = f"""Eres estratega experto en canales de YouTube virales.
 Analiza el nicho: "{nicho_input}" para canal en {idioma_canal}.
 {buscar_txt}
 Responde SOLO en JSON válido sin markdown:
@@ -454,21 +496,21 @@ Responde SOLO en JSON válido sin markdown:
 "patrones_virales":["patrón 1","patrón 2","patrón 3","patrón 4","patrón 5"]}}
 Genera 5 triggers, 8 palabras power, 8 frameworks y 5 patrones específicos para "{nicho_input}"."""
 
-                        resp = c.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
-                            messages=[{"role":"user","content":prompt_a}],
-                            temperature=0.4,max_tokens=3000)
-                        raw = resp.choices[0].message.content.strip()
-                        if "```" in raw:
-                            for p in raw.split("```"):
-                                p=p.strip()
-                                if p.startswith("{"): raw=p; break
-                                elif p.startswith("json"): raw=p[4:].strip(); break
-                        analisis = json.loads(raw)
-                        s["analisis_nicho"]  = analisis
-                        s["nicho_analizado"] = True
-                        st.success(f"✅  Nicho analizado — {len(analisis['frameworks_titulo'])} frameworks detectados")
-                        st.rerun()
+                            resp = c.chat.completions.create(
+                                model="llama-3.3-70b-versatile",
+                                messages=[{"role":"user","content":prompt_a}],
+                                temperature=0.4,max_tokens=3000)
+                            raw = resp.choices[0].message.content.strip()
+                            if "```" in raw:
+                                for p in raw.split("```"):
+                                    p=p.strip()
+                                    if p.startswith("{"): raw=p; break
+                                    elif p.startswith("json"): raw=p[4:].strip(); break
+                            analisis = json.loads(raw)
+                            s["analisis_nicho"]  = analisis
+                            s["nicho_analizado"] = True
+                            st.success(f"✅  Nicho analizado — {len(analisis['frameworks_titulo'])} frameworks detectados")
+                            st.rerun()
                     except Exception as e:
                         st.error(f"❌  {str(e)}")
 
@@ -701,12 +743,6 @@ max-height:380px;overflow-y:auto;white-space:pre-wrap">
                 s["guion_texto_completo"] = None
                 st.rerun()
 
-
-.columns(4)
-        c1.metric("📝 Estado", "Aprobado ✅")
-        c2.metric("🎬 Escenas", len(g['escenas']))
-        c3.metric("⏱️ Duración", f"~{len(g['escenas'])//6} min")
-        c4.metric("📺 Título", g.get('titulo','')[:18]+"...")
 
 # ══════════════════════════════════════════════════════════════
 # TAB 2 — AUDIO
