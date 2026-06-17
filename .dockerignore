@@ -1,0 +1,17 @@
+.env
+.git/
+__pycache__/
+*.pyc
+venv/
+.venv/
+projects/
+proyectos/
+audio_output/
+video_output/
+kaggle_staging/
+kaggle_outputs/
+*.mp3
+*.mp4
+*.wav
+*.srt
+*.zip

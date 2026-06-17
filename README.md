@@ -1,64 +1,68 @@
-# 🎬 YTCreator Studio
+---
+title: YTCreator Studio v3
+emoji: 🎬
+colorFrom: red
+colorTo: gray
+sdk: docker
+pinned: false
+license: mit
+---
 
-Pipeline completo de producción de videos para YouTube.
-**Guión → Imágenes → Videos → Voz → Música → Subtítulos → Video Final**
+# YTCreator Studio v3
 
-## Instalación (Windows)
+Pipeline completo de automatizacion de videos para YouTube con 16 agentes IA.
 
-1. Instala Python 3.10+ desde https://www.python.org/downloads/
-   - ⚠️ Marca "Add Python to PATH" durante la instalación
+**Nicho → Investigacion → Titulos → Guion → Imagenes/Video → Voz → Musica → Subtitulos → Video Final**
 
-2. Haz doble clic en `instalar_y_ejecutar.bat`
+## Arquitectura
 
-3. Se abre automáticamente en tu navegador en http://localhost:8501
+- **12 agentes especializados** (FastAPI) — investigador, copywriter, director de arte, guionista, evaluador, prompt maker, generador visual, locucion, musica, subtitulos, editor, SEO
+- **4 orquestadores** — central + 3 sub-orquestadores por departamento
+- **Streamlit UI** — interfaz web con 5 tabs
+- **API Gateway** — webhooks para n8n y automatizacion externa
+- **Kaggle GPU** — generacion de imagenes/video con IA (gratis)
 
-## Configuración inicial
+## Uso local
 
-1. En el panel lateral izquierdo, configura tus API Keys:
-   - **Groq** (gratis): https://console.groq.com
-   - **Kaggle** (gratis): https://kaggle.com/settings
-   - **Pixabay** (gratis): https://pixabay.com/api/docs/
+```bash
+# 1. Instala dependencias
+pip install -r requirements.txt
 
-2. Haz clic en "Guardar configuración"
+# 2. Configura API keys
+copy .env.template .env    # Llena GROQ_API_KEY y KAGGLE_KEY
 
-## Flujo de trabajo
-
-### Paso 0 — Guión
-- **Opción A:** Genera un guión viral automáticamente con Groq
-- **Opción B:** Pega tu guión ya escrito
-
-### Paso 1 — Audio (tab "Audio")
-- Genera la narración con Edge TTS (400+ voces gratis)
-- Descarga música de fondo de Pixabay automáticamente
-
-### Paso 2 — Imágenes y Videos (tab "Kaggle")
-- La app prepara el guión para Kaggle
-- Sube los clips generados
-
-### Paso 3 — Ensamblar (tab "Ensamblar")
-- Combina clips + voz + música + subtítulos
-- Exporta el video final listo para YouTube
-
-## Estructura de archivos
-
-```
-ytcreator_studio/
-├── app.py                    ← App principal
-├── requirements.txt          ← Dependencias
-├── instalar_y_ejecutar.bat  ← Instalador Windows
-├── .env.template            ← Template de configuración
-└── proyectos/               ← Tus proyectos (se crea automático)
-    └── mi_video_ep01/
-        ├── videos/          ← Clips de Kaggle
-        ├── audio/           ← Narración generada
-        ├── musica/          ← Música de fondo
-        ├── output/          ← Video final
-        └── guion_kaggle.json
+# 3. Levanta todo
+python run_dev.py          # 16 microservicios
+python gateway.py          # Gateway en puerto 7860
+streamlit run app.py       # UI en puerto 8501
 ```
 
-## Requisitos
+## Docker (Hugging Face Spaces)
 
-- Windows 10/11
-- Python 3.10+
-- Conexión a internet
-- ~2GB de espacio en disco
+```bash
+docker build -t ytcreator .
+docker run -p 7860:7860 --env-file .env ytcreator
+```
+
+## API Keys necesarias
+
+| Key | Donde obtenerla | Obligatoria |
+|-----|----------------|-------------|
+| GROQ_API_KEY | console.groq.com | Si |
+| KAGGLE_USERNAME + KAGGLE_KEY | kaggle.com/settings | Si |
+| PIXABAY_API_KEY | pixabay.com/api/docs | Opcional |
+
+## Estructura del proyecto
+
+```
+ytcreator_v3/
+├── app.py              Streamlit UI
+├── gateway.py          API Gateway (puerto 7860)
+├── api_client.py       Cliente HTTP para Streamlit
+├── run_dev.py          Levanta los 16 microservicios
+├── agents/             12 agentes especializados
+├── orchestrator/       4 orquestadores
+├── shared/             Modulos compartidos (schemas, config, state)
+├── Dockerfile          Para HF Spaces
+└── start.sh            Lanza todo en Docker
+```
