@@ -1,0 +1,30 @@
+# YTCreator Studio v3 — Dependencias unificadas (Streamlit + Agentes)
+
+# --- Framework web ---
+streamlit>=1.32.0
+fastapi
+uvicorn[standard]
+pydantic>=2.0
+
+# --- HTTP y estado ---
+httpx
+requests>=2.31.0
+filelock
+python-dotenv
+
+# --- IA / LLM ---
+groq>=0.4.0
+ddgs
+
+# --- Audio ---
+edge-tts>=6.1.9
+openai-whisper>=20231117
+aiofiles
+
+# --- Video / Imagen ---
+moviepy>=1.0.3
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# --- Kaggle ---
+kaggle>=1.6.0

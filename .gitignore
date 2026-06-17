@@ -1,0 +1,42 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Archivos generados por el pipeline
+projects/*.json
+projects/*.lock
+proyectos/
+audio_output/
+video_output/
+kaggle_staging/
+kaggle_outputs/
+
+# Media generada
+*.mp3
+*.mp4
+*.wav
+*.srt
+*.png
+*.jpg
+*.jpeg
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Docker
+.dockerignore

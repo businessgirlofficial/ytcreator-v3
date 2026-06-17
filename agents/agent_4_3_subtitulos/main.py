@@ -1,0 +1,114 @@
+"""
+Agente 4.3 - Tecnico de subtitulos
+Depto 4 (Audio)
+
+FASE 4 - IMPLEMENTACION REAL
+================================
+Transcribe el voz.mp3 con Whisper pidiendo timestamps por PALABRA
+(word_timestamps=True), y agrupa esas palabras en bloques cortos
+(maximo 3 palabras por bloque, ideal para video dinamico/Shorts) para
+generar el .srt final.
+
+Confirmado contra el codigo fuente real de `openai-whisper`:
+  modelo = whisper.load_model(nombre)
+  resultado = modelo.transcribe(audio, language="es", word_timestamps=True)
+  resultado["segments"][i]["words"][j] tiene "word", "start", "end"
+
+El import de `whisper` es diferido (dentro de logica(), no a nivel de
+modulo): asi el microservicio arranca bien aunque esa libreria pesada
+(arrastra PyTorch) no este instalada en esta maquina, y solo falla
+con un error claro cuando alguien de verdad intenta usarlo -- el
+mismo patron que ya usamos para Kaggle.
+"""
+
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+import uvicorn
+from fastapi import FastAPI
+
+from shared.base_agent import crear_agente_app, envolver_logica
+from shared.config import REGISTRO_AGENTES, WHISPER_MODEL_SIZE
+from shared.schemas import AgenteRequest, AgenteResponse
+from shared.state_manager import StateManager
+
+AGENTE_ID = "4.3_subtitulos"
+app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera subtitulos cronometrados con Whisper en bloques cortos")
+state = StateManager()
+
+MAX_PALABRAS_POR_BLOQUE = 3
+
+
+def _formatear_timestamp_srt(segundos: float) -> str:
+    horas = int(segundos // 3600)
+    minutos = int((segundos % 3600) // 60)
+    segs = int(segundos % 60)
+    milisegundos = int(round((segundos - int(segundos)) * 1000))
+    return f"{horas:02d}:{minutos:02d}:{segs:02d},{milisegundos:03d}"
+
+
+def _agrupar_en_bloques_cortos(segmentos: list[dict], max_palabras: int = MAX_PALABRAS_POR_BLOQUE) -> list[dict]:
+    """Aplana las palabras de todos los segmentos de Whisper y las agrupa
+    en bloques cortos con su propio inicio/fin, ignorando los limites de
+    'segmento' que trae Whisper por defecto (esos son frases completas,
+    demasiado largas para subtitulos dinamicos)."""
+    palabras = [w for seg in segmentos for w in seg.get("words", [])]
+
+    bloques = []
+    for i in range(0, len(palabras), max_palabras):
+        grupo = palabras[i : i + max_palabras]
+        if not grupo:
+            continue
+        texto = "".join(w.get("word", "") for w in grupo).strip()
+        if not texto:
+            continue
+        bloques.append({"inicio": grupo[0]["start"], "fin": grupo[-1]["end"], "texto": texto})
+    return bloques
+
+
+def _generar_srt(bloques: list[dict]) -> str:
+    lineas = []
+    for i, b in enumerate(bloques, start=1):
+        lineas.append(str(i))
+        lineas.append(f"{_formatear_timestamp_srt(b['inicio'])} --> {_formatear_timestamp_srt(b['fin'])}")
+        lineas.append(b["texto"])
+        lineas.append("")
+    return "\n".join(lineas)
+
+
+def logica(request: AgenteRequest) -> dict:
+    estado = state.leer(request.proyecto_id)
+    voz_path = estado.audio.voz_path
+
+    if not voz_path:
+        raise ValueError("No hay voz_path en el estado: corre primero el Agente 4.1 (Locucion)")
+
+    import whisper  # import diferido -- ver nota al inicio del archivo
+
+    modelo = whisper.load_model(WHISPER_MODEL_SIZE)
+    resultado = modelo.transcribe(voz_path, language="es", word_timestamps=True)
+
+    bloques = _agrupar_en_bloques_cortos(resultado.get("segments", []))
+    if not bloques:
+        raise ValueError("Whisper no devolvio palabras con timestamps; revisa el audio de entrada")
+
+    contenido_srt = _generar_srt(bloques)
+    subtitulos_path = str(Path(voz_path).with_name(Path(voz_path).stem + "_subtitulos.srt"))
+    Path(subtitulos_path).write_text(contenido_srt, encoding="utf-8")
+
+    state.actualizar(request.proyecto_id, audio={"subtitulos_path": subtitulos_path})
+    return {"subtitulos_path": subtitulos_path, "num_bloques": len(bloques)}
+
+
+ejecutar = envolver_logica(AGENTE_ID, logica)
+
+
+@app.post("/ejecutar", response_model=AgenteResponse)
+def ejecutar_endpoint(request: AgenteRequest):
+    return ejecutar(request)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=REGISTRO_AGENTES[AGENTE_ID])

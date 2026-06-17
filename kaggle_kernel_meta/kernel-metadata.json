@@ -1,0 +1,13 @@
+{
+  "id": "samuelcalambas/youtube-ai-studio-v7-hibrido",
+  "title": "YouTube AI Studio v7 Hibrido",
+  "code_file": "EDITA_ESTO_apuntando_a_tu_notebook.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "true",
+  "dataset_sources": ["samuelcalambas/ytcreator-prompts"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
