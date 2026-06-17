@@ -42,7 +42,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import REGISTRO_AGENTES, SUNO_API_BASE_URL, SUNO_API_KEY
+from shared.config import PIXABAY_API_KEY, REGISTRO_AGENTES, STORAGE_DIR, SUNO_API_BASE_URL, SUNO_API_KEY
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -79,15 +79,38 @@ SUNO_POLL_INTERVAL_SEG = 15
 SUNO_TIMEOUT_INTENTOS = 40
 
 
-def _buscar_pixabay(mood: str) -> str:
-    """PENDIENTE -- ver nota al inicio del archivo. La API publica de
-    Pixabay no documenta busqueda de musica/audio."""
-    raise NotImplementedError(
-        "Busqueda de musica en Pixabay pendiente de confirmar: su API publica "
-        "documentada (pixabay.com/api/docs/) cubre solo imagenes y video, no "
-        "musica. Dime como tu sistema actual obtiene musica de Pixabay y lo "
-        "conecto aqui correctamente."
+def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
+    """Busca musica en Pixabay usando el endpoint no documentado que
+    el Streamlit original ya usaba con exito."""
+    if not PIXABAY_API_KEY:
+        raise RuntimeError("PIXABAY_API_KEY no esta configurada en tu .env")
+
+    resp = httpx.get(
+        "https://pixabay.com/api/music/",
+        params={"key": PIXABAY_API_KEY, "q": mood, "per_page": 5},
+        timeout=15,
     )
+    resp.raise_for_status()
+    data = resp.json()
+
+    if not data.get("hits"):
+        raise RuntimeError(f"No se encontro musica para mood '{mood}' en Pixabay")
+
+    audio_url = data["hits"][0].get("audio", {}).get("url", "")
+    if not audio_url:
+        audio_url = data["hits"][0].get("previewURL", "")
+    if not audio_url:
+        raise RuntimeError("Pixabay devolvio resultado sin URL de audio")
+
+    musica_dir = Path(STORAGE_DIR) / "proyectos" / proyecto_id / "musica"
+    musica_dir.mkdir(parents=True, exist_ok=True)
+    destino = musica_dir / "background.mp3"
+
+    audio_resp = httpx.get(audio_url, timeout=60)
+    audio_resp.raise_for_status()
+    destino.write_bytes(audio_resp.content)
+
+    return str(destino)
 
 
 def _generar_suno(prompt_musical: str) -> str:
@@ -139,7 +162,7 @@ def logica(request: AgenteRequest) -> dict:
     fuente = _decidir_fuente(mood)
 
     if fuente == "pixabay":
-        musica_path = _buscar_pixabay(mood or "")
+        musica_path = _buscar_pixabay(mood or "epic", request.proyecto_id)
     else:
         musica_path = _generar_suno(f"background music, mood: {mood}, instrumental, no vocals, loopable")
 

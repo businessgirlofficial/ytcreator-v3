@@ -1,0 +1,12 @@
+FROM n8nio/n8n:latest
+
+ENV N8N_PORT=7860
+ENV N8N_PROTOCOL=https
+ENV N8N_HOST=0.0.0.0
+ENV WEBHOOK_URL=https://samuelcalambas-ytcreator-n8n.hf.space/
+ENV N8N_BASIC_AUTH_ACTIVE=true
+ENV N8N_BASIC_AUTH_USER=admin
+ENV N8N_BASIC_AUTH_PASSWORD=ytcreator2024
+ENV GENERIC_TIMEZONE=America/Bogota
+
+EXPOSE 7860
