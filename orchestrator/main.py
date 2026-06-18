@@ -7,14 +7,10 @@ en que orden llamar a cada departamento, valida que cada paso este
 realmente completo antes de avanzar, y maneja la decision critica
 mas importante del pipeline: si el guion no pasa el score minimo,
 lo manda de vuelta al Guionista en vez de avanzar con un guion flojo.
-
-Este archivo es el ESQUELETO de la Fase 0. La logica de reintentos
-mas fina, el paralelismo real entre Visual y Audio, y el manejo
-detallado de errores se completan en la Fase 6 del roadmap (cuando
-ya todos los departamentos esten probados por separado).
 """
 
 import sys
+import time
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -31,6 +27,69 @@ app = FastAPI(title="Orquestador Central - YTCreator Studio")
 state = StateManager()
 
 MAX_REINTENTOS_GUION = 3
+MAX_REINTENTOS_AGENTE = 3
+BACKOFF_BASE = 5
+
+
+def _llamar(agente_id: str, proyecto_id: str, parametros: dict | None = None) -> dict:
+    request = AgenteRequest(proyecto_id=proyecto_id, parametros=parametros or {})
+    ultimo_error = None
+
+    for intento in range(1, MAX_REINTENTOS_AGENTE + 1):
+        try:
+            resp = httpx.post(
+                f"{url_agente(agente_id)}/ejecutar",
+                json=request.model_dump(),
+                timeout=300,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("estado") == "error":
+                raise RuntimeError(f"{agente_id} fallo: {data.get('error')}")
+            return data
+
+        except Exception as exc:
+            ultimo_error = exc
+            if intento < MAX_REINTENTOS_AGENTE:
+                espera = BACKOFF_BASE * intento
+                time.sleep(espera)
+
+    state.actualizar(
+        proyecto_id,
+        errores=[f"{agente_id}: {ultimo_error} (tras {MAX_REINTENTOS_AGENTE} intentos)"],
+    )
+    raise RuntimeError(f"{agente_id} fallo tras {MAX_REINTENTOS_AGENTE} intentos: {ultimo_error}")
+
+
+def _fase(proyecto_id: str, fase: str):
+    state.actualizar(proyecto_id, fase_actual=fase)
+
+
+FASES_ORDEN = ["estrategia", "guion", "visual", "audio", "cierre"]
+
+
+def _fase_completada(proyecto_id: str, fase_objetivo: str) -> bool:
+    """Verifica si una fase ya fue completada revisando el estado del proyecto."""
+    try:
+        estado = state.leer(proyecto_id)
+    except FileNotFoundError:
+        return False
+
+    fase_actual_idx = FASES_ORDEN.index(estado.fase_actual) if estado.fase_actual in FASES_ORDEN else -1
+    fase_objetivo_idx = FASES_ORDEN.index(fase_objetivo)
+
+    if fase_actual_idx <= fase_objetivo_idx:
+        return False
+
+    if fase_objetivo == "estrategia":
+        return bool(estado.estrategia.titulo_ganador)
+    if fase_objetivo == "guion":
+        return estado.guion.aprobado
+    if fase_objetivo == "visual":
+        return estado.visual.prompts_generados
+    if fase_objetivo == "audio":
+        return estado.audio.voz_path is not None
+    return False
 
 
 @app.get("/health")
@@ -59,50 +118,67 @@ def listar_proyectos():
     return {"proyectos": state.listar_proyectos()}
 
 
-def _llamar(agente_id: str, proyecto_id: str, parametros: dict | None = None) -> dict:
-    request = AgenteRequest(proyecto_id=proyecto_id, parametros=parametros or {})
-    resp = httpx.post(f"{url_agente(agente_id)}/ejecutar", json=request.model_dump(), timeout=300)
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("estado") == "error":
-        raise RuntimeError(f"{agente_id} fallo: {data.get('error')}")
-    return data
-
-
 @app.post("/pipeline/ejecutar")
 def ejecutar_pipeline(proyecto_id: str, nicho: str):
-    """Corre el pipeline completo de punta a punta para un proyecto ya creado."""
+    """Corre el pipeline completo con tracking de fase, reintentos y recovery."""
 
-    # 1. Estrategia (Investigador -> Copywriter -> Director de Arte)
-    _llamar("sub_orq_estrategia", proyecto_id, {"nicho": nicho})
+    try:
+        # 1. Estrategia (Investigador -> Copywriter -> Director de Arte)
+        if not _fase_completada(proyecto_id, "estrategia"):
+            _fase(proyecto_id, "estrategia")
+            _llamar("sub_orq_estrategia", proyecto_id, {"nicho": nicho})
 
-    # 2. Guion con loop de reescritura -- la decision critica del orquestador
-    intentos = 0
-    aprobado = False
-    while intentos < MAX_REINTENTOS_GUION:
-        _llamar("2.1_guionista", proyecto_id)
-        _llamar("2.2_evaluador", proyecto_id)
-        estado_actual = state.leer(proyecto_id)
-        if estado_actual.guion.aprobado:
-            aprobado = True
-            break
-        intentos += 1
+        # 2. Guion con loop de reescritura
+        if not _fase_completada(proyecto_id, "guion"):
+            _fase(proyecto_id, "guion")
+            intentos = 0
+            aprobado = False
+            while intentos < MAX_REINTENTOS_GUION:
+                _llamar("2.1_guionista", proyecto_id)
+                _llamar("2.2_evaluador", proyecto_id)
+                estado_actual = state.leer(proyecto_id)
+                if estado_actual.guion.aprobado:
+                    aprobado = True
+                    break
+                intentos += 1
 
-    if not aprobado:
-        raise HTTPException(
-            status_code=422,
-            detail="El guion no paso el score minimo tras varios intentos de reescritura",
+            if not aprobado:
+                state.actualizar(
+                    proyecto_id,
+                    fase_actual="error",
+                    errores=["Guion no paso el score minimo tras varios intentos"],
+                )
+                raise HTTPException(
+                    status_code=422,
+                    detail="El guion no paso el score minimo tras varios intentos de reescritura",
+                )
+
+        # 3. Visual y Audio
+        if not _fase_completada(proyecto_id, "visual"):
+            _fase(proyecto_id, "visual")
+            _llamar("3.1_prompt_maker", proyecto_id)
+            _llamar("3.2_generador_visual", proyecto_id)
+
+        if not _fase_completada(proyecto_id, "audio"):
+            _fase(proyecto_id, "audio")
+            _llamar("sub_orq_audio", proyecto_id)
+
+        # 4. Cierre (Editor Tecnico + Consultor SEO)
+        _fase(proyecto_id, "cierre")
+        _llamar("sub_orq_cierre", proyecto_id)
+
+        _fase(proyecto_id, "completado")
+        return state.leer(proyecto_id)
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        state.actualizar(
+            proyecto_id,
+            fase_actual="error",
+            errores=[str(exc)],
         )
-
-    # 3. Visual y Audio -- secuencial en Fase 0, paralelizable en Fase 6
-    _llamar("3.1_prompt_maker", proyecto_id)
-    _llamar("3.2_generador_visual", proyecto_id)
-    _llamar("sub_orq_audio", proyecto_id)
-
-    # 4. Cierre (Editor Tecnico + Consultor SEO)
-    _llamar("sub_orq_cierre", proyecto_id)
-
-    return state.leer(proyecto_id)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 if __name__ == "__main__":

@@ -131,7 +131,7 @@ class EstadoProyecto(BaseModel):
     creado_en: datetime
     actualizado_en: datetime
     fase_actual: Literal[
-        "estrategia", "guion", "visual", "audio", "cierre", "publicado", "error"
+        "estrategia", "guion", "visual", "audio", "cierre", "completado", "publicado", "error"
     ] = "estrategia"
 
     estrategia: BriefEstrategia = Field(default_factory=BriefEstrategia)
