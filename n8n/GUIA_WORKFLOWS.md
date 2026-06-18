@@ -2,10 +2,10 @@
 
 ## URLs importantes
 
-- **API YTCreator**: `https://samuelcalambas-ytcreator.hf.space`
-- **n8n**: `https://samuelcalambas-ytcreator-n8n.hf.space`
+- **API YTCreator**: `https://businessgirlofficial-ytcreator-v3.hf.space`
+- **n8n**: `https://businessgirlofficial-ytcreator-v3-n8n.hf.space`
 
-Reemplaza `samuelcalambas-ytcreator` con el nombre real de tu HF Space.
+Reemplaza `businessgirlofficial-ytcreator-v3` con el nombre real de tu HF Space.
 
 ---
 
