@@ -670,8 +670,8 @@ font-weight:700;margin-bottom:2px">Título elegido</div>
                         pw_str = ", ".join(an.get("palabras_power",[]))
                         pat_str = " | ".join(an.get("patrones_virales",[]))
 
-                        mid_txt = f"""A mitad del guión, antes del punto {n_puntos}, agrega:
-"Y el punto {n_puntos}... este es el que la mayoría pasa por alto. Quédate."""" if inc_midret else ""
+                        mid_txt = (f'A mitad del guión, antes del punto {n_puntos}, agrega:\n'
+                                   f'"Y el punto {n_puntos}... este es el que la mayoría pasa por alto. Quédate."') if inc_midret else ""
 
                         prompt_g = f"""Ghostwriter experto en YouTube viral.
 NICHO: "{s["nicho"]}" | TÍTULO: "{s["titulo_elegido"]}" | IDIOMA: {s.get("idioma_canal","Español")}
@@ -700,9 +700,7 @@ Frases cortas directas + párrafos de explicación. Lenguaje conversacional, nun
                             messages=[{"role":"user","content":prompt_g}],
                             temperature=0.7,max_tokens=4000)
                         guion_txt = resp.choices[0].message.content.strip()
-                        parrafos = [p.strip() for p in guion_txt.split("
-
-") if p.strip()]
+                        parrafos = [p.strip() for p in guion_txt.split("\n\n") if p.strip()]
                         escenas  = [{"numero":i+1,"narracion":p,"descripcion_visual":p[:80]+"..."}
                                     for i,p in enumerate(parrafos)]
                         s["guion_aprobado"] = {
