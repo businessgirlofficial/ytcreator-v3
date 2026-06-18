@@ -1,7 +1,7 @@
 {
   "id": "samuelcalambas/youtube-ai-studio-v7-hibrido",
   "title": "YouTube AI Studio v7 Hibrido",
-  "code_file": "EDITA_ESTO_apuntando_a_tu_notebook.ipynb",
+  "code_file": "../kaggle_notebook/youtube_ai_studio_v7.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": "true",

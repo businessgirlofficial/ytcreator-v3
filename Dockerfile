@@ -8,6 +8,7 @@ RUN apt-get update && \
     ffmpeg \
     fonts-liberation \
     curl \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # Dependencias Python
@@ -19,6 +20,9 @@ RUN python -c "import whisper; whisper.load_model('base')"
 
 # Copiar proyecto
 COPY . .
+
+# Configurar nginx
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Directorios de trabajo
 RUN mkdir -p /data/projects /data/proyectos

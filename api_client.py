@@ -5,7 +5,7 @@ Cliente API - YTCreator Studio v3
 Encapsula las llamadas HTTP al gateway/agentes para que Streamlit
 no tenga que conocer puertos ni endpoints internos.
 
-Usa GATEWAY_URL (default http://localhost:7860) para conectarse.
+Usa GATEWAY_URL (default http://localhost:7861) para conectarse.
 Si el gateway no esta disponible, las funciones lanzan excepciones
 claras que el UI puede mostrar al usuario.
 """
@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:7860")
+GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:7861")
 TIMEOUT_CORTO = 30
 TIMEOUT_AGENTE = 300
 TIMEOUT_PIPELINE = 600

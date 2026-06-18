@@ -7,7 +7,7 @@ microservicios internos sin modificarlos. Agrega endpoints de
 webhook para n8n y descarga de video final.
 
 Puertos internos: los 16 agentes en 8000-8502 (levantados por run_dev.py)
-Puerto del gateway: 7860 (el que expone HF Spaces)
+Puerto del gateway: 7861 (nginx en 7860 rutea /api/* aqui)
 """
 
 import sys
@@ -238,4 +238,4 @@ def download_final(proyecto_id: str):
 # ── Main ────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    uvicorn.run(app, host="0.0.0.0", port=7861)

@@ -19,7 +19,7 @@ Reemplaza `businessgirlofficial-ytcreator-v3` con el nombre real de tu HF Space.
    - Body esperado: `{"nicho": "finanzas personales", "canal": "MiCanal"}`
 
 2. **HTTP Request** (POST al API)
-   - URL: `https://TU-SPACE.hf.space/pipeline/webhook`
+   - URL: `https://TU-SPACE.hf.space/api/pipeline/webhook`
    - Metodo: POST
    - Body:
      ```json
@@ -63,7 +63,7 @@ curl -X POST https://TU-N8N-SPACE.hf.space/webhook/nuevo-video \
 
 3. **True → Telegram / Email**
    - Mensaje: "Video listo! Proyecto: {{$json.proyecto_id}}"
-   - Link de descarga: `https://TU-SPACE.hf.space/download/{{$json.proyecto_id}}/final`
+   - Link de descarga: `https://TU-SPACE.hf.space/api/download/{{$json.proyecto_id}}/final`
 
 4. **False → Telegram / Email**
    - Mensaje: "Error en pipeline: {{$json.error}}"
@@ -85,7 +85,7 @@ curl -X POST https://TU-N8N-SPACE.hf.space/webhook/nuevo-video \
    - Expresion: `0 8 * * *` (cada dia a las 8am)
 
 2. **HTTP Request** (POST al API)
-   - URL: `https://TU-SPACE.hf.space/pipeline/webhook`
+   - URL: `https://TU-SPACE.hf.space/api/pipeline/webhook`
    - Body:
      ```json
      {
