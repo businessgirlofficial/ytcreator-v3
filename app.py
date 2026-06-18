@@ -406,6 +406,63 @@ c_sp.markdown(f"""<div style="display:flex;align-items:center;gap:6px;height:100
 {'agentes conectados' if API_DISPONIBLE else 'modo local (agentes no disponibles)'}</span>
 </div>""", unsafe_allow_html=True)
 
+# ── Modo Automático ──────────────────────────────────────────
+if API_DISPONIBLE:
+    with st.expander("⚡ Modo Automático — Pipeline completo con un click", expanded=False):
+        st.markdown("""<div class="card primary" style="margin-bottom:12px">
+        <div class="card-title">⚡ Lanzar pipeline completo</div>
+        <div class="card-sub">Ejecuta todo el pipeline automáticamente: análisis de nicho → guión → audio → visual → subtítulos → ensamblado.
+        El mismo pipeline que usa n8n para generar videos mientras duermes.</div>
+        </div>""", unsafe_allow_html=True)
+
+        col_auto1, col_auto2 = st.columns(2, gap="large")
+        with col_auto1:
+            auto_nicho = st.text_input("Nicho", value=s.get("nicho", ""),
+                placeholder="ej: finanzas personales, psicología...", key="auto_nicho")
+        with col_auto2:
+            auto_canal = st.text_input("Canal", value=s.get("nombre_proyecto", "MiCanal"),
+                key="auto_canal")
+
+        if st.button("🚀  Lanzar pipeline automático", use_container_width=True, key="btn_auto"):
+            if not auto_nicho.strip():
+                st.error("❌  Ingresa el nicho")
+            else:
+                s["nicho"] = auto_nicho
+                try:
+                    import api_client
+                    result = api_client.webhook_trigger(
+                        nicho=auto_nicho,
+                        canal=auto_canal or "MiCanal",
+                    )
+                    st.success(f"✅  Pipeline lanzado — Proyecto: **{result.get('proyecto_id')}**")
+                    st.info("El pipeline corre en background. Recibirás una notificación en Telegram cuando termine.")
+
+                    if result.get("proyecto_id"):
+                        s["auto_proyecto_id"] = result["proyecto_id"]
+                except Exception as e:
+                    st.error(f"❌  Error al lanzar pipeline: {str(e)}")
+
+        if s.get("auto_proyecto_id"):
+            st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+            if st.button("🔄  Ver estado del pipeline", use_container_width=True, key="btn_auto_status"):
+                try:
+                    import api_client
+                    estado = api_client.pipeline_estado(s["auto_proyecto_id"])
+                    fase = estado.get("fase_actual", "?")
+                    st.markdown(f"""<div class="card">
+                    <div class="card-title">📊 Proyecto: {s['auto_proyecto_id']}</div>
+                    <div class="card-sub">
+                    Fase actual: <strong>{fase}</strong><br>
+                    Guión aprobado: {'✅' if estado.get('guion_aprobado') else '⏳'} ·
+                    Visual listo: {'✅' if estado.get('visual_listo') else '⏳'} ·
+                    Audio listo: {'✅' if estado.get('audio_listo') else '⏳'}<br>
+                    Video final: {'✅ Listo!' if estado.get('video_final') else '⏳ En progreso...'}
+                    </div></div>""", unsafe_allow_html=True)
+                except Exception as e:
+                    st.warning(f"No se pudo obtener estado: {str(e)}")
+
+st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
+
 # ── Tabs ─────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar"])
 
