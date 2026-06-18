@@ -51,7 +51,7 @@ from moviepy import (
 from moviepy.video.tools.subtitles import SubtitlesClip
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import FPS_VIDEO, REGISTRO_AGENTES, RESOLUCION_VIDEO, SUBTITULOS_FONT_PATH
+from shared.config import FPS_VIDEO, REGISTRO_AGENTES, RESOLUCION_VIDEO, STORAGE_DIR, SUBTITULOS_FONT_PATH
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -59,7 +59,7 @@ AGENTE_ID = "5.1_editor"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Ensambla el video final con MoviePy")
 state = StateManager()
 
-SALIDA_DIR = Path("video_output")
+SALIDA_DIR = Path(STORAGE_DIR) / "video"
 
 # Patron para extraer el numero de escena de un nombre de archivo, ej.
 # "escena_3.png" -> 3, "escena-12.mp4" -> 12. AJUSTAR si tu notebook

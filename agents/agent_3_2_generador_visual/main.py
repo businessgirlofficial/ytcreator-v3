@@ -42,7 +42,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import KAGGLE_DATASET_SLUG, KAGGLE_KERNEL_SLUG, REGISTRO_AGENTES
+from shared.config import KAGGLE_DATASET_SLUG, KAGGLE_KERNEL_SLUG, REGISTRO_AGENTES, STORAGE_DIR
 from shared.kaggle_client import descargar_resultados, estado_kernel, lanzar_kernel, subir_dataset
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
@@ -54,8 +54,8 @@ state = StateManager()
 POLL_INTERVAL_SEG = 30
 TIMEOUT_SEG = 60 * 60 * 2  # 2 horas de margen (GPU T4 x2, tier gratuito)
 
-STAGING_DIR = Path("kaggle_staging")
-OUTPUT_DIR = Path("kaggle_outputs")
+STAGING_DIR = Path(STORAGE_DIR) / "kaggle_staging"
+OUTPUT_DIR = Path(STORAGE_DIR) / "kaggle_outputs"
 KERNEL_META_DIR = Path("kaggle_kernel_meta")
 
 

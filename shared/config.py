@@ -19,8 +19,7 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY", "")
-SUNO_API_KEY = os.getenv("SUNO_API_KEY", "")
-SUNO_API_BASE_URL = os.getenv("SUNO_API_BASE_URL", "")
+HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 RESOLUCION_VIDEO = os.getenv("RESOLUCION_VIDEO", "1920x1080")
 FPS_VIDEO = int(os.getenv("FPS_VIDEO", "30"))
@@ -39,6 +38,7 @@ REGISTRO_AGENTES: dict[str, int] = {
     "1.1_investigador": 8101,
     "1.2_copywriter": 8102,
     "1.3_director_arte": 8103,
+    "1.4_generador_miniatura": 8104,
     # Depto 2 - Guion
     "2.1_guionista": 8201,
     "2.2_evaluador": 8202,

@@ -105,7 +105,7 @@ class AssetsAudio(BaseModel):
     voz_path: Optional[str] = None
     voz_config: Optional[dict] = None  # rate, pitch, voice_id (Edge TTS)
     musica_path: Optional[str] = None
-    musica_fuente: Optional[Literal["pixabay", "suno"]] = None
+    musica_fuente: Optional[Literal["musicgen", "pixabay"]] = None
     musica_volumen_db: Optional[float] = None
     subtitulos_path: Optional[str] = None
 

@@ -25,7 +25,7 @@ from shared.schemas import AgenteRequest, AgenteResponse
 AGENTE_ID = "sub_orq_estrategia"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Orquesta Investigador, Copywriter y Director de Arte")
 
-SECUENCIA = ["1.1_investigador", "1.2_copywriter", "1.3_director_arte"]
+SECUENCIA = ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura"]
 MAX_REINTENTOS = 3
 BACKOFF_BASE = 5
 

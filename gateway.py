@@ -77,10 +77,10 @@ def listar_proyectos():
 
 
 @app.post("/pipeline/ejecutar")
-def ejecutar_pipeline(proyecto_id: str, nicho: str):
+def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
     resp = httpx.post(
         f"{ORQUESTADOR_URL}/pipeline/ejecutar",
-        params={"proyecto_id": proyecto_id, "nicho": nicho},
+        params={"proyecto_id": proyecto_id, "nicho": nicho, "canal": canal},
         timeout=TIMEOUT_PIPELINE,
     )
     if resp.status_code != 200:
@@ -120,11 +120,11 @@ class KaggleCallbackRequest(BaseModel):
     error: str | None = None
 
 
-def _run_pipeline_async(proyecto_id: str, nicho: str, callback_url: str | None):
+def _run_pipeline_async(proyecto_id: str, nicho: str, canal: str, callback_url: str | None):
     try:
         httpx.post(
             f"{ORQUESTADOR_URL}/pipeline/ejecutar",
-            params={"proyecto_id": proyecto_id, "nicho": nicho},
+            params={"proyecto_id": proyecto_id, "nicho": nicho, "canal": canal},
             timeout=TIMEOUT_PIPELINE,
         )
         if callback_url:
@@ -164,6 +164,7 @@ def webhook_trigger(request: WebhookRequest, background_tasks: BackgroundTasks):
         _run_pipeline_async,
         proyecto_id,
         request.nicho,
+        request.canal,
         request.callback_url,
     )
 

@@ -25,6 +25,7 @@ SERVICIOS = [
     BASE / "agents" / "agent_1_1_investigador" / "main.py",
     BASE / "agents" / "agent_1_2_copywriter" / "main.py",
     BASE / "agents" / "agent_1_3_director_arte" / "main.py",
+    BASE / "agents" / "agent_1_4_generador_miniatura" / "main.py",
     BASE / "orchestrator" / "sub_orq_estrategia" / "main.py",
     BASE / "agents" / "agent_2_1_guionista" / "main.py",
     BASE / "agents" / "agent_2_2_evaluador" / "main.py",

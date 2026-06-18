@@ -2,33 +2,18 @@
 Agente 4.2 - Productor musical
 Depto 4 (Audio)
 
-FASE 4 - IMPLEMENTACION REAL (con un hueco honesto que necesita tu input)
-=============================================================================
-La DECISION de fuente (Pixabay vs Suno) es real y deterministica: se
-basa en si el mood del guion es uno "comun" con buena probabilidad de
-match en un banco de stock, o uno especifico/inusual que se beneficia
-de una pieza generada a medida.
+Genera o busca musica de fondo para el video.
 
-LO QUE NO PUDE IMPLEMENTAR Y POR QUE:
-  Busque la documentacion oficial de la API de Pixabay antes de
-  escribir esto: cubre EXCLUSIVAMENTE imagenes y video
-  ("RESTful interface for searching and retrieving royalty-free
-  images and videos"). No hay un endpoint de musica documentado
-  publicamente. Por eso _buscar_pixabay() esta marcado como
-  pendiente -- necesito que me digas como tu sistema actual (Tab
-  Audio de YTCreator Studio v3) obtiene musica de Pixabay realmente
-  (scraping, un endpoint no documentado, descarga manual) para
-  conectarlo aqui de verdad, en vez de adivinar un endpoint que
-  podria no existir y romperse en silencio.
+FUENTE PRINCIPAL: MusicGen de Meta via Hugging Face Inference API.
+  - Gratuito (tier free con rate limits)
+  - Genera musica a medida del mood del video
+  - Pistas de ~30 segundos, el Editor (5.1) las loopea automaticamente
 
-LO QUE SI IMPLEMENTE PARA SUNO:
-  Suno no tiene una API publica oficial estable (tambien lo
-  verifique): solo hay proveedores terceros no oficiales
-  (sunoapi.org, api.box, evolink.ai, etc.), cada uno con su propio
-  contrato. Implemente el patron generico mas comun entre ellos
-  (generate -> poll -> descargar). Debes confirmar/ajustar
-  SUNO_API_BASE_URL y los nombres de campo segun el proveedor que
-  elijas -- no existe un unico "Suno API" universal al que apuntar.
+FALLBACK: Pixabay Music API (endpoint no documentado oficialmente).
+  - Si MusicGen falla (rate limit, modelo cargando, HF caido), se
+    intenta buscar en Pixabay por keyword del mood.
+  - Si Pixabay tambien falla, el agente lanza error y el
+    sub-orquestador reintenta.
 """
 
 import sys
@@ -42,46 +27,81 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import PIXABAY_API_KEY, REGISTRO_AGENTES, STORAGE_DIR, SUNO_API_BASE_URL, SUNO_API_KEY
+from shared.config import HF_API_TOKEN, PIXABAY_API_KEY, REGISTRO_AGENTES, STORAGE_DIR
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
 AGENTE_ID = "4.2_musica"
-app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Elige o genera musica de fondo segun el mood")
+app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera o busca musica de fondo segun el mood")
 state = StateManager()
 
-# Un mood SIMPLE (una o dos palabras: "tenso", "calmado", "energetico")
-# casi siempre tiene un buen match en un banco de stock como Pixabay.
-# Un mood COMPUESTO/matizado (con conectores como "pero", "con", "y", o
-# mas de 2 palabras: "nostalgico pero urgente") rara vez tiene un match
-# exacto en stock -- se beneficia de una pieza generada a medida.
-#
-# Nota de diseno: probe primero con una lista fija de "moods comunes" y
-# fallo en pruebas porque ese tipo de lista nunca esta completa (un mood
-# tan basico como "tenso" no estaba en mi primera lista, pese a que el
-# suspenso es una categoria enorme en cualquier banco de stock). Detectar
-# la ESTRUCTURA del mood generaliza mejor que enumerar palabras.
-CONECTORES_COMPUESTOS = (" pero ", " mas ", " y ", " con ", " que ", " sin ")
+HF_MUSICGEN_URL = "https://api-inference.huggingface.co/models/facebook/musicgen-small"
+HF_MAX_ESPERA_CARGA = 120
+HF_POLL_INTERVAL = 10
 
 
-def _decidir_fuente(mood: str | None) -> str:
-    if not mood:
-        return "pixabay"
-    mood_normalizado = mood.lower().strip()
-    es_compuesto = (
-        any(conector in mood_normalizado for conector in CONECTORES_COMPUESTOS)
-        or len(mood_normalizado.split()) > 2
-    )
-    return "suno" if es_compuesto else "pixabay"
+def _construir_prompt_musicgen(mood: str | None) -> str:
+    base = "instrumental background music for a YouTube video"
+    if mood:
+        return f"{base}, mood: {mood}, no vocals, loopable, cinematic"
+    return f"{base}, neutral calm ambient, no vocals, loopable"
 
 
-SUNO_POLL_INTERVAL_SEG = 15
-SUNO_TIMEOUT_INTENTOS = 40
+def _generar_musicgen(mood: str | None, proyecto_id: str) -> str:
+    if not HF_API_TOKEN:
+        raise RuntimeError(
+            "HF_API_TOKEN no esta configurada. Generala gratis en "
+            "huggingface.co/settings/tokens"
+        )
+
+    prompt = _construir_prompt_musicgen(mood)
+    headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
+
+    esperado = 0
+    while esperado < HF_MAX_ESPERA_CARGA:
+        resp = httpx.post(
+            HF_MUSICGEN_URL,
+            headers=headers,
+            json={"inputs": prompt},
+            timeout=180,
+        )
+
+        if resp.status_code == 503:
+            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+            wait = min(body.get("estimated_time", HF_POLL_INTERVAL), 30)
+            time.sleep(wait)
+            esperado += wait
+            continue
+
+        if resp.status_code == 429:
+            raise RuntimeError("MusicGen: rate limit de HF alcanzado")
+
+        resp.raise_for_status()
+        break
+    else:
+        raise RuntimeError(
+            f"MusicGen: el modelo no termino de cargar tras {HF_MAX_ESPERA_CARGA}s"
+        )
+
+    content_type = resp.headers.get("content-type", "")
+    if "flac" in content_type:
+        extension = ".flac"
+    elif "wav" in content_type:
+        extension = ".wav"
+    elif "mpeg" in content_type or "mp3" in content_type:
+        extension = ".mp3"
+    else:
+        extension = ".flac"
+
+    musica_dir = Path(STORAGE_DIR) / "proyectos" / proyecto_id / "musica"
+    musica_dir.mkdir(parents=True, exist_ok=True)
+    destino = musica_dir / f"background{extension}"
+    destino.write_bytes(resp.content)
+
+    return str(destino)
 
 
 def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
-    """Busca musica en Pixabay usando el endpoint no documentado que
-    el Streamlit original ya usaba con exito."""
     if not PIXABAY_API_KEY:
         raise RuntimeError("PIXABAY_API_KEY no esta configurada en tu .env")
 
@@ -96,9 +116,8 @@ def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
     if not data.get("hits"):
         raise RuntimeError(f"No se encontro musica para mood '{mood}' en Pixabay")
 
-    audio_url = data["hits"][0].get("audio", {}).get("url", "")
-    if not audio_url:
-        audio_url = data["hits"][0].get("previewURL", "")
+    hit = data["hits"][0]
+    audio_url = hit.get("audio") or hit.get("previewURL") or hit.get("url", "")
     if not audio_url:
         raise RuntimeError("Pixabay devolvio resultado sin URL de audio")
 
@@ -113,64 +132,27 @@ def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
     return str(destino)
 
 
-def _generar_suno(prompt_musical: str) -> str:
-    if not SUNO_API_KEY:
-        raise RuntimeError("SUNO_API_KEY no esta configurada en tu .env")
-    if not SUNO_API_BASE_URL:
-        raise RuntimeError(
-            "SUNO_API_BASE_URL no esta configurada. Es la URL del proveedor no "
-            "oficial de Suno que elijas (ej. https://api.sunoapi.org) -- no "
-            "existe una unica API oficial de Suno a la que apuntar por default."
-        )
-
-    headers = {"Authorization": f"Bearer {SUNO_API_KEY}"}
-    resp = httpx.post(
-        f"{SUNO_API_BASE_URL}/api/v1/generate",
-        headers=headers,
-        json={"prompt": prompt_musical, "instrumental": True, "customMode": False},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    task_id = resp.json().get("data", {}).get("taskId")
-    if not task_id:
-        raise RuntimeError(f"Respuesta inesperada del proveedor de Suno: {resp.text[:200]}")
-
-    for _ in range(SUNO_TIMEOUT_INTENTOS):
-        time.sleep(SUNO_POLL_INTERVAL_SEG)
-        estado_resp = httpx.get(
-            f"{SUNO_API_BASE_URL}/api/v1/generate/record-info",
-            params={"taskId": task_id},
-            headers=headers,
-            timeout=30,
-        )
-        estado_resp.raise_for_status()
-        datos = estado_resp.json().get("data", {})
-        if datos.get("status") == "complete":
-            audio_url = datos.get("audio_url")
-            if not audio_url:
-                raise RuntimeError("Suno marco la tarea como completa pero no devolvio audio_url")
-            return audio_url
-        if datos.get("status") == "error":
-            raise RuntimeError(f"Suno fallo: {datos.get('error_message')}")
-
-    raise TimeoutError("Suno no termino la generacion dentro del tiempo de espera")
-
-
 def logica(request: AgenteRequest) -> dict:
     estado = state.leer(request.proyecto_id)
     mood = estado.estrategia.mood
-    fuente = _decidir_fuente(mood)
+    fuente = "musicgen"
+    error_musicgen = None
 
-    if fuente == "pixabay":
-        musica_path = _buscar_pixabay(mood or "epic", request.proyecto_id)
-    else:
-        musica_path = _generar_suno(f"background music, mood: {mood}, instrumental, no vocals, loopable")
+    try:
+        musica_path = _generar_musicgen(mood, request.proyecto_id)
+    except Exception as exc:
+        error_musicgen = str(exc)
+        fuente = "pixabay"
+        musica_path = _buscar_pixabay(mood or "epic cinematic", request.proyecto_id)
 
     state.actualizar(
         request.proyecto_id,
         audio={"musica_path": musica_path, "musica_fuente": fuente, "musica_volumen_db": -20.0},
     )
-    return {"mood": mood, "musica_fuente": fuente, "musica_path": musica_path}
+    resultado = {"mood": mood, "musica_fuente": fuente, "musica_path": musica_path}
+    if error_musicgen:
+        resultado["musicgen_fallback_reason"] = error_musicgen
+    return resultado
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

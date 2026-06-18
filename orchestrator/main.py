@@ -119,10 +119,16 @@ def listar_proyectos():
 
 
 @app.post("/pipeline/ejecutar")
-def ejecutar_pipeline(proyecto_id: str, nicho: str):
+def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
     """Corre el pipeline completo con tracking de fase, reintentos y recovery."""
 
     try:
+        # 0. Crear proyecto si no existe
+        try:
+            state.leer(proyecto_id)
+        except FileNotFoundError:
+            state.crear(proyecto_id, canal)
+
         # 1. Estrategia (Investigador -> Copywriter -> Director de Arte)
         if not _fase_completada(proyecto_id, "estrategia"):
             _fase(proyecto_id, "estrategia")

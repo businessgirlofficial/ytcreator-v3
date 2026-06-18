@@ -28,7 +28,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import REGISTRO_AGENTES
+from shared.config import REGISTRO_AGENTES, STORAGE_DIR
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -36,7 +36,7 @@ AGENTE_ID = "4.1_locucion"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera la narracion con Edge TTS")
 state = StateManager()
 
-SALIDA_DIR = Path("audio_output")
+SALIDA_DIR = Path(STORAGE_DIR) / "audio"
 
 # Catalogo de voces conocidas y estables de Edge TTS para espanol
 # latinoamericano. Si tu canal_tono no calza con ninguna clave, se usa
