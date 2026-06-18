@@ -1,0 +1,151 @@
+{
+  "name": "YTCreator - Pipeline Completado",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pipeline-completado",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wh-callback-1",
+      "name": "Callback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.body.estado }}",
+              "rightValue": "completado",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-estado-1",
+      "name": "Video Completado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-ok-1",
+              "name": "mensaje",
+              "value": "=Video listo! Proyecto: {{ $json.body.proyecto_id }}\nDescarga: https://businessgirlofficial-ytcreator-v3.hf.space/api/download/{{ $json.body.proyecto_id }}/final",
+              "type": "string"
+            },
+            {
+              "id": "set-ok-2",
+              "name": "proyecto_id",
+              "value": "={{ $json.body.proyecto_id }}",
+              "type": "string"
+            },
+            {
+              "id": "set-ok-3",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-exito-1",
+      "name": "Preparar Notificacion Exito",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-err-1",
+              "name": "mensaje",
+              "value": "=Error en pipeline!\nProyecto: {{ $json.body.proyecto_id }}\nError: {{ $json.body.error || 'Error desconocido' }}",
+              "type": "string"
+            },
+            {
+              "id": "set-err-2",
+              "name": "proyecto_id",
+              "value": "={{ $json.body.proyecto_id }}",
+              "type": "string"
+            },
+            {
+              "id": "set-err-3",
+              "name": "status",
+              "value": "error",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-error-1",
+      "name": "Preparar Notificacion Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [720, 420]
+    }
+  ],
+  "connections": {
+    "Callback Webhook": {
+      "main": [
+        [
+          {
+            "node": "Video Completado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Completado?": {
+      "main": [
+        [
+          {
+            "node": "Preparar Notificacion Exito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Notificacion Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "ytcreator"
+    }
+  ]
+}

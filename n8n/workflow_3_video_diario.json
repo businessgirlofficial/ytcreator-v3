@@ -1,0 +1,168 @@
+{
+  "name": "YTCreator - Video Diario Automatico",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-diario-1",
+      "name": "Cada dia 8am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://businessgirlofficial-ytcreator-v3.hf.space/api/pipeline/webhook",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"nicho\": \"finanzas personales\",\n  \"canal\": \"MiCanal\",\n  \"callback_url\": \"https://businessgirlofficial-ytcreator-n8n.hf.space/webhook/pipeline-completado\"\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-cron-1",
+      "name": "Lanzar Pipeline Diario",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-cron-1",
+              "leftValue": "={{ $json.estado }}",
+              "rightValue": "iniciado",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-cron-1",
+      "name": "Pipeline Iniciado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-cron-ok-1",
+              "name": "log",
+              "value": "=Pipeline diario iniciado correctamente. Proyecto: {{ $json.proyecto_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-cron-ok-1",
+      "name": "Log Exito",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [960, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-cron-err-1",
+              "name": "log",
+              "value": "=Error al lanzar pipeline diario. Respuesta: {{ JSON.stringify($json) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-cron-err-1",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [960, 420]
+    }
+  ],
+  "connections": {
+    "Cada dia 8am": {
+      "main": [
+        [
+          {
+            "node": "Lanzar Pipeline Diario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lanzar Pipeline Diario": {
+      "main": [
+        [
+          {
+            "node": "Pipeline Iniciado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pipeline Iniciado?": {
+      "main": [
+        [
+          {
+            "node": "Log Exito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "ytcreator"
+    }
+  ]
+}

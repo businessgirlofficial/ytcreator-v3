@@ -1,0 +1,89 @@
+{
+  "name": "YTCreator - Nuevo Video",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nuevo-video",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh-trigger-1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://businessgirlofficial-ytcreator-v3.hf.space/api/pipeline/webhook",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"nicho\": \"{{ $json.body.nicho }}\",\n  \"canal\": \"{{ $json.body.canal || 'MiCanal' }}\",\n  \"callback_url\": \"https://businessgirlofficial-ytcreator-n8n.hf.space/webhook/pipeline-completado\"\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-pipeline-1",
+      "name": "Lanzar Pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"mensaje\": \"Pipeline iniciado\",\n  \"proyecto_id\": \"{{ $json.proyecto_id }}\",\n  \"estado\": \"{{ $json.estado }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-1",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Lanzar Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lanzar Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "ytcreator"
+    }
+  ]
+}

@@ -3,9 +3,23 @@
 ## URLs importantes
 
 - **API YTCreator**: `https://businessgirlofficial-ytcreator-v3.hf.space`
-- **n8n**: `https://businessgirlofficial-ytcreator-v3-n8n.hf.space`
+- **API Health**: `https://businessgirlofficial-ytcreator-v3.hf.space/api/health`
+- **n8n**: `https://businessgirlofficial-ytcreator-n8n.hf.space`
 
-Reemplaza `businessgirlofficial-ytcreator-v3` con el nombre real de tu HF Space.
+Reemplaza `businessgirlofficial` con tu usuario de HF si es diferente.
+
+## Importar workflows (rapido)
+
+Los 3 workflows estan listos como JSON importable:
+
+1. `workflow_1_nuevo_video.json` — trigger manual via webhook
+2. `workflow_2_pipeline_completado.json` — callback cuando el pipeline termina
+3. `workflow_3_video_diario.json` — cron diario a las 8am
+
+**Para importar:** en n8n ve a Settings > Import from File y selecciona cada JSON.
+
+> **Importante:** despues de importar, edita los URLs en los nodos HTTP Request
+> si tu Space tiene un nombre diferente a `businessgirlofficial-ytcreator-v3`.
 
 ---
 
