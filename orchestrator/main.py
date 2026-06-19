@@ -26,7 +26,6 @@ from shared.state_manager import StateManager
 app = FastAPI(title="Orquestador Central - YTCreator Studio")
 state = StateManager()
 
-MAX_REINTENTOS_GUION = 3
 MAX_REINTENTOS_AGENTE = 3
 BACKOFF_BASE = 5
 
@@ -134,21 +133,12 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
             _fase(proyecto_id, "estrategia")
             _llamar("sub_orq_estrategia", proyecto_id, {"nicho": nicho})
 
-        # 2. Guion con loop de reescritura
+        # 2. Guion (Sub-orquestador maneja loop escritura/evaluacion/reescritura)
         if not _fase_completada(proyecto_id, "guion"):
             _fase(proyecto_id, "guion")
-            intentos = 0
-            aprobado = False
-            while intentos < MAX_REINTENTOS_GUION:
-                _llamar("2.1_guionista", proyecto_id)
-                _llamar("2.2_evaluador", proyecto_id)
-                estado_actual = state.leer(proyecto_id)
-                if estado_actual.guion.aprobado:
-                    aprobado = True
-                    break
-                intentos += 1
-
-            if not aprobado:
+            resultado_guion = _llamar("sub_orq_guion", proyecto_id)
+            output = resultado_guion.get("output", {})
+            if not output.get("aprobado"):
                 state.actualizar(
                     proyecto_id,
                     fase_actual="error",
@@ -159,11 +149,10 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
                     detail="El guion no paso el score minimo tras varios intentos de reescritura",
                 )
 
-        # 3. Visual y Audio
+        # 3. Visual (Sub-orquestador maneja generacion + validacion de calidad)
         if not _fase_completada(proyecto_id, "visual"):
             _fase(proyecto_id, "visual")
-            _llamar("3.1_prompt_maker", proyecto_id)
-            _llamar("3.2_generador_visual", proyecto_id)
+            _llamar("sub_orq_visual", proyecto_id)
 
         if not _fase_completada(proyecto_id, "audio"):
             _fase(proyecto_id, "audio")

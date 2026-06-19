@@ -1,0 +1,35 @@
+{
+  "ultima_verificacion": "2026-06-18",
+  "fuentes": {
+    "community_guidelines": {
+      "url": "https://support.google.com/youtube/answer/9288567",
+      "checksum": null,
+      "ultima_actualizacion": "2026-06-18"
+    },
+    "monetizacion": {
+      "url": "https://support.google.com/youtube/answer/6162278",
+      "checksum": null,
+      "ultima_actualizacion": "2026-06-18"
+    },
+    "spam_practicas_enganosas": {
+      "url": "https://support.google.com/youtube/answer/2801973",
+      "checksum": null,
+      "ultima_actualizacion": "2026-06-18"
+    },
+    "copyright": {
+      "url": "https://support.google.com/youtube/answer/2797466",
+      "checksum": null,
+      "ultima_actualizacion": "2026-06-18"
+    },
+    "discurso_odio": {
+      "url": "https://support.google.com/youtube/answer/2801939",
+      "checksum": null,
+      "ultima_actualizacion": "2026-06-18"
+    },
+    "acoso": {
+      "url": "https://support.google.com/youtube/answer/2802268",
+      "checksum": null,
+      "ultima_actualizacion": "2026-06-18"
+    }
+  }
+}

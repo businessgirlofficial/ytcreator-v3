@@ -40,9 +40,10 @@ REGISTRO_AGENTES: dict[str, int] = {
     "1.3_director_arte": 8103,
     "1.4_generador_miniatura": 8104,
     # Depto 2 - Guion
+    "sub_orq_guion": 8210,
     "2.1_guionista": 8201,
-    "2.2_evaluador": 8202,
     # Depto 3 - Visual
+    "sub_orq_visual": 8310,
     "3.1_prompt_maker": 8301,
     "3.2_generador_visual": 8302,
     # Depto 4 - Audio
@@ -54,6 +55,8 @@ REGISTRO_AGENTES: dict[str, int] = {
     "sub_orq_cierre": 8510,
     "5.1_editor": 8501,
     "5.2_seo": 8502,
+    "5.3_compliance": 8503,
+    "5.4_policy_monitor": 8504,
     # Orquestador central
     "orquestador_central": 8000,
 }

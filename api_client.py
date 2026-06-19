@@ -104,7 +104,7 @@ def generar_guion(proyecto_id: str) -> dict:
 
 
 def evaluar_guion(proyecto_id: str) -> dict:
-    resultado = ejecutar_agente("2.2_evaluador", proyecto_id)
+    resultado = ejecutar_agente("sub_orq_guion", proyecto_id)
     return resultado.get("output", {})
 
 
@@ -140,6 +140,16 @@ def ensamblar_video(proyecto_id: str) -> dict:
 
 def generar_seo(proyecto_id: str) -> dict:
     resultado = ejecutar_agente("5.2_seo", proyecto_id)
+    return resultado.get("output", {})
+
+
+def verificar_compliance(proyecto_id: str) -> dict:
+    resultado = ejecutar_agente("5.3_compliance", proyecto_id)
+    return resultado.get("output", {})
+
+
+def verificar_politicas() -> dict:
+    resultado = ejecutar_agente("5.4_policy_monitor", "system", {})
     return resultado.get("output", {})
 
 

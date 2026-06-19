@@ -121,6 +121,13 @@ class Metadata(BaseModel):
     capitulos: list[dict] = Field(default_factory=list)
 
 
+class Compliance(BaseModel):
+    nivel_riesgo: Optional[Literal["bajo", "medio", "alto", "critico"]] = None
+    aprobado: Optional[bool] = None
+    warnings: list[dict] = Field(default_factory=list)
+    resumen: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # Estado completo del proyecto
 # ---------------------------------------------------------------------------
@@ -139,6 +146,7 @@ class EstadoProyecto(BaseModel):
     visual: AssetsVisuales = Field(default_factory=AssetsVisuales)
     audio: AssetsAudio = Field(default_factory=AssetsAudio)
     metadata: Metadata = Field(default_factory=Metadata)
+    compliance: Compliance = Field(default_factory=Compliance)
 
     video_final_path: Optional[str] = None
     publicado: bool = False
