@@ -108,6 +108,7 @@ class AssetsAudio(BaseModel):
     musica_path: Optional[str] = None
     musica_fuente: Optional[Literal["musicgen", "pixabay"]] = None
     musica_volumen_db: Optional[float] = None
+    musicgen_error: Optional[str] = None
     subtitulos_path: Optional[str] = None
 
 

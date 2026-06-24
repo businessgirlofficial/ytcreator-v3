@@ -139,6 +139,8 @@ def logica(request: AgenteRequest) -> dict:
             "necesita una ruta real a un archivo .ttf/.otf para quemar los "
             "subtitulos (ej. C:\\Windows\\Fonts\\arialbd.ttf en Windows)."
         )
+    if not Path(SUBTITULOS_FONT_PATH).exists():
+        raise RuntimeError(f"Fuente no encontrada en disco: {SUBTITULOS_FONT_PATH}")
 
     resolucion = _parsear_resolucion(RESOLUCION_VIDEO)
     imagenes = _indexar_por_numero(estado.visual.imagenes)

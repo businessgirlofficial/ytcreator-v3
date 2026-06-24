@@ -30,7 +30,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import REGISTRO_AGENTES, WHISPER_MODEL_SIZE
+from shared.config import REGISTRO_AGENTES, SUBTITULOS_PALABRAS_POR_BLOQUE, WHISPER_MODEL_SIZE
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -38,7 +38,7 @@ AGENTE_ID = "4.3_subtitulos"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera subtitulos cronometrados con Whisper en bloques cortos")
 state = StateManager()
 
-MAX_PALABRAS_POR_BLOQUE = 3
+MAX_PALABRAS_POR_BLOQUE = SUBTITULOS_PALABRAS_POR_BLOQUE
 
 
 def _formatear_timestamp_srt(segundos: float) -> str:

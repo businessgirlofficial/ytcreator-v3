@@ -145,10 +145,10 @@ def logica(request: AgenteRequest) -> dict:
         fuente = "pixabay"
         musica_path = _buscar_pixabay(mood or "epic cinematic", request.proyecto_id)
 
-    state.actualizar(
-        request.proyecto_id,
-        audio={"musica_path": musica_path, "musica_fuente": fuente, "musica_volumen_db": -20.0},
-    )
+    audio_update = {"musica_path": musica_path, "musica_fuente": fuente, "musica_volumen_db": -20.0}
+    if error_musicgen:
+        audio_update["musicgen_error"] = error_musicgen
+    state.actualizar(request.proyecto_id, audio=audio_update)
     resultado = {"mood": mood, "musica_fuente": fuente, "musica_path": musica_path}
     if error_musicgen:
         resultado["musicgen_fallback_reason"] = error_musicgen
