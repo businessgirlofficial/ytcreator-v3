@@ -15,11 +15,11 @@ para ver el patron completo de uso.
 """
 
 import time
-import traceback
 from typing import Callable
 
 from fastapi import FastAPI
 
+from .logger import get_logger
 from .schemas import AgenteRequest, AgenteResponse
 
 
@@ -42,23 +42,29 @@ def envolver_logica(
     agente individual tiene que reimplementar try/except ni timers.
     """
 
+    logger = get_logger(agente_id)
+
     def ejecutar(request: AgenteRequest) -> AgenteResponse:
         inicio = time.time()
+        logger.info("inicio | proyecto=%s", request.proyecto_id)
         try:
             output = logica(request)
+            duracion = round(time.time() - inicio, 2)
+            logger.info("completado | proyecto=%s | duracion=%.2fs", request.proyecto_id, duracion)
             return AgenteResponse(
                 agente_id=agente_id,
                 estado="completado",
                 output=output,
-                duracion_seg=round(time.time() - inicio, 2),
+                duracion_seg=duracion,
             )
         except Exception as exc:
-            traceback.print_exc()
+            duracion = round(time.time() - inicio, 2)
+            logger.error("error | proyecto=%s | duracion=%.2fs | %s", request.proyecto_id, duracion, exc, exc_info=True)
             return AgenteResponse(
                 agente_id=agente_id,
                 estado="error",
                 error=str(exc),
-                duracion_seg=round(time.time() - inicio, 2),
+                duracion_seg=duracion,
             )
 
     return ejecutar

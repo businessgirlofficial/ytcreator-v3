@@ -11,6 +11,7 @@ Puerto del gateway: 7861 (nginx en 7860 rutea /api/* aqui)
 """
 
 import sys
+import time
 import uuid
 from pathlib import Path
 
@@ -22,9 +23,13 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from starlette.responses import Response
 
 from shared.config import REGISTRO_AGENTES, STORAGE_DIR, YTCREATOR_API_KEY, url_agente
+from shared.logger import get_logger
 from shared.state_manager import StateManager
+
+log = get_logger("gateway")
 
 app = FastAPI(title="YTCreator Studio v3 - Gateway", version="3.0.0")
 
@@ -34,6 +39,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    inicio = time.time()
+    response: Response = await call_next(request)
+    duracion = round(time.time() - inicio, 2)
+    log.info("%s %s | status=%d | duracion=%.2fs", request.method, request.url.path, response.status_code, duracion)
+    return response
 
 state = StateManager()
 

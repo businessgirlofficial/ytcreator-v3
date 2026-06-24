@@ -30,7 +30,8 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import HF_API_TOKEN, REGISTRO_AGENTES, RESOLUCION_VIDEO, url_agente
+from shared.config import HF_API_TOKEN, REGISTRO_AGENTES, RESOLUCION_VIDEO
+from shared.http_client import llamar_con_reintento
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -39,9 +40,6 @@ app: FastAPI = crear_agente_app(
     AGENTE_ID, descripcion="Orquesta Prompt Maker, Generador Visual y validacion de calidad"
 )
 state = StateManager()
-
-MAX_REINTENTOS_AGENTE = 3
-BACKOFF_BASE = 5
 
 _res = RESOLUCION_VIDEO.split("x")
 MIN_ANCHO = int(_res[0]) if len(_res) == 2 else 1920
@@ -73,27 +71,6 @@ Answer in JSON only:
 }"""
 
 UMBRAL_CALIDAD = 4
-
-
-def _llamar_con_reintento(agente_id: str, request: AgenteRequest) -> dict:
-    ultimo_error = None
-    for intento in range(1, MAX_REINTENTOS_AGENTE + 1):
-        try:
-            resp = httpx.post(
-                f"{url_agente(agente_id)}/ejecutar",
-                json=request.model_dump(),
-                timeout=300,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            if data.get("estado") == "error":
-                raise RuntimeError(f"{agente_id} fallo: {data.get('error')}")
-            return data
-        except Exception as exc:
-            ultimo_error = exc
-            if intento < MAX_REINTENTOS_AGENTE:
-                time.sleep(BACKOFF_BASE * intento)
-    raise RuntimeError(f"{agente_id} fallo tras {MAX_REINTENTOS_AGENTE} intentos: {ultimo_error}")
 
 
 def _validar_estructural(proyecto_id: str) -> tuple[bool, list[str]]:
@@ -300,8 +277,8 @@ def _validar_consistencia_pares(imagenes: list[Path], problemas: list[str]):
 
 
 def logica(request: AgenteRequest) -> dict:
-    _llamar_con_reintento("3.1_prompt_maker", request)
-    _llamar_con_reintento("3.2_generador_visual", request)
+    llamar_con_reintento("3.1_prompt_maker", request, timeout=300)
+    llamar_con_reintento("3.2_generador_visual", request, timeout=300)
 
     aprobado_estr, problemas_estr = _validar_estructural(request.proyecto_id)
     aprobado_visual, problemas_visual = _validar_visual_multimodal(request.proyecto_id)

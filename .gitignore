@@ -9,6 +9,9 @@ venv/
 .venv/
 *.egg-info/
 
+# Logs
+logs/
+
 # Archivos generados por el pipeline
 projects/*.json
 projects/*.lock

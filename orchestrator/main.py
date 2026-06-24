@@ -22,8 +22,11 @@ from fastapi import FastAPI, HTTPException
 
 from shared.config import REGISTRO_AGENTES, url_agente
 from shared.health_checks import HealthCheckError, validar_fase, validar_todo
+from shared.logger import get_logger
 from shared.schemas import AgenteRequest
 from shared.state_manager import StateManager
+
+log = get_logger("orquestador_central")
 
 app = FastAPI(title="Orquestador Central - YTCreator Studio")
 state = StateManager()
@@ -38,6 +41,7 @@ def _llamar(agente_id: str, proyecto_id: str, parametros: dict | None = None) ->
     inicio = datetime.utcnow()
 
     state.actualizar(proyecto_id, agente_actual=agente_id)
+    log.info("llamando %s | proyecto=%s", agente_id, proyecto_id)
 
     for intento in range(1, MAX_REINTENTOS_AGENTE + 1):
         try:
@@ -52,6 +56,7 @@ def _llamar(agente_id: str, proyecto_id: str, parametros: dict | None = None) ->
                 raise RuntimeError(f"{agente_id} fallo: {data.get('error')}")
 
             duracion = round((datetime.utcnow() - inicio).total_seconds(), 2)
+            log.info("completado %s | proyecto=%s | duracion=%.2fs | intentos=%d", agente_id, proyecto_id, duracion, intento)
             state.registrar_resultado_agente(proyecto_id, {
                 "agente_id": agente_id,
                 "estado": "completado",
@@ -67,9 +72,11 @@ def _llamar(agente_id: str, proyecto_id: str, parametros: dict | None = None) ->
             ultimo_error = exc
             if intento < MAX_REINTENTOS_AGENTE:
                 espera = BACKOFF_BASE * intento
+                log.warning("reintento %d/%d %s | proyecto=%s | error=%s", intento, MAX_REINTENTOS_AGENTE, agente_id, proyecto_id, exc)
                 time.sleep(espera)
 
     duracion = round((datetime.utcnow() - inicio).total_seconds(), 2)
+    log.error("fallo %s | proyecto=%s | duracion=%.2fs | %s", agente_id, proyecto_id, duracion, ultimo_error)
     state.registrar_resultado_agente(proyecto_id, {
         "agente_id": agente_id,
         "estado": "error",
@@ -150,6 +157,9 @@ def listar_proyectos():
 def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
     """Corre el pipeline completo con tracking de fase, reintentos y recovery."""
 
+    log.info("pipeline inicio | proyecto=%s | nicho=%s | canal=%s", proyecto_id, nicho, canal)
+    pipeline_inicio = time.time()
+
     try:
         # 0. Crear proyecto si no existe
         try:
@@ -209,11 +219,14 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
             _llamar("sub_orq_cierre", proyecto_id)
 
         state.actualizar(proyecto_id, fase_actual="completado", agente_actual=None)
+        duracion_total = round(time.time() - pipeline_inicio, 2)
+        log.info("pipeline completado | proyecto=%s | duracion_total=%.2fs", proyecto_id, duracion_total)
         return state.leer(proyecto_id)
 
     except HTTPException:
         raise
     except HealthCheckError as exc:
+        log.error("pipeline health check fallo | proyecto=%s | %s", proyecto_id, exc)
         state.actualizar(
             proyecto_id,
             fase_actual="error",
@@ -222,6 +235,7 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
         )
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
+        log.error("pipeline error | proyecto=%s | %s", proyecto_id, exc, exc_info=True)
         state.actualizar(
             proyecto_id,
             fase_actual="error",

@@ -15,18 +15,17 @@ La evaluacion combina dos cosas:
 """
 
 import sys
-import time
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-import httpx
 import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import REGISTRO_AGENTES, url_agente
+from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.http_client import llamar_con_reintento
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -37,8 +36,6 @@ app: FastAPI = crear_agente_app(
 state = StateManager()
 
 MAX_REINTENTOS_GUION = 3
-MAX_REINTENTOS_AGENTE = 3
-BACKOFF_BASE = 5
 UMBRAL_APROBACION = 80.0
 MINIMO_ESCENAS_CUERPO = 5
 
@@ -64,24 +61,7 @@ SIEMPRE respondes en JSON valido con este formato exacto:
 
 
 def _llamar_guionista(request: AgenteRequest) -> dict:
-    ultimo_error = None
-    for intento in range(1, MAX_REINTENTOS_AGENTE + 1):
-        try:
-            resp = httpx.post(
-                f"{url_agente('2.1_guionista')}/ejecutar",
-                json=request.model_dump(),
-                timeout=120,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            if data.get("estado") == "error":
-                raise RuntimeError(f"2.1_guionista fallo: {data.get('error')}")
-            return data
-        except Exception as exc:
-            ultimo_error = exc
-            if intento < MAX_REINTENTOS_AGENTE:
-                time.sleep(BACKOFF_BASE * intento)
-    raise RuntimeError(f"2.1_guionista fallo tras {MAX_REINTENTOS_AGENTE} intentos: {ultimo_error}")
+    return llamar_con_reintento("2.1_guionista", request, timeout=120)
 
 
 def _validar_estructura(escenas: list[dict]) -> tuple[float, list[str]]:

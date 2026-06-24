@@ -13,17 +13,16 @@ del pipeline (via n8n semanal o manualmente).
 """
 
 import sys
-import time
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-import httpx
 import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import REGISTRO_AGENTES, url_agente
+from shared.config import REGISTRO_AGENTES
+from shared.http_client import llamar_con_reintento
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -33,30 +32,7 @@ app: FastAPI = crear_agente_app(
 )
 
 SECUENCIA = ["5.1_editor", "5.2_seo", "5.3_compliance", "5.5_publicador"]
-MAX_REINTENTOS = 3
-BACKOFF_BASE = 5
 state = StateManager()
-
-
-def _llamar_con_reintento(agente_id: str, request: AgenteRequest) -> dict:
-    ultimo_error = None
-    for intento in range(1, MAX_REINTENTOS + 1):
-        try:
-            resp = httpx.post(
-                f"{url_agente(agente_id)}/ejecutar",
-                json=request.model_dump(),
-                timeout=180,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            if data.get("estado") == "error":
-                raise RuntimeError(f"{agente_id} fallo: {data.get('error')}")
-            return data
-        except Exception as exc:
-            ultimo_error = exc
-            if intento < MAX_REINTENTOS:
-                time.sleep(BACKOFF_BASE * intento)
-    raise RuntimeError(f"{agente_id} fallo tras {MAX_REINTENTOS} intentos: {ultimo_error}")
 
 
 def _subpaso_completado(proyecto_id: str, agente_id: str) -> bool:
@@ -81,7 +57,7 @@ def logica(request: AgenteRequest) -> dict:
     for agente_id in ["5.1_editor", "5.2_seo", "5.3_compliance"]:
         if _subpaso_completado(request.proyecto_id, agente_id):
             continue
-        data = _llamar_con_reintento(agente_id, request)
+        data = llamar_con_reintento(agente_id, request)
         resultados[agente_id] = data
 
     estado = state.leer(request.proyecto_id)
@@ -96,7 +72,7 @@ def logica(request: AgenteRequest) -> dict:
 
     if not _subpaso_completado(request.proyecto_id, "5.5_publicador"):
         try:
-            data = _llamar_con_reintento("5.5_publicador", request)
+            data = llamar_con_reintento("5.5_publicador", request)
             resultados["5.5_publicador"] = data
         except Exception:
             resultados["5.5_publicador"] = {"output": {"publicado": False, "skipped_reason": "agente no disponible"}}
