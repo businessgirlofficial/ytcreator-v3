@@ -92,6 +92,7 @@ class Guion(BaseModel):
 
 class AssetsVisuales(BaseModel):
     prompts_generados: bool = False
+    generacion_completada: bool = False
     imagenes: list[str] = Field(default_factory=list)
     clips_video: list[str] = Field(default_factory=list)
     candados_aplicados: Optional[dict] = None  # snapshot de los 5 Candados usados
@@ -152,6 +153,7 @@ class EstadoProyecto(BaseModel):
     publicado: bool = False
     youtube_video_id: Optional[str] = None
 
+    agente_actual: Optional[str] = None
     historial_agentes: list[ResultadoAgente] = Field(default_factory=list)
     errores: list[str] = Field(default_factory=list)
 

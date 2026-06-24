@@ -28,7 +28,10 @@ KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME", "")
 KAGGLE_KEY = os.getenv("KAGGLE_KEY", "")
 KAGGLE_DATASET_SLUG = os.getenv("KAGGLE_DATASET_SLUG", f"{KAGGLE_USERNAME}/ytcreator-prompts")
 KAGGLE_KERNEL_SLUG = os.getenv("KAGGLE_KERNEL_SLUG", f"{KAGGLE_USERNAME}/youtube-ai-studio-v7-hibrido")
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
+YOUTUBE_CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID", "")
+YOUTUBE_CLIENT_SECRET = os.getenv("YOUTUBE_CLIENT_SECRET", "")
+YOUTUBE_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN", "")
+YTCREATOR_API_KEY = os.getenv("YTCREATOR_API_KEY", "")
 STORAGE_DIR = os.getenv("STORAGE_DIR", ".")
 
 # -- registro de puertos: agente_id -> puerto -------------------------------
@@ -57,6 +60,7 @@ REGISTRO_AGENTES: dict[str, int] = {
     "5.2_seo": 8502,
     "5.3_compliance": 8503,
     "5.4_policy_monitor": 8504,
+    "5.5_publicador": 8505,
     # Orquestador central
     "orquestador_central": 8000,
 }

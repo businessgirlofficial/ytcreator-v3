@@ -12,6 +12,8 @@ sobre el mismo proyecto en paralelo (ej. Audio y Visual a la vez).
 """
 
 import json
+import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -33,6 +35,12 @@ class StateManager:
     def _json_path(self, proyecto_id: str) -> Path:
         return self.projects_dir / f"{proyecto_id}.json"
 
+    def _tmp_path(self, proyecto_id: str) -> Path:
+        return self.projects_dir / f"{proyecto_id}.tmp.json"
+
+    def _bak_path(self, proyecto_id: str) -> Path:
+        return self.projects_dir / f"{proyecto_id}.bak.json"
+
     def _lock_path(self, proyecto_id: str) -> Path:
         return self.projects_dir / f"{proyecto_id}.lock"
 
@@ -53,12 +61,12 @@ class StateManager:
 
     def leer(self, proyecto_id: str) -> EstadoProyecto:
         json_path = self._json_path(proyecto_id)
+        bak_path = self._bak_path(proyecto_id)
         lock = FileLock(str(self._lock_path(proyecto_id)))
         with lock:
-            if not json_path.exists():
+            if not json_path.exists() and not bak_path.exists():
                 raise FileNotFoundError(f"No existe el proyecto '{proyecto_id}'")
-            data = json.loads(json_path.read_text(encoding="utf-8"))
-            return EstadoProyecto(**data)
+            return self._leer_con_recovery(json_path, bak_path)
 
     def guardar(self, estado: EstadoProyecto) -> EstadoProyecto:
         """Reemplaza el estado completo. Usalo cuando ya tengas el objeto entero en memoria."""
@@ -81,11 +89,13 @@ class StateManager:
         Las listas (como 'escenas') se reemplazan completas, no se mezclan.
         """
         json_path = self._json_path(proyecto_id)
+        bak_path = self._bak_path(proyecto_id)
         lock = FileLock(str(self._lock_path(proyecto_id)))
         with lock:
-            if not json_path.exists():
+            if not json_path.exists() and not bak_path.exists():
                 raise FileNotFoundError(f"No existe el proyecto '{proyecto_id}'")
-            data = json.loads(json_path.read_text(encoding="utf-8"))
+            estado_actual = self._leer_con_recovery(json_path, bak_path)
+            data = json.loads(estado_actual.model_dump_json())
             for clave, valor in cambios.items():
                 if isinstance(valor, dict) and isinstance(data.get(clave), dict):
                     data[clave].update(valor)
@@ -99,20 +109,39 @@ class StateManager:
     def registrar_resultado_agente(self, proyecto_id: str, resultado: dict) -> None:
         """Agrega una entrada al historial de auditoria sin tocar el resto del estado."""
         json_path = self._json_path(proyecto_id)
+        bak_path = self._bak_path(proyecto_id)
         lock = FileLock(str(self._lock_path(proyecto_id)))
         with lock:
-            data = json.loads(json_path.read_text(encoding="utf-8"))
+            estado = self._leer_con_recovery(json_path, bak_path)
+            data = json.loads(estado.model_dump_json())
             data.setdefault("historial_agentes", []).append(resultado)
             data["actualizado_en"] = datetime.utcnow().isoformat()
-            json_path.write_text(
-                json.dumps(data, indent=2, ensure_ascii=False, default=str),
-                encoding="utf-8",
-            )
+            estado = EstadoProyecto(**data)
+            self._escribir(estado)
 
     def listar_proyectos(self) -> list[str]:
         return [p.stem for p in self.projects_dir.glob("*.json")]
 
     # -- interno --------------------------------------------------------------
+    def _leer_con_recovery(self, json_path: Path, bak_path: Path) -> EstadoProyecto:
+        for path in [json_path, bak_path]:
+            if not path.exists():
+                continue
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                estado = EstadoProyecto(**data)
+                if path == bak_path:
+                    self._escribir(estado)
+                return estado
+            except (json.JSONDecodeError, Exception):
+                continue
+        raise FileNotFoundError(f"No se pudo recuperar el proyecto (principal y backup corruptos)")
+
     def _escribir(self, estado: EstadoProyecto) -> None:
         json_path = self._json_path(estado.proyecto_id)
-        json_path.write_text(estado.model_dump_json(indent=2), encoding="utf-8")
+        tmp_path = self._tmp_path(estado.proyecto_id)
+        bak_path = self._bak_path(estado.proyecto_id)
+        tmp_path.write_text(estado.model_dump_json(indent=2), encoding="utf-8")
+        if json_path.exists():
+            shutil.copy2(str(json_path), str(bak_path))
+        os.replace(str(tmp_path), str(json_path))

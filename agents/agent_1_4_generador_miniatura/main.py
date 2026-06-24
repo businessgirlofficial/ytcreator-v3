@@ -87,7 +87,18 @@ def logica(request: AgenteRequest) -> dict:
             "Agente 1.3 (Director de Arte)"
         )
 
-    miniatura_path = _generar_miniatura(prompt, request.proyecto_id)
+    try:
+        miniatura_path = _generar_miniatura(prompt, request.proyecto_id)
+    except Exception as exc:
+        state.actualizar(
+            request.proyecto_id,
+            estrategia={"miniatura_path": None},
+        )
+        return {
+            "miniatura_path": None,
+            "miniatura_prompt": prompt,
+            "skipped_reason": str(exc),
+        }
 
     state.actualizar(
         request.proyecto_id,

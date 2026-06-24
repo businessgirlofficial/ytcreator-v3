@@ -25,15 +25,17 @@ from fastapi import FastAPI
 from shared.base_agent import crear_agente_app, envolver_logica
 from shared.config import REGISTRO_AGENTES, url_agente
 from shared.schemas import AgenteRequest, AgenteResponse
+from shared.state_manager import StateManager
 
 AGENTE_ID = "sub_orq_cierre"
 app: FastAPI = crear_agente_app(
     AGENTE_ID, descripcion="Orquesta Editor Tecnico, Consultor SEO y Compliance YouTube"
 )
 
-SECUENCIA = ["5.1_editor", "5.2_seo", "5.3_compliance"]
+SECUENCIA = ["5.1_editor", "5.2_seo", "5.3_compliance", "5.5_publicador"]
 MAX_REINTENTOS = 3
 BACKOFF_BASE = 5
+state = StateManager()
 
 
 def _llamar_con_reintento(agente_id: str, request: AgenteRequest) -> dict:
@@ -57,26 +59,57 @@ def _llamar_con_reintento(agente_id: str, request: AgenteRequest) -> dict:
     raise RuntimeError(f"{agente_id} fallo tras {MAX_REINTENTOS} intentos: {ultimo_error}")
 
 
+def _subpaso_completado(proyecto_id: str, agente_id: str) -> bool:
+    try:
+        estado = state.leer(proyecto_id)
+    except FileNotFoundError:
+        return False
+    if agente_id == "5.1_editor":
+        return estado.video_final_path is not None
+    if agente_id == "5.2_seo":
+        return estado.metadata.descripcion is not None
+    if agente_id == "5.3_compliance":
+        return estado.compliance.aprobado is not None
+    if agente_id == "5.5_publicador":
+        return estado.publicado
+    return False
+
+
 def logica(request: AgenteRequest) -> dict:
     resultados = {}
-    for agente_id in SECUENCIA:
+
+    for agente_id in ["5.1_editor", "5.2_seo", "5.3_compliance"]:
+        if _subpaso_completado(request.proyecto_id, agente_id):
+            continue
         data = _llamar_con_reintento(agente_id, request)
         resultados[agente_id] = data
 
-    compliance_output = resultados.get("5.3_compliance", {}).get("output", {})
-    nivel_riesgo = compliance_output.get("nivel_riesgo", "bajo")
-    compliance_aprobado = compliance_output.get("aprobado", True)
+    estado = state.leer(request.proyecto_id)
+    nivel_riesgo = estado.compliance.nivel_riesgo or "bajo"
+    compliance_aprobado = estado.compliance.aprobado if estado.compliance.aprobado is not None else True
 
     if nivel_riesgo == "critico":
         raise RuntimeError(
             f"Compliance YouTube BLOQUEO el video: "
-            f"{compliance_output.get('resumen', 'riesgo critico detectado')}"
+            f"{estado.compliance.resumen or 'riesgo critico detectado'}"
         )
+
+    if not _subpaso_completado(request.proyecto_id, "5.5_publicador"):
+        try:
+            data = _llamar_con_reintento("5.5_publicador", request)
+            resultados["5.5_publicador"] = data
+        except Exception:
+            resultados["5.5_publicador"] = {"output": {"publicado": False, "skipped_reason": "agente no disponible"}}
+
+    estado = state.leer(request.proyecto_id)
 
     return {
         "compliance_aprobado": compliance_aprobado,
         "compliance_nivel_riesgo": nivel_riesgo,
-        "compliance_warnings": compliance_output.get("warnings", []),
+        "compliance_warnings": estado.compliance.warnings,
+        "publicado": estado.publicado,
+        "youtube_video_id": estado.youtube_video_id,
+        "youtube_url": f"https://youtu.be/{estado.youtube_video_id}" if estado.youtube_video_id else None,
     }
 
 

@@ -18,12 +18,12 @@ sys.path.append(str(Path(__file__).resolve().parent))
 
 import httpx
 import uvicorn
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from shared.config import REGISTRO_AGENTES, STORAGE_DIR, url_agente
+from shared.config import REGISTRO_AGENTES, STORAGE_DIR, YTCREATOR_API_KEY, url_agente
 from shared.state_manager import StateManager
 
 app = FastAPI(title="YTCreator Studio v3 - Gateway", version="3.0.0")
@@ -41,6 +41,21 @@ ORQUESTADOR_URL = url_agente("orquestador_central")
 TIMEOUT_PIPELINE = 600
 
 
+# ── Auth ───────────────────────────────────────────────────────────
+
+RUTAS_PUBLICAS = {"/health", "/docs", "/openapi.json"}
+
+
+async def verificar_api_key(request: Request):
+    if request.url.path in RUTAS_PUBLICAS:
+        return
+    if not YTCREATOR_API_KEY:
+        return
+    api_key = request.headers.get("X-API-Key")
+    if api_key != YTCREATOR_API_KEY:
+        raise HTTPException(status_code=401, detail="API key invalida o no proporcionada")
+
+
 # ── Health ──────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -50,7 +65,7 @@ def health():
 
 # ── Proxy a orquestador central (proyectos + pipeline) ──────────────
 
-@app.post("/proyectos")
+@app.post("/proyectos", dependencies=[Depends(verificar_api_key)])
 def crear_proyecto(proyecto_id: str, canal: str):
     resp = httpx.post(
         f"{ORQUESTADOR_URL}/proyectos",
@@ -62,7 +77,7 @@ def crear_proyecto(proyecto_id: str, canal: str):
     return resp.json()
 
 
-@app.get("/proyectos/{proyecto_id}")
+@app.get("/proyectos/{proyecto_id}", dependencies=[Depends(verificar_api_key)])
 def leer_proyecto(proyecto_id: str):
     resp = httpx.get(f"{ORQUESTADOR_URL}/proyectos/{proyecto_id}", timeout=30)
     if resp.status_code != 200:
@@ -70,13 +85,13 @@ def leer_proyecto(proyecto_id: str):
     return resp.json()
 
 
-@app.get("/proyectos")
+@app.get("/proyectos", dependencies=[Depends(verificar_api_key)])
 def listar_proyectos():
     resp = httpx.get(f"{ORQUESTADOR_URL}/proyectos", timeout=30)
     return resp.json()
 
 
-@app.post("/pipeline/ejecutar")
+@app.post("/pipeline/ejecutar", dependencies=[Depends(verificar_api_key)])
 def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
     resp = httpx.post(
         f"{ORQUESTADOR_URL}/pipeline/ejecutar",
@@ -90,7 +105,7 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
 
 # ── Proxy a agentes individuales ────────────────────────────────────
 
-@app.post("/agentes/{agente_id}/ejecutar")
+@app.post("/agentes/{agente_id}/ejecutar", dependencies=[Depends(verificar_api_key)])
 def ejecutar_agente(agente_id: str, request: dict):
     if agente_id not in REGISTRO_AGENTES:
         raise HTTPException(status_code=404, detail=f"Agente '{agente_id}' no existe")
@@ -151,7 +166,7 @@ def _run_pipeline_async(proyecto_id: str, nicho: str, canal: str, callback_url: 
             )
 
 
-@app.post("/pipeline/webhook")
+@app.post("/pipeline/webhook", dependencies=[Depends(verificar_api_key)])
 def webhook_trigger(request: WebhookRequest, background_tasks: BackgroundTasks):
     proyecto_id = request.proyecto_id or f"proy_{uuid.uuid4().hex[:8]}"
 
@@ -175,7 +190,7 @@ def webhook_trigger(request: WebhookRequest, background_tasks: BackgroundTasks):
     }
 
 
-@app.post("/pipeline/kaggle-callback")
+@app.post("/pipeline/kaggle-callback", dependencies=[Depends(verificar_api_key)])
 def kaggle_callback(request: KaggleCallbackRequest):
     try:
         estado = state.leer(request.proyecto_id)
@@ -196,18 +211,47 @@ def kaggle_callback(request: KaggleCallbackRequest):
 
 # ── Estado del pipeline ─────────────────────────────────────────────
 
-@app.get("/pipeline/estado/{proyecto_id}")
+TOTAL_AGENTES_PIPELINE = 16
+
+
+@app.get("/pipeline/estado/{proyecto_id}", dependencies=[Depends(verificar_api_key)])
 def pipeline_estado(proyecto_id: str):
     try:
         estado = state.leer(proyecto_id)
+
+        completados = len(estado.historial_agentes)
+        progreso_pct = min(round(completados / TOTAL_AGENTES_PIPELINE * 100), 100)
+
+        historial_resumen = [
+            {
+                "agente_id": r.agente_id,
+                "estado": r.estado.value if hasattr(r.estado, "value") else r.estado,
+                "duracion_seg": r.duracion_seg,
+                "intentos": r.intentos,
+                "error": r.error,
+            }
+            for r in estado.historial_agentes
+        ]
+
         return {
             "proyecto_id": proyecto_id,
             "fase_actual": estado.fase_actual,
-            "guion_aprobado": estado.guion.aprobado,
-            "visual_listo": estado.visual.prompts_generados,
-            "audio_listo": estado.audio.voz_path is not None,
-            "video_final": estado.video_final_path,
-            "publicado": estado.publicado,
+            "agente_actual": estado.agente_actual,
+            "progreso_pct": progreso_pct,
+            "agentes_completados": completados,
+            "agentes_totales": TOTAL_AGENTES_PIPELINE,
+            "fases": {
+                "estrategia": bool(estado.estrategia.titulo_ganador),
+                "guion": estado.guion.aprobado,
+                "visual": estado.visual.prompts_generados,
+                "audio": estado.audio.voz_path is not None,
+                "video_final": estado.video_final_path is not None,
+                "publicado": estado.publicado,
+            },
+            "video_final_path": estado.video_final_path,
+            "youtube_video_id": estado.youtube_video_id,
+            "errores": estado.errores,
+            "historial": historial_resumen,
         }
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Proyecto '{proyecto_id}' no encontrado")
@@ -215,7 +259,7 @@ def pipeline_estado(proyecto_id: str):
 
 # ── Descarga de video final ─────────────────────────────────────────
 
-@app.get("/download/{proyecto_id}/final")
+@app.get("/download/{proyecto_id}/final", dependencies=[Depends(verificar_api_key)])
 def download_final(proyecto_id: str):
     try:
         estado = state.leer(proyecto_id)
