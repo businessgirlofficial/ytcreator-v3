@@ -20,6 +20,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
+from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
 from shared.schemas import AgenteRequest, AgenteResponse
@@ -28,6 +29,7 @@ from shared.state_manager import StateManager
 AGENTE_ID = "1.3_director_arte"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Disena el concepto y prompt de la miniatura")
 state = StateManager()
+channels = ChannelManager()
 
 SYSTEM_PROMPT = """Eres un director de arte especializado en miniaturas (thumbnails)
 de YouTube de alto CTR. Trabajas en espanol salvo el prompt de imagen final.
@@ -52,9 +54,40 @@ def logica(request: AgenteRequest) -> dict:
         raise ValueError("No hay titulo_ganador en el estado: corre primero el Agente 1.2 (Copywriter)")
 
     user_prompt = f"""Nicho: {nicho}
-Titulo ganador: {titulo}
+Titulo ganador: {titulo}"""
 
-Disena la miniatura para este video."""
+    ctx = estado.estrategia.contexto_canal
+    if ctx and ctx.get("estilo_visual"):
+        user_prompt += f"""
+
+Estilo visual establecido del canal: {ctx['estilo_visual']}
+Mantén coherencia con este estilo pero hazlo atractivo para el tema actual."""
+
+    # Performance feedback: CTR de miniaturas anteriores
+    canal_id = estado.estrategia.canal_id or estado.canal_id
+    if canal_id:
+        try:
+            canal = channels.leer(canal_id)
+            if canal.patrones_exitosos:
+                alto_ctr = [p for p in canal.patrones_exitosos[-5:] if p.get("ctr")]
+                if alto_ctr:
+                    user_prompt += f"""
+
+Miniaturas con ALTO CTR en videos anteriores (referencia de estilo que funciona):
+{chr(10).join(f'- "{p.get("titulo", "?")}" → CTR {p.get("ctr")}%' for p in alto_ctr)}
+Intenta capturar elementos visuales similares al estilo que genera alto CTR."""
+
+            if canal.patrones_a_evitar:
+                bajo_ctr = [p for p in canal.patrones_a_evitar[-3:] if p.get("ctr")]
+                if bajo_ctr:
+                    user_prompt += f"""
+
+Miniaturas con BAJO CTR (evita este estilo):
+{chr(10).join(f'- "{p.get("titulo", "?")}" → CTR {p.get("ctr")}%' for p in bajo_ctr)}"""
+        except FileNotFoundError:
+            pass
+
+    user_prompt += "\n\nDisena la miniatura para este video."
 
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
 

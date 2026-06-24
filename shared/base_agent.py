@@ -14,6 +14,7 @@ ya esta resuelto aqui. Mira agents/agent_1_1_investigador/main.py
 para ver el patron completo de uso.
 """
 
+import os
 import time
 from typing import Callable
 
@@ -22,13 +23,22 @@ from fastapi import FastAPI
 from .logger import get_logger
 from .schemas import AgenteRequest, AgenteResponse
 
+_START_TIME = time.time()
+
 
 def crear_agente_app(agente_id: str, descripcion: str = "", version: str = "0.1.0") -> FastAPI:
     app = FastAPI(title=f"Agente {agente_id}", description=descripcion, version=version)
 
     @app.get("/health")
     def health():
-        return {"agente_id": agente_id, "estado": "ok"}
+        import psutil
+        proc = psutil.Process(os.getpid())
+        return {
+            "agente_id": agente_id,
+            "estado": "ok",
+            "memoria_mb": round(proc.memory_info().rss / 1024 / 1024, 1),
+            "uptime_seg": round(time.time() - _START_TIME),
+        }
 
     return app
 

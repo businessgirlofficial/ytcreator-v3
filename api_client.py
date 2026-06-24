@@ -62,10 +62,13 @@ def ejecutar_agente(agente_id: str, proyecto_id: str, parametros: dict | None = 
     return _post(f"/agentes/{agente_id}/ejecutar", json=request, timeout=TIMEOUT_AGENTE)
 
 
-def ejecutar_pipeline(proyecto_id: str, nicho: str) -> dict:
+def ejecutar_pipeline(proyecto_id: str, nicho: str, canal_id: str | None = None) -> dict:
+    params = {"proyecto_id": proyecto_id, "nicho": nicho}
+    if canal_id:
+        params["canal_id"] = canal_id
     return _post(
         "/pipeline/ejecutar",
-        params={"proyecto_id": proyecto_id, "nicho": nicho},
+        params=params,
         timeout=TIMEOUT_PIPELINE,
     )
 
@@ -74,8 +77,10 @@ def pipeline_estado(proyecto_id: str) -> dict:
     return _get(f"/pipeline/estado/{proyecto_id}")
 
 
-def webhook_trigger(nicho: str, canal: str = "MiCanal", callback_url: str | None = None) -> dict:
+def webhook_trigger(nicho: str, canal: str = "MiCanal", canal_id: str | None = None, callback_url: str | None = None) -> dict:
     payload = {"nicho": nicho, "canal": canal}
+    if canal_id:
+        payload["canal_id"] = canal_id
     if callback_url:
         payload["callback_url"] = callback_url
     return _post("/pipeline/webhook", json=payload)
@@ -151,6 +156,60 @@ def verificar_compliance(proyecto_id: str) -> dict:
 def verificar_politicas() -> dict:
     resultado = ejecutar_agente("5.4_policy_monitor", "system", {})
     return resultado.get("output", {})
+
+
+# ── Channel Intelligence ─────────────────────────────────────────
+
+
+def conectar_canal(canal_input: str) -> dict:
+    return _post("/canales/conectar", json={"canal_input": canal_input}, timeout=TIMEOUT_AGENTE)
+
+
+def listar_canales() -> list[dict]:
+    data = _get("/canales")
+    return data.get("canales", [])
+
+
+def estado_canal(canal_id: str) -> dict:
+    return _get(f"/canales/{canal_id}")
+
+
+def refrescar_canal(canal_id: str) -> dict:
+    return _post(f"/canales/{canal_id}/refrescar", timeout=TIMEOUT_AGENTE)
+
+
+def eliminar_canal(canal_id: str) -> dict:
+    resp = httpx.delete(f"{GATEWAY_URL}/canales/{canal_id}", timeout=TIMEOUT_CORTO)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def agregar_competidor(canal_id: str, competidor_input: str) -> dict:
+    return _post(
+        f"/canales/{canal_id}/competidores",
+        json={"competidor_input": competidor_input},
+        timeout=TIMEOUT_AGENTE,
+    )
+
+
+def eliminar_competidor(canal_id: str, comp_id: str) -> dict:
+    resp = httpx.delete(f"{GATEWAY_URL}/canales/{canal_id}/competidores/{comp_id}", timeout=TIMEOUT_CORTO)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def obtener_ideas(canal_id: str) -> list[dict]:
+    data = _get(f"/canales/{canal_id}/ideas")
+    return data.get("ideas", [])
+
+
+def refrescar_ideas(canal_id: str) -> list[dict]:
+    data = _post(f"/canales/{canal_id}/ideas/refrescar", timeout=TIMEOUT_AGENTE)
+    return data.get("ideas", [])
+
+
+def quota_hoy() -> dict:
+    return _get("/quota/hoy")
 
 
 def sync_state_to_session(proyecto_id: str) -> dict:

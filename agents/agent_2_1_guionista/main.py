@@ -105,6 +105,15 @@ Titulo del video: {estrategia.titulo_ganador}
 Tono de canal: {estrategia.canal_tono or "no especificado"}
 Patrones virales detectados: {", ".join(estrategia.patrones_virales) or "ninguno"}"""
 
+    ctx = estrategia.contexto_canal
+    if ctx:
+        if ctx.get("audiencia_objetivo"):
+            contexto_estrategia += f"\nAudiencia objetivo: {ctx['audiencia_objetivo']}"
+        if ctx.get("formatos_exitosos"):
+            contexto_estrategia += f"\nFormatos que funcionan en el canal: {', '.join(ctx['formatos_exitosos'])}"
+        if ctx.get("tono"):
+            contexto_estrategia += f"\nEstilo de comunicacion del canal: {ctx['tono']}"
+
     es_reescritura = bool(guion_previo.feedback_evaluador) and not guion_previo.aprobado
 
     if es_reescritura:

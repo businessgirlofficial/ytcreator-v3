@@ -11,6 +11,7 @@ httpx
 requests>=2.31.0
 filelock
 python-dotenv
+psutil>=5.9.0
 
 # --- IA / LLM ---
 groq>=0.4.0

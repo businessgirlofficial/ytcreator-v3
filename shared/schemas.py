@@ -62,6 +62,12 @@ class BriefEstrategia(BaseModel):
     miniatura_prompt: Optional[str] = None
     miniatura_composicion: Optional[dict] = None
     miniatura_path: Optional[str] = None
+    # Channel Intelligence (Depto 0) - inyectado por sub_orq_inteligencia
+    canal_id: Optional[str] = None
+    contexto_canal: Optional[dict] = None
+    competidores_contexto: Optional[list[dict]] = None
+    tendencias_nicho: Optional[list[str]] = None
+    brechas_contenido: Optional[list[str]] = None
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +143,7 @@ class Compliance(BaseModel):
 class EstadoProyecto(BaseModel):
     proyecto_id: str
     canal: str
+    canal_id: Optional[str] = None
     creado_en: datetime
     actualizado_en: datetime
     fase_actual: Literal[
@@ -153,10 +160,188 @@ class EstadoProyecto(BaseModel):
     video_final_path: Optional[str] = None
     publicado: bool = False
     youtube_video_id: Optional[str] = None
+    publicado_en: Optional[datetime] = None
+
+    performance: Optional[PerformanceTracking] = None
 
     agente_actual: Optional[str] = None
     historial_agentes: list[ResultadoAgente] = Field(default_factory=list)
     errores: list[str] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Depto 0 - Inteligencia de Canal (Agentes 0.1-0.4)
+# ---------------------------------------------------------------------------
+
+class VideoRendimiento(BaseModel):
+    video_id: str
+    titulo: str
+    publicado_en: Optional[datetime] = None
+    vistas: int = 0
+    likes: int = 0
+    comentarios: int = 0
+    duracion_seg: Optional[int] = None
+    miniatura_url: Optional[str] = None
+    tags: list[str] = Field(default_factory=list)
+    categoria_id: Optional[str] = None
+
+
+class CompetidorInfo(BaseModel):
+    channel_id: str
+    nombre: str
+    suscriptores: Optional[int] = None
+    video_count: Optional[int] = None
+    ultimo_escaneo: Optional[datetime] = None
+    videos_recientes: list[VideoRendimiento] = Field(default_factory=list)
+    top_videos: list[VideoRendimiento] = Field(default_factory=list)
+
+
+class PerfilCanal(BaseModel):
+    nicho_principal: str = ""
+    sub_nichos: list[str] = Field(default_factory=list)
+    keywords_clave: list[str] = Field(default_factory=list)
+    tono: Optional[str] = None
+    estilo_visual: Optional[str] = None
+    audiencia_objetivo: Optional[str] = None
+    formatos_exitosos: list[str] = Field(default_factory=list)
+    frecuencia_publicacion: Optional[str] = None
+    mejores_horarios: list[str] = Field(default_factory=list)
+    patrones_titulo_exitosos: list[str] = Field(default_factory=list)
+    duracion_promedio_seg: Optional[int] = None
+
+
+class EstadoCanal(BaseModel):
+    canal_id: str
+    nombre: str
+    descripcion: Optional[str] = None
+    url: Optional[str] = None
+    suscriptores: Optional[int] = None
+    video_count: Optional[int] = None
+    vistas_totales: Optional[int] = None
+    creado_youtube: Optional[datetime] = None
+    miniatura_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    uploads_playlist_id: Optional[str] = None
+
+    oauth_conectado: bool = False
+
+    perfil: PerfilCanal = Field(default_factory=PerfilCanal)
+
+    videos_recientes: list[VideoRendimiento] = Field(default_factory=list)
+    top_videos: list[VideoRendimiento] = Field(default_factory=list)
+
+    competidores: list[CompetidorInfo] = Field(default_factory=list)
+
+    escaneado_en: Optional[datetime] = None
+    perfil_analizado_en: Optional[datetime] = None
+    competidores_actualizados_en: Optional[datetime] = None
+
+    tendencias_nicho: list[str] = Field(default_factory=list)
+    brechas_contenido: list[str] = Field(default_factory=list)
+    ideas_sugeridas: list[dict] = Field(default_factory=list)
+
+    promedios_canal: PromediosCanal = Field(default_factory=PromediosCanal)
+    performance_historial: list[dict] = Field(default_factory=list)
+    patrones_exitosos: list[dict] = Field(default_factory=list)
+    patrones_a_evitar: list[dict] = Field(default_factory=list)
+
+
+class QuotaTracker(BaseModel):
+    fecha: str
+    unidades_usadas: int = 0
+    detalle: list[dict] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Depto 0 - Performance Tracking (Agente 0.5 Tracker Performance)
+# ---------------------------------------------------------------------------
+
+class CheckpointTipo(str, Enum):
+    T_24H = "t_24h"
+    T_48H = "t_48h"
+    T_72H = "t_72h"
+    T_7D = "t_7d"
+    T_30D = "t_30d"
+
+
+class GradePerformance(str, Enum):
+    A_PLUS = "A+"
+    A = "A"
+    B = "B"
+    C = "C"
+    D = "D"
+    F = "F"
+
+
+class MetricasVideo(BaseModel):
+    vistas: int = 0
+    likes: int = 0
+    comentarios: int = 0
+    ctr: Optional[float] = None
+    retencion_promedio: Optional[float] = None
+    tiempo_visto_min: Optional[float] = None
+    duracion_vista_promedio_seg: Optional[float] = None
+    engagement_rate: Optional[float] = None
+
+
+class TrafficSources(BaseModel):
+    search: float = 0.0
+    suggested: float = 0.0
+    external: float = 0.0
+    browse: float = 0.0
+    otros: float = 0.0
+
+
+class DemografiaAudiencia(BaseModel):
+    top_pais: Optional[str] = None
+    top_edad: Optional[str] = None
+    top_genero: Optional[str] = None
+
+
+class AccionCorrectiva(BaseModel):
+    tipo: Literal[
+        "cambiar_thumbnail", "cambiar_titulo", "mejorar_seo",
+        "ajustar_estrategia", "replicar_patron", "informativa",
+    ]
+    prioridad: Literal["alta", "media", "baja"]
+    descripcion: str
+    agente_destino: Optional[str] = None
+    datos: dict = Field(default_factory=dict)
+
+
+class PerformanceCheckpoint(BaseModel):
+    tipo: CheckpointTipo
+    timestamp: datetime
+    metricas: MetricasVideo = Field(default_factory=MetricasVideo)
+    traffic_sources: Optional[TrafficSources] = None
+    demografia: Optional[DemografiaAudiencia] = None
+    grade: Optional[GradePerformance] = None
+    score: Optional[float] = None
+    vs_promedio_canal: Optional[dict] = None
+    insights: list[str] = Field(default_factory=list)
+    acciones: list[AccionCorrectiva] = Field(default_factory=list)
+
+
+class PerformanceTracking(BaseModel):
+    video_id: str
+    proyecto_id: str
+    canal_id: str
+    titulo: str
+    publicado_en: datetime
+    checkpoints: list[PerformanceCheckpoint] = Field(default_factory=list)
+    grade_actual: Optional[GradePerformance] = None
+    patrones_identificados: list[str] = Field(default_factory=list)
+
+
+class PromediosCanal(BaseModel):
+    total_videos_analizados: int = 0
+    vistas_promedio: float = 0.0
+    likes_promedio: float = 0.0
+    comentarios_promedio: float = 0.0
+    ctr_promedio: Optional[float] = None
+    retencion_promedio: Optional[float] = None
+    engagement_rate_promedio: Optional[float] = None
+    actualizado_en: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------

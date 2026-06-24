@@ -22,6 +22,14 @@ BASE = Path(__file__).resolve().parent
 # Orden sugerido: no es obligatorio (cada servicio es independiente y
 # escucha en su propio puerto), pero asi se ve agrupado por departamento.
 SERVICIOS = [
+    # Depto 0 - Inteligencia de Canal
+    BASE / "agents" / "agent_0_1_escaner_canal" / "main.py",
+    BASE / "agents" / "agent_0_2_analizador_canal" / "main.py",
+    BASE / "agents" / "agent_0_3_monitor_mercado" / "main.py",
+    BASE / "agents" / "agent_0_4_asesor_estrategico" / "main.py",
+    BASE / "agents" / "agent_0_5_tracker_performance" / "main.py",
+    BASE / "orchestrator" / "sub_orq_inteligencia" / "main.py",
+    # Depto 1 - Estrategia
     BASE / "agents" / "agent_1_1_investigador" / "main.py",
     BASE / "agents" / "agent_1_2_copywriter" / "main.py",
     BASE / "agents" / "agent_1_3_director_arte" / "main.py",

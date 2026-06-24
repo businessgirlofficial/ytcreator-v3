@@ -430,10 +430,13 @@ if API_DISPONIBLE:
                 s["nicho"] = auto_nicho
                 try:
                     import api_client
-                    result = api_client.webhook_trigger(
-                        nicho=auto_nicho,
-                        canal=auto_canal or "MiCanal",
-                    )
+                    webhook_payload = {
+                        "nicho": auto_nicho,
+                        "canal": auto_canal or "MiCanal",
+                    }
+                    if s.get("canal_id_pipeline"):
+                        webhook_payload["canal_id"] = s["canal_id_pipeline"]
+                    result = api_client.webhook_trigger(**webhook_payload)
                     st.success(f"✅  Pipeline lanzado — Proyecto: **{result.get('proyecto_id')}**")
                     st.info("El pipeline corre en background. Recibirás una notificación en Telegram cuando termine.")
 
@@ -464,7 +467,192 @@ if API_DISPONIBLE:
 st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
 
 # ── Tabs ─────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar"])
+tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Canal", "📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar"])
+
+# ══════════════════════════════════════════════════════════════
+# TAB 0 — CANAL (Channel Intelligence)
+# ══════════════════════════════════════════════════════════════
+with tab0:
+    st.markdown('<div class="step-title">Channel Intelligence</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Conecta tu canal de YouTube para analizar tu nicho, competidores y generar ideas de video basadas en datos reales.</div>', unsafe_allow_html=True)
+
+    if not API_DISPONIBLE:
+        st.warning("Los agentes no están conectados. Levanta los servicios con `python run_dev.py` para usar Channel Intelligence.")
+    else:
+        import api_client
+
+        # ── Conectar canal ──
+        with st.expander("🔗  Conectar canal de YouTube", expanded=not s.get("canales_conectados")):
+            col_c1, col_c2 = st.columns([3, 1], gap="large")
+            with col_c1:
+                canal_input = st.text_input(
+                    "URL del canal, @handle o Channel ID",
+                    placeholder="ej: @MiCanal, https://youtube.com/@MiCanal, UCxxxxxxxx",
+                    key="canal_input_ci",
+                )
+            with col_c2:
+                st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
+                btn_conectar = st.button("🔗  Conectar y escanear", use_container_width=True, key="btn_conectar_canal")
+
+            if btn_conectar and canal_input.strip():
+                with st.spinner("Escaneando canal... (esto puede tomar 30-60 segundos)"):
+                    try:
+                        resultado = api_client.conectar_canal(canal_input.strip())
+                        canal_id = resultado.get("canal_id", "")
+                        st.success(f"✅  Canal conectado: **{resultado.get('nombre', canal_id)}**")
+                        s["canal_seleccionado"] = canal_id
+                        s["canales_conectados"] = True
+                    except Exception as e:
+                        st.error(f"❌  Error al conectar canal: {str(e)}")
+
+        # ── Lista de canales conectados ──
+        try:
+            canales = api_client.listar_canales()
+        except Exception:
+            canales = []
+
+        if canales:
+            st.markdown('<div class="section-label" style="margin-top:16px">Canales conectados</div>', unsafe_allow_html=True)
+            opciones_canal = {c["canal_id"]: f"{c['nombre']} ({c.get('suscriptores', '?')} subs)" for c in canales}
+            canal_sel = st.selectbox(
+                "Seleccionar canal",
+                options=list(opciones_canal.keys()),
+                format_func=lambda x: opciones_canal.get(x, x),
+                key="canal_selector",
+            )
+            s["canal_seleccionado"] = canal_sel
+
+            if canal_sel:
+                col_refresh, col_delete = st.columns([1, 1])
+                with col_refresh:
+                    if st.button("🔄  Refrescar datos", key="btn_refresh_canal", use_container_width=True):
+                        with st.spinner("Refrescando..."):
+                            try:
+                                api_client.refrescar_canal(canal_sel)
+                                st.success("✅  Datos actualizados")
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
+
+                try:
+                    canal_data = api_client.estado_canal(canal_sel)
+                except Exception as e:
+                    canal_data = None
+                    st.error(f"Error al cargar canal: {str(e)}")
+
+                if canal_data:
+                    # ── Dashboard del canal ──
+                    st.markdown('<div class="section-label" style="margin-top:16px">Dashboard</div>', unsafe_allow_html=True)
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Suscriptores", f"{canal_data.get('suscriptores', 0):,}")
+                    m2.metric("Videos", f"{canal_data.get('video_count', 0):,}")
+                    m3.metric("Vistas totales", f"{canal_data.get('vistas_totales', 0):,}")
+                    perfil = canal_data.get("perfil", {})
+                    m4.metric("Nicho", perfil.get("nicho_principal", "Sin analizar"))
+
+                    # ── Perfil IA ──
+                    if perfil.get("nicho_principal"):
+                        with st.expander("🧠  Perfil analizado por IA", expanded=True):
+                            col_p1, col_p2 = st.columns(2)
+                            with col_p1:
+                                st.markdown(f"**Nicho:** {perfil.get('nicho_principal', '-')}")
+                                st.markdown(f"**Sub-nichos:** {', '.join(perfil.get('sub_nichos', []))}")
+                                st.markdown(f"**Tono:** {perfil.get('tono', '-')}")
+                                st.markdown(f"**Audiencia:** {perfil.get('audiencia_objetivo', '-')}")
+                                st.markdown(f"**Frecuencia:** {perfil.get('frecuencia_publicacion', '-')}")
+                            with col_p2:
+                                st.markdown(f"**Keywords:** {', '.join(perfil.get('keywords_clave', []))}")
+                                st.markdown(f"**Estilo visual:** {perfil.get('estilo_visual', '-')}")
+                                st.markdown(f"**Formatos exitosos:** {', '.join(perfil.get('formatos_exitosos', []))}")
+                                if perfil.get("patrones_titulo_exitosos"):
+                                    st.markdown("**Patrones de título:**")
+                                    for p in perfil["patrones_titulo_exitosos"]:
+                                        st.markdown(f"  - {p}")
+
+                    # ── Top Videos ──
+                    top_videos = canal_data.get("top_videos", [])
+                    if top_videos:
+                        with st.expander(f"🏆  Top {len(top_videos)} videos por vistas"):
+                            for i, v in enumerate(top_videos, 1):
+                                vistas = f"{v.get('vistas', 0):,}"
+                                likes = f"{v.get('likes', 0):,}"
+                                st.markdown(f"**{i}.** {v.get('titulo', '-')} — {vistas} vistas · {likes} likes")
+
+                    # ── Competidores ──
+                    competidores = canal_data.get("competidores", [])
+                    with st.expander(f"⚔️  Competidores ({len(competidores)})", expanded=False):
+                        if competidores:
+                            for comp in competidores:
+                                subs = f"{comp.get('suscriptores', 0):,}" if comp.get('suscriptores') else '?'
+                                st.markdown(f"**{comp.get('nombre', '?')}** — {subs} subs")
+                                tops = comp.get("top_videos", [])
+                                if tops:
+                                    for tv in tops[:3]:
+                                        st.markdown(f"  - {tv.get('titulo', '-')} ({tv.get('vistas', 0):,} vistas)")
+
+                        col_comp1, col_comp2 = st.columns([3, 1])
+                        with col_comp1:
+                            comp_input = st.text_input("Agregar competidor (@handle o URL)", key="comp_input_ci")
+                        with col_comp2:
+                            st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
+                            if st.button("➕  Agregar", key="btn_add_comp", use_container_width=True):
+                                if comp_input.strip():
+                                    with st.spinner("Escaneando competidor..."):
+                                        try:
+                                            result = api_client.agregar_competidor(canal_sel, comp_input.strip())
+                                            st.success(f"✅  Competidor agregado: {result.get('nombre', '')}")
+                                        except Exception as e:
+                                            st.error(f"Error: {str(e)}")
+
+                    # ── Tendencias y Brechas ──
+                    tendencias = canal_data.get("tendencias_nicho", [])
+                    brechas = canal_data.get("brechas_contenido", [])
+                    if tendencias or brechas:
+                        with st.expander("📈  Tendencias y brechas de contenido", expanded=False):
+                            if tendencias:
+                                st.markdown("**Tendencias del nicho:**")
+                                for t in tendencias:
+                                    st.markdown(f"  - {t}")
+                            if brechas:
+                                st.markdown("**Brechas de contenido (oportunidades):**")
+                                for b in brechas:
+                                    st.markdown(f"  - {b}")
+
+                    # ── Ideas de Video ──
+                    ideas = canal_data.get("ideas_sugeridas", [])
+                    with st.expander(f"💡  Ideas de video sugeridas ({len(ideas)})", expanded=bool(ideas)):
+                        col_ideas_r, _ = st.columns([1, 3])
+                        with col_ideas_r:
+                            if st.button("🔄  Re-generar ideas", key="btn_refresh_ideas", use_container_width=True):
+                                with st.spinner("Generando ideas..."):
+                                    try:
+                                        ideas = api_client.refrescar_ideas(canal_sel)
+                                        st.success("✅  Ideas actualizadas")
+                                    except Exception as e:
+                                        st.error(f"Error: {str(e)}")
+
+                        if ideas:
+                            for i, idea in enumerate(ideas, 1):
+                                score = idea.get("potencial_viral", 0)
+                                st.markdown(f"""**{i}. {idea.get('titulo_sugerido', '-')}**
+  - Potencial viral: **{score}/10** · Formato: {idea.get('formato_recomendado', '-')} · ~{idea.get('duracion_sugerida_min', '?')} min
+  - {idea.get('razon', '')}""")
+                                if st.button(f"🚀  Usar esta idea", key=f"btn_idea_{i}"):
+                                    s["nicho"] = perfil.get("nicho_principal", "")
+                                    s["titulo_elegido"] = idea.get("titulo_sugerido", "")
+                                    s["canal_id_pipeline"] = canal_sel
+                                    st.success(f"✅  Idea cargada. Ve al tab Guión para crear el video.")
+                        else:
+                            st.info("Conecta un canal y espera el análisis para ver ideas de video.")
+
+                    # ── Quota ──
+                    try:
+                        quota = api_client.quota_hoy()
+                        usadas = quota.get("unidades_usadas", 0)
+                        limite = quota.get("limite", 10000)
+                        pct = round(usadas / limite * 100, 1) if limite else 0
+                        st.markdown(f'<div style="font-size:.75rem;color:var(--text3);margin-top:12px">📊 Quota YouTube API: {usadas:,} / {limite:,} unidades ({pct}%)</div>', unsafe_allow_html=True)
+                    except Exception:
+                        pass
 
 # ══════════════════════════════════════════════════════════════
 # TAB 1 — GUIÓN (Modo Pro — Sistema de 3 Fases)
@@ -472,6 +660,31 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["📝 Guión", "🎙️ Audio", "🚀 Ka
 with tab1:
     st.markdown('<div class="step-title">Guión — Modo Pro</div>', unsafe_allow_html=True)
     st.markdown('<div class="step-sub">Sistema de 3 fases: análisis del nicho con videos virales → ingeniería de títulos → guión con estructura viral probada.</div>', unsafe_allow_html=True)
+
+    # ── Selector de canal (si hay canales conectados) ──
+    if API_DISPONIBLE:
+        try:
+            canales_guion = api_client.listar_canales()
+        except Exception:
+            canales_guion = []
+        if canales_guion:
+            opciones_g = {"": "— Sin canal (modo libre) —"}
+            opciones_g.update({c["canal_id"]: f"📊 {c['nombre']} ({c.get('nicho', 'sin nicho')})" for c in canales_guion})
+            canal_guion = st.selectbox(
+                "Canal", options=list(opciones_g.keys()),
+                format_func=lambda x: opciones_g.get(x, x),
+                index=list(opciones_g.keys()).index(s.get("canal_id_pipeline", "")) if s.get("canal_id_pipeline", "") in opciones_g else 0,
+                key="canal_guion_sel",
+            )
+            if canal_guion:
+                s["canal_id_pipeline"] = canal_guion
+                try:
+                    canal_info = api_client.estado_canal(canal_guion)
+                    nicho_canal = canal_info.get("perfil", {}).get("nicho_principal", "")
+                    if nicho_canal and not s.get("nicho"):
+                        s["nicho"] = nicho_canal
+                except Exception:
+                    pass
 
     # Barra de fases
     fase_actual = 1

@@ -19,6 +19,10 @@ from .config import (
     KAGGLE_USERNAME,
     PIXABAY_API_KEY,
     SUBTITULOS_FONT_PATH,
+    YOUTUBE_API_KEY,
+    YOUTUBE_CLIENT_ID,
+    YOUTUBE_CLIENT_SECRET,
+    YOUTUBE_REFRESH_TOKEN,
 )
 
 
@@ -121,9 +125,16 @@ def check_ffmpeg() -> str | None:
     return None
 
 
+def check_youtube_data_api() -> str | None:
+    if not YOUTUBE_API_KEY and not all([YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN]):
+        return "Se necesita YOUTUBE_API_KEY o credenciales OAuth2 completas para Channel Intelligence"
+    return None
+
+
 # ── Mapa fase -> checks necesarios ────────────────────────────────
 
 CHECKS_POR_FASE: dict[str, list] = {
+    "inteligencia": [check_youtube_data_api, check_groq],
     "estrategia": [check_groq, check_hf],
     "guion":      [check_groq],
     "visual":     [check_kaggle],

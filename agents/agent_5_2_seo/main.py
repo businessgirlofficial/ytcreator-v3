@@ -30,6 +30,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
+from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
 from shared.schemas import AgenteRequest, AgenteResponse
@@ -39,8 +40,60 @@ from shared.video_utils import calcular_duraciones_por_palabras
 AGENTE_ID = "5.2_seo"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera descripcion, tags, categoria y capitulos con Groq")
 state = StateManager()
+channels = ChannelManager()
 
 SEPARACION_MINIMA_CAPITULOS_SEG = 10  # requisito real de YouTube
+YOUTUBE_MAX_TAG_CHARS = 500
+
+import datetime as _dt
+
+
+def _priorizar_tags(tags_raw: list[str], nicho: str, titulo: str, keywords: list[str]) -> list[str]:
+    """Puntua, ordena y recorta tags al limite de 500 caracteres de YouTube."""
+    nicho_lower = nicho.lower() if nicho else ""
+    titulo_lower = titulo.lower() if titulo else ""
+    keywords_lower = {k.lower() for k in keywords} if keywords else set()
+    anio = str(_dt.date.today().year)
+
+    scored = []
+    vistos = set()
+    for tag in tags_raw:
+        tag = tag.strip()
+        if not tag:
+            continue
+        tag_key = tag.lower()
+        if tag_key in vistos:
+            continue
+        vistos.add(tag_key)
+
+        score = 0
+        if tag_key in keywords_lower:
+            score += 10
+        if any(k in tag_key for k in keywords_lower):
+            score += 5
+        if nicho_lower and nicho_lower in tag_key:
+            score += 3
+        if len(tag.split()) >= 3:
+            score += 2
+        if anio in tag:
+            score += 1
+        if titulo_lower and any(w in titulo_lower for w in tag_key.split() if len(w) > 3):
+            score += 2
+
+        scored.append((tag, score))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    final = []
+    chars_usados = 0
+    for tag, _ in scored:
+        necesita = len(tag) + (1 if final else 0)
+        if chars_usados + necesita > YOUTUBE_MAX_TAG_CHARS:
+            break
+        final.append(tag)
+        chars_usados += necesita
+
+    return final
 
 SYSTEM_PROMPT_SEO = """Eres un consultor SEO experto en YouTube. Te paso el
 titulo ganador, el nicho del canal y el guion completo de un video.
@@ -105,12 +158,37 @@ def logica(request: AgenteRequest) -> dict:
     duracion_total = VideoFileClip(estado.video_final_path).duration
     duraciones = calcular_duraciones_por_palabras(escenas, duracion_total)
 
+    # Performance feedback: que fuentes de trafico funcionan
+    seo_feedback = ""
+    canal_id = estado.estrategia.canal_id or estado.canal_id
+    if canal_id:
+        try:
+            canal = channels.leer(canal_id)
+            promedios = canal.promedios_canal
+            if promedios.total_videos_analizados >= 3:
+                seo_feedback += f"""
+
+Datos de performance del canal para optimizar SEO:
+- CTR promedio: {promedios.ctr_promedio or '?'}%
+- Videos analizados: {promedios.total_videos_analizados}"""
+
+            # Tags de videos exitosos como referencia
+            exitosos = canal.patrones_exitosos[-3:]
+            if exitosos:
+                titulos_ref = [f"- \"{p.get('titulo', '?')}\" ({p.get('vistas', 0):,} vistas)" for p in exitosos]
+                seo_feedback += f"""
+
+Videos con mejor rendimiento (usa como referencia de tono y keywords):
+{chr(10).join(titulos_ref)}"""
+        except FileNotFoundError:
+            pass
+
     user_prompt = f"""Titulo: {estado.estrategia.titulo_ganador or ""}
 Nicho: {estado.estrategia.nicho}
 Numero de escenas: {len(escenas)}
 
 Guion completo:
-{estado.guion.texto_completo or ""}"""
+{estado.guion.texto_completo or ""}{seo_feedback}"""
 
     resultado = generar_json(SYSTEM_PROMPT_SEO, user_prompt, temperatura=0.6)
 
@@ -124,9 +202,17 @@ Guion completo:
 
     capitulos = _construir_capitulos(escenas, duraciones, titulos_capitulo)
 
+    tags_raw = resultado.get("tags", [])
+    tags = _priorizar_tags(
+        tags_raw,
+        nicho=estado.estrategia.nicho or "",
+        titulo=estado.estrategia.titulo_ganador or "",
+        keywords=estado.estrategia.patrones_virales or [],
+    )
+
     metadata = {
         "descripcion": resultado.get("descripcion", ""),
-        "tags": resultado.get("tags", []),
+        "tags": tags,
         "categoria": resultado.get("categoria"),
         "capitulos": capitulos,
     }

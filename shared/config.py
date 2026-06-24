@@ -32,11 +32,20 @@ KAGGLE_KERNEL_SLUG = os.getenv("KAGGLE_KERNEL_SLUG", f"{KAGGLE_USERNAME}/youtube
 YOUTUBE_CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID", "")
 YOUTUBE_CLIENT_SECRET = os.getenv("YOUTUBE_CLIENT_SECRET", "")
 YOUTUBE_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN", "")
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 YTCREATOR_API_KEY = os.getenv("YTCREATOR_API_KEY", "")
 STORAGE_DIR = os.getenv("STORAGE_DIR", ".")
+BUFFER_MAX_VIDEOS = int(os.getenv("BUFFER_MAX_VIDEOS", "3"))
 
 # -- registro de puertos: agente_id -> puerto -------------------------------
 REGISTRO_AGENTES: dict[str, int] = {
+    # Depto 0 - Inteligencia de Canal
+    "sub_orq_inteligencia": 8010,
+    "0.1_escaner_canal": 8001,
+    "0.2_analizador_canal": 8002,
+    "0.3_monitor_mercado": 8003,
+    "0.4_asesor_estrategico": 8004,
+    "0.5_tracker_performance": 8005,
     # Depto 1 - Estrategia
     "sub_orq_estrategia": 8110,
     "1.1_investigador": 8101,

@@ -26,6 +26,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
+from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
 from shared.schemas import AgenteRequest, AgenteResponse
@@ -34,6 +35,7 @@ from shared.state_manager import StateManager
 AGENTE_ID = "1.2_copywriter"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera y valida titulos virales")
 state = StateManager()
+channels = ChannelManager()
 
 LONGITUD_MIN_IDEAL = 40
 LONGITUD_MAX_IDEAL = 70
@@ -103,9 +105,50 @@ def logica(request: AgenteRequest) -> dict:
     user_prompt = f"""Nicho: {nicho}
 
 Patrones virales detectados para este nicho:
-{patrones_texto}
+{patrones_texto}"""
 
-Genera 10 titulos usando frameworks distintos."""
+    ctx = estado.estrategia.contexto_canal
+    if ctx and ctx.get("patrones_titulo_exitosos"):
+        user_prompt += f"""
+
+Formulas de titulo que ya funcionan en este canal y su competencia:
+{chr(10).join(f'- {p}' for p in ctx['patrones_titulo_exitosos'])}
+
+Usa estas formulas como referencia para generar titulos que encajen con
+el estilo probado del canal, pero con variaciones frescas."""
+
+    # Performance feedback: patrones de CTR de videos anteriores
+    canal_id = estado.estrategia.canal_id or estado.canal_id
+    if canal_id:
+        try:
+            canal = channels.leer(canal_id)
+            if canal.patrones_exitosos:
+                exitosos = canal.patrones_exitosos[-5:]
+                titulos_exitosos = [
+                    f"- \"{p.get('titulo', '?')}\" (CTR {p.get('ctr', '?')}%)"
+                    for p in exitosos if p.get("ctr")
+                ]
+                if titulos_exitosos:
+                    user_prompt += f"""
+
+Titulos que tuvieron ALTO CTR en videos anteriores del canal (REPLICA el estilo):
+{chr(10).join(titulos_exitosos)}"""
+
+            if canal.patrones_a_evitar:
+                evitar = canal.patrones_a_evitar[-3:]
+                titulos_evitar = [
+                    f"- \"{p.get('titulo', '?')}\" (CTR {p.get('ctr', '?')}%)"
+                    for p in evitar if p.get("ctr")
+                ]
+                if titulos_evitar:
+                    user_prompt += f"""
+
+Titulos que tuvieron BAJO CTR (EVITA este estilo):
+{chr(10).join(titulos_evitar)}"""
+        except FileNotFoundError:
+            pass
+
+    user_prompt += "\n\nGenera 10 titulos usando frameworks distintos."
 
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
     titulos_raw = resultado.get("titulos", [])

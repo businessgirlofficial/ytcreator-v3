@@ -11,6 +11,7 @@ listo para subir manualmente.
 """
 
 import sys
+from datetime import datetime
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
@@ -155,6 +156,7 @@ def logica(request: AgenteRequest) -> dict:
         request.proyecto_id,
         publicado=True,
         youtube_video_id=video_id,
+        publicado_en=datetime.utcnow().isoformat(),
     )
 
     return {

@@ -25,9 +25,11 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from starlette.responses import Response
 
+from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES, STORAGE_DIR, YTCREATOR_API_KEY, url_agente
 from shared.logger import get_logger
 from shared.state_manager import StateManager
+from shared.youtube_client import obtener_quota_hoy
 
 log = get_logger("gateway")
 
@@ -50,6 +52,7 @@ async def log_requests(request: Request, call_next):
     return response
 
 state = StateManager()
+channel_mgr = ChannelManager()
 
 ORQUESTADOR_URL = url_agente("orquestador_central")
 TIMEOUT_PIPELINE = 600
@@ -106,10 +109,13 @@ def listar_proyectos():
 
 
 @app.post("/pipeline/ejecutar", dependencies=[Depends(verificar_api_key)])
-def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
+def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", canal_id: str | None = None):
+    params = {"proyecto_id": proyecto_id, "nicho": nicho, "canal": canal}
+    if canal_id:
+        params["canal_id"] = canal_id
     resp = httpx.post(
         f"{ORQUESTADOR_URL}/pipeline/ejecutar",
-        params={"proyecto_id": proyecto_id, "nicho": nicho, "canal": canal},
+        params=params,
         timeout=TIMEOUT_PIPELINE,
     )
     if resp.status_code != 200:
@@ -138,6 +144,7 @@ def ejecutar_agente(agente_id: str, request: dict):
 class WebhookRequest(BaseModel):
     nicho: str
     canal: str = "MiCanal"
+    canal_id: str | None = None
     proyecto_id: str | None = None
     callback_url: str | None = None
     parametros: dict = Field(default_factory=dict)
@@ -149,11 +156,14 @@ class KaggleCallbackRequest(BaseModel):
     error: str | None = None
 
 
-def _run_pipeline_async(proyecto_id: str, nicho: str, canal: str, callback_url: str | None):
+def _run_pipeline_async(proyecto_id: str, nicho: str, canal: str, callback_url: str | None, canal_id: str | None = None):
     try:
+        params = {"proyecto_id": proyecto_id, "nicho": nicho, "canal": canal}
+        if canal_id:
+            params["canal_id"] = canal_id
         httpx.post(
             f"{ORQUESTADOR_URL}/pipeline/ejecutar",
-            params={"proyecto_id": proyecto_id, "nicho": nicho, "canal": canal},
+            params=params,
             timeout=TIMEOUT_PIPELINE,
         )
         if callback_url:
@@ -195,6 +205,7 @@ def webhook_trigger(request: WebhookRequest, background_tasks: BackgroundTasks):
         request.nicho,
         request.canal,
         request.callback_url,
+        request.canal_id,
     )
 
     return {
@@ -221,6 +232,172 @@ def kaggle_callback(request: KaggleCallbackRequest):
             errores=[f"Kaggle fallo: {request.error or 'error desconocido'}"],
         )
         raise HTTPException(status_code=422, detail=f"Kaggle reporto error: {request.error}")
+
+
+# ── Channel Intelligence ───────────────────────────────────────────
+
+
+class ConectarCanalRequest(BaseModel):
+    canal_input: str
+
+
+class AgregarCompetidorRequest(BaseModel):
+    competidor_input: str
+
+
+@app.post("/canales/conectar", dependencies=[Depends(verificar_api_key)])
+def conectar_canal(request: ConectarCanalRequest, background_tasks: BackgroundTasks):
+    resp = httpx.post(
+        f"{url_agente('sub_orq_inteligencia')}/ejecutar",
+        json={
+            "proyecto_id": "canal_setup",
+            "parametros": {
+                "canal_input": request.canal_input,
+                "modo": "completo",
+            },
+        },
+        timeout=300,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    data = resp.json()
+    canal_id = data.get("output", {}).get("canal_id")
+    if canal_id:
+        try:
+            return channel_mgr.leer(canal_id).model_dump()
+        except FileNotFoundError:
+            return data
+    return data
+
+
+@app.get("/canales", dependencies=[Depends(verificar_api_key)])
+def listar_canales():
+    return {"canales": channel_mgr.listar_canales()}
+
+
+@app.get("/canales/{canal_id}", dependencies=[Depends(verificar_api_key)])
+def leer_canal(canal_id: str):
+    try:
+        return channel_mgr.leer(canal_id).model_dump()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Canal '{canal_id}' no encontrado")
+
+
+@app.post("/canales/{canal_id}/refrescar", dependencies=[Depends(verificar_api_key)])
+def refrescar_canal(canal_id: str):
+    resp = httpx.post(
+        f"{url_agente('sub_orq_inteligencia')}/ejecutar",
+        json={
+            "proyecto_id": "canal_refresh",
+            "parametros": {
+                "canal_id": canal_id,
+                "canal_input": canal_id,
+                "modo": "completo",
+            },
+        },
+        timeout=300,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    try:
+        return channel_mgr.leer(canal_id).model_dump()
+    except FileNotFoundError:
+        return resp.json()
+
+
+@app.delete("/canales/{canal_id}", dependencies=[Depends(verificar_api_key)])
+def eliminar_canal(canal_id: str):
+    try:
+        channel_mgr.eliminar(canal_id)
+        return {"eliminado": True, "canal_id": canal_id}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Canal '{canal_id}' no encontrado")
+
+
+@app.post("/canales/{canal_id}/competidores", dependencies=[Depends(verificar_api_key)])
+def agregar_competidor(canal_id: str, request: AgregarCompetidorRequest):
+    try:
+        estado = channel_mgr.leer(canal_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Canal '{canal_id}' no encontrado")
+
+    resp = httpx.post(
+        f"{url_agente('0.1_escaner_canal')}/ejecutar",
+        json={
+            "proyecto_id": "comp_scan",
+            "parametros": {"canal_input": request.competidor_input},
+        },
+        timeout=120,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+
+    comp_data = resp.json().get("output", {})
+    comp_id = comp_data.get("canal_id", "")
+    if not comp_id:
+        raise HTTPException(status_code=422, detail="No se pudo resolver el canal competidor")
+
+    ya_existe = any(c.channel_id == comp_id for c in estado.competidores)
+    if ya_existe:
+        return {"mensaje": "Competidor ya agregado", "channel_id": comp_id}
+
+    from shared.schemas import CompetidorInfo
+    nuevo_comp = CompetidorInfo(
+        channel_id=comp_id,
+        nombre=comp_data.get("nombre", ""),
+        suscriptores=comp_data.get("suscriptores"),
+    )
+    competidores = estado.competidores + [nuevo_comp]
+    channel_mgr.actualizar(canal_id, competidores=[c.model_dump() for c in competidores])
+    return {"agregado": True, "channel_id": comp_id, "nombre": comp_data.get("nombre")}
+
+
+@app.delete("/canales/{canal_id}/competidores/{comp_id}", dependencies=[Depends(verificar_api_key)])
+def eliminar_competidor(canal_id: str, comp_id: str):
+    try:
+        estado = channel_mgr.leer(canal_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Canal '{canal_id}' no encontrado")
+
+    competidores = [c for c in estado.competidores if c.channel_id != comp_id]
+    if len(competidores) == len(estado.competidores):
+        raise HTTPException(status_code=404, detail=f"Competidor '{comp_id}' no encontrado")
+
+    channel_mgr.actualizar(canal_id, competidores=[c.model_dump() for c in competidores])
+    return {"eliminado": True, "comp_id": comp_id}
+
+
+@app.get("/canales/{canal_id}/ideas", dependencies=[Depends(verificar_api_key)])
+def obtener_ideas(canal_id: str):
+    try:
+        estado = channel_mgr.leer(canal_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Canal '{canal_id}' no encontrado")
+    return {"canal_id": canal_id, "ideas": estado.ideas_sugeridas}
+
+
+@app.post("/canales/{canal_id}/ideas/refrescar", dependencies=[Depends(verificar_api_key)])
+def refrescar_ideas(canal_id: str):
+    resp = httpx.post(
+        f"{url_agente('0.4_asesor_estrategico')}/ejecutar",
+        json={
+            "proyecto_id": "ideas_refresh",
+            "parametros": {"canal_id": canal_id},
+        },
+        timeout=120,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    try:
+        estado = channel_mgr.leer(canal_id)
+        return {"canal_id": canal_id, "ideas": estado.ideas_sugeridas}
+    except FileNotFoundError:
+        return resp.json()
+
+
+@app.get("/quota/hoy", dependencies=[Depends(verificar_api_key)])
+def quota_hoy():
+    return obtener_quota_hoy()
 
 
 # ── Estado del pipeline ─────────────────────────────────────────────

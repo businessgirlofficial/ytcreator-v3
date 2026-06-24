@@ -20,6 +20,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI, HTTPException
 
+from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES, url_agente
 from shared.health_checks import HealthCheckError, validar_fase, validar_todo
 from shared.logger import get_logger
@@ -30,6 +31,7 @@ log = get_logger("orquestador_central")
 
 app = FastAPI(title="Orquestador Central - YTCreator Studio")
 state = StateManager()
+channel_mgr = ChannelManager()
 
 MAX_REINTENTOS_AGENTE = 3
 BACKOFF_BASE = 5
@@ -154,10 +156,10 @@ def listar_proyectos():
 
 
 @app.post("/pipeline/ejecutar")
-def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
+def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", canal_id: str | None = None):
     """Corre el pipeline completo con tracking de fase, reintentos y recovery."""
 
-    log.info("pipeline inicio | proyecto=%s | nicho=%s | canal=%s", proyecto_id, nicho, canal)
+    log.info("pipeline inicio | proyecto=%s | nicho=%s | canal=%s | canal_id=%s", proyecto_id, nicho, canal, canal_id)
     pipeline_inicio = time.time()
 
     try:
@@ -166,6 +168,9 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
             state.leer(proyecto_id)
         except FileNotFoundError:
             state.crear(proyecto_id, canal)
+
+        if canal_id:
+            state.actualizar(proyecto_id, canal_id=canal_id)
 
         # 0.1 Validar TODAS las credenciales antes de gastar un solo segundo
         try:
@@ -177,6 +182,28 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
                 errores=[f"Pre-check: {f}" for f in exc.fallos],
             )
             raise HTTPException(status_code=422, detail=str(exc))
+
+        # 0.5 Channel Intelligence (si canal_id proporcionado)
+        if canal_id:
+            try:
+                validar_fase("inteligencia")
+                _llamar("sub_orq_inteligencia", proyecto_id, {
+                    "canal_id": canal_id,
+                    "canal_input": canal_id,
+                    "modo": "quick_refresh",
+                })
+                canal_data = channel_mgr.leer(canal_id)
+                state.actualizar(proyecto_id, estrategia={
+                    "canal_id": canal_id,
+                    "contexto_canal": canal_data.perfil.model_dump(),
+                    "competidores_contexto": [c.model_dump() for c in canal_data.competidores[:3]],
+                    "tendencias_nicho": canal_data.tendencias_nicho,
+                    "brechas_contenido": canal_data.brechas_contenido,
+                })
+                if canal_data.perfil.tono:
+                    state.actualizar(proyecto_id, estrategia={"canal_tono": canal_data.perfil.tono})
+            except Exception as exc:
+                log.warning("channel intelligence fallo (no critico): %s", exc)
 
         # 1. Estrategia (Investigador -> Copywriter -> Director de Arte)
         if not _fase_completada(proyecto_id, "estrategia"):
@@ -243,6 +270,281 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal"):
             errores=[str(exc)],
         )
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ── Performance Tracking (post-publicacion) ──────────────────
+
+@app.post("/performance/checkpoint")
+def ejecutar_checkpoint(proyecto_id: str, checkpoint: str):
+    """
+    Dispara un checkpoint de performance para un video ya publicado.
+
+    checkpoint: t_24h | t_48h | t_72h | t_7d | t_30d
+    """
+    try:
+        proyecto = state.leer(proyecto_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Proyecto {proyecto_id} no encontrado")
+
+    if not proyecto.publicado or not proyecto.youtube_video_id:
+        raise HTTPException(status_code=422, detail="El proyecto no ha sido publicado aun")
+
+    canal_id = proyecto.canal_id or proyecto.estrategia.canal_id
+    if not canal_id:
+        raise HTTPException(status_code=422, detail="No hay canal_id asociado al proyecto")
+
+    log.info("checkpoint %s | proyecto=%s | video=%s", checkpoint, proyecto_id, proyecto.youtube_video_id)
+
+    resultado = _llamar("0.5_tracker_performance", proyecto_id, {
+        "video_id": proyecto.youtube_video_id,
+        "canal_id": canal_id,
+        "checkpoint": checkpoint,
+    })
+
+    return resultado
+
+
+@app.post("/performance/evaluar_pendientes")
+def evaluar_pendientes():
+    """
+    Revisa todos los proyectos publicados y dispara checkpoints
+    que correspondan segun el tiempo transcurrido desde la publicacion.
+    Diseñado para ser llamado periodicamente (ej. cada 6 horas via n8n).
+    """
+    from shared.schemas import CheckpointTipo
+
+    CHECKPOINT_HORAS = {
+        CheckpointTipo.T_24H: 24,
+        CheckpointTipo.T_48H: 48,
+        CheckpointTipo.T_72H: 72,
+        CheckpointTipo.T_7D: 168,
+        CheckpointTipo.T_30D: 720,
+    }
+
+    proyectos = state.listar_proyectos()
+    resultados = []
+
+    for pid in proyectos:
+        try:
+            proyecto = state.leer(pid)
+        except Exception:
+            continue
+
+        if not proyecto.publicado or not proyecto.youtube_video_id or not proyecto.publicado_en:
+            continue
+
+        horas_desde_pub = (datetime.utcnow() - proyecto.publicado_en).total_seconds() / 3600
+        checkpoints_hechos = set()
+        if proyecto.performance:
+            checkpoints_hechos = {cp.tipo for cp in proyecto.performance.checkpoints}
+
+        for tipo, horas_min in CHECKPOINT_HORAS.items():
+            if tipo in checkpoints_hechos:
+                continue
+            if horas_desde_pub >= horas_min:
+                try:
+                    canal_id = proyecto.canal_id or proyecto.estrategia.canal_id
+                    if not canal_id:
+                        continue
+                    _llamar("0.5_tracker_performance", pid, {
+                        "video_id": proyecto.youtube_video_id,
+                        "canal_id": canal_id,
+                        "checkpoint": tipo.value,
+                    })
+                    resultados.append({"proyecto_id": pid, "checkpoint": tipo.value, "estado": "ok"})
+                    log.info("auto-checkpoint %s | proyecto=%s", tipo.value, pid)
+                except Exception as exc:
+                    resultados.append({"proyecto_id": pid, "checkpoint": tipo.value, "estado": "error", "error": str(exc)})
+                    log.warning("auto-checkpoint fallo %s | proyecto=%s | %s", tipo.value, pid, exc)
+                break
+
+    return {"evaluados": len(resultados), "resultados": resultados}
+
+
+# ── Scheduling (endpoints para n8n) ───────────────────────────
+
+@app.post("/scheduling/puede_generar")
+def puede_generar(canal_id: str | None = None, frecuencia: str | None = None):
+    """
+    Verifica si se debe generar un nuevo video o si el buffer esta lleno.
+    n8n llama esto ANTES de disparar /pipeline/ejecutar.
+
+    Chequea:
+      1. Buffer: cuantos proyectos completados pero no publicados hay
+      2. Frecuencia: si la frecuencia del canal permite generar hoy
+      3. Ultimo generado: que no haya un pipeline corriendo ahora mismo
+
+    Responde {puede: true/false, razon: "...", detalle: {...}}
+    """
+    from shared.config import BUFFER_MAX_VIDEOS
+
+    proyectos_ids = state.listar_proyectos()
+
+    # Contar estados
+    completados_sin_publicar = 0
+    en_proceso = 0
+    publicados = 0
+    ultimo_creado = None
+
+    for pid in proyectos_ids:
+        try:
+            proyecto = state.leer(pid)
+        except Exception:
+            continue
+
+        if proyecto.publicado:
+            publicados += 1
+        elif proyecto.fase_actual == "completado":
+            completados_sin_publicar += 1
+        elif proyecto.fase_actual in ("estrategia", "guion", "visual", "audio", "cierre"):
+            en_proceso += 1
+
+        if ultimo_creado is None or proyecto.creado_en > ultimo_creado:
+            ultimo_creado = proyecto.creado_en
+
+    detalle = {
+        "buffer_actual": completados_sin_publicar,
+        "buffer_max": BUFFER_MAX_VIDEOS,
+        "en_proceso": en_proceso,
+        "publicados": publicados,
+        "total_proyectos": len(proyectos_ids),
+    }
+
+    # Check 1: hay un pipeline corriendo ahora?
+    if en_proceso > 0:
+        return {"puede": False, "razon": f"Hay {en_proceso} pipeline(s) en proceso", "detalle": detalle}
+
+    # Check 2: buffer lleno?
+    if completados_sin_publicar >= BUFFER_MAX_VIDEOS:
+        return {
+            "puede": False,
+            "razon": f"Buffer lleno: {completados_sin_publicar}/{BUFFER_MAX_VIDEOS} videos esperando publicacion",
+            "detalle": detalle,
+        }
+
+    # Check 3: frecuencia (query param override > PerfilCanal)
+    freq = frecuencia
+    if not freq and canal_id:
+        try:
+            canal = channel_mgr.leer(canal_id)
+            freq = canal.perfil.frecuencia_publicacion
+        except FileNotFoundError:
+            pass
+
+    if freq and ultimo_creado:
+        horas_desde_ultimo = (datetime.utcnow() - ultimo_creado).total_seconds() / 3600
+        horas_minimas = _frecuencia_a_horas(freq)
+        if horas_desde_ultimo < horas_minimas:
+            horas_falta = round(horas_minimas - horas_desde_ultimo, 1)
+            detalle["frecuencia"] = freq
+            detalle["horas_desde_ultimo"] = round(horas_desde_ultimo, 1)
+            detalle["horas_minimas"] = horas_minimas
+            return {
+                "puede": False,
+                "razon": f"Frecuencia '{freq}': faltan {horas_falta}h para el proximo video",
+                "detalle": detalle,
+            }
+
+    return {"puede": True, "razon": "Buffer disponible, listo para generar", "detalle": detalle}
+
+
+def _frecuencia_a_horas(frecuencia: str) -> float:
+    """Convierte la frecuencia textual del canal a horas minimas entre videos."""
+    mapping = {
+        "diario": 20,
+        "daily": 20,
+        "cada 2 dias": 44,
+        "every 2 days": 44,
+        "3 por semana": 48,
+        "3 per week": 48,
+        "semanal": 144,
+        "weekly": 144,
+        "quincenal": 312,
+        "biweekly": 312,
+    }
+    return mapping.get(frecuencia.lower().strip(), 20)
+
+
+@app.get("/scheduling/health_servicios")
+def health_servicios():
+    """
+    Hace ping a /health de todos los servicios registrados en paralelo.
+    Responde con lista de vivos/muertos y un score general.
+    Diseñado para que n8n lo llame ANTES de lanzar un pipeline.
+    """
+    import concurrent.futures
+
+    resultados = {}
+    agentes = list(REGISTRO_AGENTES.items())
+
+    def ping_servicio(agente_id: str, puerto: int) -> dict:
+        try:
+            resp = httpx.get(f"http://localhost:{puerto}/health", timeout=5)
+            if resp.status_code == 200:
+                return {"estado": "ok", "puerto": puerto}
+            return {"estado": "error", "puerto": puerto, "status_code": resp.status_code}
+        except Exception as e:
+            return {"estado": "caido", "puerto": puerto, "error": str(e)}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {
+            executor.submit(ping_servicio, aid, puerto): aid
+            for aid, puerto in agentes
+        }
+        for future in concurrent.futures.as_completed(futures):
+            agente_id = futures[future]
+            resultados[agente_id] = future.result()
+
+    vivos = sum(1 for r in resultados.values() if r["estado"] == "ok")
+    total = len(resultados)
+    score = round((vivos / total) * 100) if total > 0 else 0
+
+    # Servicios criticos que DEBEN estar vivos para un pipeline
+    criticos = [
+        "orquestador_central", "sub_orq_estrategia", "sub_orq_guion",
+        "sub_orq_visual", "sub_orq_audio", "sub_orq_cierre",
+        "1.1_investigador", "1.2_copywriter", "2.1_guionista",
+        "3.2_generador_visual", "4.1_locucion", "5.1_editor",
+    ]
+    criticos_caidos = [
+        aid for aid in criticos
+        if resultados.get(aid, {}).get("estado") != "ok"
+    ]
+
+    puede_pipeline = len(criticos_caidos) == 0
+
+    if score >= 90:
+        nivel = "saludable"
+    elif score >= 60:
+        nivel = "degradado"
+    else:
+        nivel = "critico"
+
+    # Desglose por departamento
+    deptos = {
+        "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
+        "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
+        "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
+        "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],
+        "depto_4_audio": ["4.1_locucion", "4.2_musica", "4.3_subtitulos", "sub_orq_audio"],
+        "depto_5_cierre": ["5.1_editor", "5.2_seo", "5.3_compliance", "5.4_policy_monitor", "5.5_publicador", "sub_orq_cierre"],
+        "orquestador": ["orquestador_central"],
+    }
+    desglose = {}
+    for depto, agentes_depto in deptos.items():
+        vivos_depto = sum(1 for a in agentes_depto if resultados.get(a, {}).get("estado") == "ok")
+        desglose[depto] = {"vivos": vivos_depto, "total": len(agentes_depto)}
+
+    return {
+        "score": score,
+        "nivel": nivel,
+        "vivos": vivos,
+        "total": total,
+        "puede_pipeline": puede_pipeline,
+        "criticos_caidos": criticos_caidos,
+        "desglose_departamentos": desglose,
+        "servicios": resultados,
+    }
 
 
 if __name__ == "__main__":

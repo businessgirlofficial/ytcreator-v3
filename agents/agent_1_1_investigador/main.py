@@ -63,19 +63,69 @@ def _construir_contexto_busqueda(nicho: str) -> str:
     return "\n".join(f"- {r['titulo']}: {r['resumen']}" for r in resultados)
 
 
+def _construir_contexto_canal(proyecto_id: str) -> str:
+    """Si el proyecto tiene canal_id, extrae contexto del canal para enriquecer el prompt."""
+    try:
+        estado = state.leer(proyecto_id)
+        ctx = estado.estrategia.contexto_canal
+        if not ctx:
+            return ""
+
+        partes = []
+        if ctx.get("nicho_principal"):
+            partes.append(f"Nicho del canal: {ctx['nicho_principal']}")
+        if ctx.get("patrones_titulo_exitosos"):
+            partes.append(f"Patrones de titulo que funcionan: {', '.join(ctx['patrones_titulo_exitosos'])}")
+        if ctx.get("formatos_exitosos"):
+            partes.append(f"Formatos exitosos: {', '.join(ctx['formatos_exitosos'])}")
+
+        competidores = estado.estrategia.competidores_contexto or []
+        if competidores:
+            comp_lines = []
+            for c in competidores[:3]:
+                nombre = c.get("nombre", "?")
+                tops = [v.get("titulo", "") for v in c.get("top_videos", [])[:3]]
+                if tops:
+                    comp_lines.append(f"  - {nombre}: {', '.join(tops)}")
+            if comp_lines:
+                partes.append(f"Videos virales de competidores:\n" + "\n".join(comp_lines))
+
+        tendencias = estado.estrategia.tendencias_nicho or []
+        if tendencias:
+            partes.append(f"Tendencias del nicho: {', '.join(tendencias[:5])}")
+
+        brechas = estado.estrategia.brechas_contenido or []
+        if brechas:
+            partes.append(f"Brechas de contenido: {', '.join(brechas[:5])}")
+
+        return "\n".join(partes) if partes else ""
+    except Exception:
+        return ""
+
+
 def logica(request: AgenteRequest) -> dict:
     nicho = request.parametros.get("nicho", "")
     if not nicho:
         raise ValueError("Falta el parametro 'nicho'")
 
     contexto = _construir_contexto_busqueda(nicho)
+    contexto_canal = _construir_contexto_canal(request.proyecto_id)
 
     user_prompt = f"""Nicho a analizar: {nicho}
 
 Resultados de busqueda reciente sobre este nicho en YouTube:
-{contexto}
+{contexto}"""
 
-Sintetiza patrones virales concretos a partir de esto."""
+    if contexto_canal:
+        user_prompt += f"""
+
+Inteligencia del canal (datos reales de YouTube):
+{contexto_canal}
+
+Usa estos datos reales para fundamentar tus patrones virales. Prioriza
+patrones que ya han demostrado funcionar en este canal y su competencia."""
+    else:
+        user_prompt += "\n\nSintetiza patrones virales concretos a partir de esto."
 
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
 

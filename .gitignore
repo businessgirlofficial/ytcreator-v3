@@ -1,5 +1,6 @@
 # Secrets
 .env
+setup_nuevo_pc.bat
 
 # Python
 __pycache__/
