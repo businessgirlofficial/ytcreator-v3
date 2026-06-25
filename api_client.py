@@ -212,6 +212,19 @@ def quota_hoy() -> dict:
     return _get("/quota/hoy")
 
 
+def get_identidad_visual(canal_id: str) -> dict:
+    return _get(f"/canales/{canal_id}/identidad-visual")
+
+
+def set_identidad_visual(canal_id: str, payload: dict) -> dict:
+    return _post(f"/canales/{canal_id}/identidad-visual", json=payload)
+
+
+def get_estilos(categoria: str | None = None) -> dict:
+    params = f"?categoria={categoria}" if categoria else ""
+    return _get(f"/estilos{params}")
+
+
 def sync_state_to_session(proyecto_id: str) -> dict:
     """Convierte EstadoProyecto del API al formato de session state de Streamlit."""
     estado = estado_proyecto(proyecto_id)

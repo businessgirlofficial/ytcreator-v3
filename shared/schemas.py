@@ -79,6 +79,7 @@ class Escena(BaseModel):
     texto: str
     tipo: Literal["hook", "cuerpo", "cta"]
     prompt_visual: Optional[str] = None
+    negative_prompt: Optional[str] = None
     usa_video_ia: bool = False
     archivo_generado: Optional[str] = None
 
@@ -102,6 +103,7 @@ class AssetsVisuales(BaseModel):
     imagenes: list[str] = Field(default_factory=list)
     clips_video: list[str] = Field(default_factory=list)
     candados_aplicados: Optional[dict] = None  # snapshot de los 5 Candados usados
+    estilo_aplicado: Optional[str] = None  # slug del estilo usado en este video
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +212,19 @@ class PerfilCanal(BaseModel):
     duracion_promedio_seg: Optional[int] = None
 
 
+class IdentidadVisualCanal(BaseModel):
+    configurado: bool = False
+    estilo_slug: str = "cinematic"
+    prompt_template: str = ""
+    negative_prompt: str = ""
+    personaje_principal: Optional[str] = None
+    personaje_nombre: Optional[str] = None
+    elementos_recurrentes: list[str] = Field(default_factory=list)
+    paleta_colores: Optional[str] = None
+    fondo_base: Optional[str] = None
+    iluminacion: Optional[str] = None
+
+
 class EstadoCanal(BaseModel):
     canal_id: str
     nombre: str
@@ -226,6 +241,7 @@ class EstadoCanal(BaseModel):
     oauth_conectado: bool = False
 
     perfil: PerfilCanal = Field(default_factory=PerfilCanal)
+    identidad_visual: IdentidadVisualCanal = Field(default_factory=IdentidadVisualCanal)
 
     videos_recientes: list[VideoRendimiento] = Field(default_factory=list)
     top_videos: list[VideoRendimiento] = Field(default_factory=list)

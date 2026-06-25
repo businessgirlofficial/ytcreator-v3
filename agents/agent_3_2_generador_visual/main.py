@@ -65,10 +65,19 @@ def _preparar_dataset(proyecto_id: str, escenas: list[dict]) -> Path:
     carpeta = STAGING_DIR / proyecto_id
     carpeta.mkdir(parents=True, exist_ok=True)
 
+    estado = state.leer(proyecto_id)
+    estilo_aplicado = estado.visual.estilo_aplicado
+
     payload = {
         "proyecto_id": proyecto_id,
+        "estilo_aplicado": estilo_aplicado,
         "escenas": [
-            {"numero": e["numero"], "prompt": e.get("prompt_visual"), "usa_video_ia": e.get("usa_video_ia", False)}
+            {
+                "numero": e["numero"],
+                "prompt": e.get("prompt_visual"),
+                "negative_prompt": e.get("negative_prompt", ""),
+                "usa_video_ia": e.get("usa_video_ia", False),
+            }
             for e in escenas
         ],
     }

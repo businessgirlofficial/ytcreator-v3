@@ -568,6 +568,113 @@ with tab0:
                                     for p in perfil["patrones_titulo_exitosos"]:
                                         st.markdown(f"  - {p}")
 
+                    # ── Identidad Visual ──
+                    id_visual = canal_data.get("identidad_visual", {})
+                    with st.expander(
+                        "🎨  Identidad Visual del Canal"
+                        + (" ✅" if id_visual.get("configurado") else " — Sin configurar"),
+                        expanded=not id_visual.get("configurado"),
+                    ):
+                        from shared.visual_styles import CATALOGO_ESTILOS, CATEGORIAS
+
+                        if id_visual.get("configurado"):
+                            st.success(f"Estilo activo: **{id_visual.get('estilo_slug')}**")
+                            if id_visual.get("personaje_principal"):
+                                st.markdown(f"**Personaje:** {id_visual.get('personaje_nombre', '')} — {id_visual['personaje_principal']}")
+                            if id_visual.get("paleta_colores"):
+                                st.markdown(f"**Paleta:** {id_visual['paleta_colores']}")
+                            if id_visual.get("fondo_base"):
+                                st.markdown(f"**Fondo base:** {id_visual['fondo_base']}")
+                            if id_visual.get("elementos_recurrentes"):
+                                st.markdown(f"**Elementos:** {', '.join(id_visual['elementos_recurrentes'])}")
+
+                        st.markdown('<div class="section-label" style="margin-top:12px">Configurar identidad</div>', unsafe_allow_html=True)
+
+                        iv_cat = st.selectbox(
+                            "Categoria", [c["nombre"] for c in CATEGORIAS],
+                            key="iv_cat_sel",
+                        )
+                        iv_cat_slug = next((c["slug"] for c in CATEGORIAS if c["nombre"] == iv_cat), None)
+                        iv_estilos = [e for e in CATALOGO_ESTILOS if e["categoria"] == iv_cat_slug]
+                        iv_opciones = [f"{e['slug']} — {e['nombre']} ({e['caso_uso']})" for e in iv_estilos]
+                        iv_opciones.append("custom — Personalizado (tu propio estilo)")
+                        iv_estilo = st.selectbox("Estilo visual", iv_opciones, key="iv_estilo_sel")
+                        iv_slug = iv_estilo.split(" — ")[0]
+
+                        if iv_slug == "custom":
+                            iv_custom_tpl = st.text_area(
+                                "Prompt template (debe contener {prompt})",
+                                placeholder="cinematic photo {prompt} . your style keywords here",
+                                key="iv_custom_tpl",
+                            )
+                            iv_custom_neg = st.text_input(
+                                "Negative prompt",
+                                placeholder="ugly, deformed, blurry...",
+                                key="iv_custom_neg",
+                            )
+
+                        col_iv1, col_iv2 = st.columns(2, gap="large")
+                        with col_iv1:
+                            iv_personaje = st.text_area(
+                                "Personaje principal (EN INGLES, opcional)",
+                                value=id_visual.get("personaje_principal", ""),
+                                placeholder="a young woman with short blue hair, round glasses, wearing a black hoodie",
+                                key="iv_personaje",
+                                height=80,
+                            )
+                            iv_nombre = st.text_input(
+                                "Nombre del personaje",
+                                value=id_visual.get("personaje_nombre", ""),
+                                key="iv_nombre",
+                            )
+                            iv_elementos = st.text_input(
+                                "Elementos recurrentes (separados por coma)",
+                                value=", ".join(id_visual.get("elementos_recurrentes", [])),
+                                placeholder="glowing crystal, floating screens",
+                                key="iv_elementos",
+                            )
+                        with col_iv2:
+                            iv_paleta = st.text_input(
+                                "Paleta de colores",
+                                value=id_visual.get("paleta_colores", ""),
+                                placeholder="deep purple, electric blue, warm gold",
+                                key="iv_paleta",
+                            )
+                            iv_fondo = st.text_area(
+                                "Fondo/entorno base (EN INGLES, opcional)",
+                                value=id_visual.get("fondo_base", ""),
+                                placeholder="modern dark studio with ambient neon lighting",
+                                key="iv_fondo",
+                                height=80,
+                            )
+                            iv_ilum = st.text_input(
+                                "Iluminacion",
+                                value=id_visual.get("iluminacion", ""),
+                                placeholder="dramatic side lighting with rim light",
+                                key="iv_ilum",
+                            )
+
+                        if st.button("💾  Guardar identidad visual", key="btn_save_iv", use_container_width=True):
+                            try:
+                                payload_iv = {
+                                    "estilo_slug": iv_slug,
+                                    "personaje_principal": iv_personaje.strip() or None,
+                                    "personaje_nombre": iv_nombre.strip() or None,
+                                    "elementos_recurrentes": [e.strip() for e in iv_elementos.split(",") if e.strip()] if iv_elementos else [],
+                                    "paleta_colores": iv_paleta.strip() or None,
+                                    "fondo_base": iv_fondo.strip() or None,
+                                    "iluminacion": iv_ilum.strip() or None,
+                                }
+                                if iv_slug == "custom":
+                                    payload_iv["prompt_template"] = iv_custom_tpl
+                                    payload_iv["negative_prompt"] = iv_custom_neg
+
+                                api_client.set_identidad_visual(canal_sel, payload_iv)
+                                st.success("✅  Identidad visual guardada")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
+
                     # ── Top Videos ──
                     top_videos = canal_data.get("top_videos", [])
                     if top_videos:
@@ -1129,15 +1236,31 @@ with tab3:
         with col1:
             st.markdown('<div class="section-label">Parámetros</div>', unsafe_allow_html=True)
 
-            estilo = st.selectbox("Estilo visual", [
-                "cinematico — Fotorrealista, dramático",
-                "anime — Studio Ghibli, vibrante",
-                "mistico — Fantasía etérea, mágico",
-                "asmr — Macro, texturas, pastel",
-                "stickman — Minimalista, pizarrón",
-                "dibujo_mano — Acuarela, boceto"
-            ])
-            estilo_id = estilo.split(" — ")[0]
+            from shared.visual_styles import CATALOGO_ESTILOS, CATEGORIAS, obtener_estilo
+
+            cat_sel = st.selectbox("Categoria de estilo", [c["nombre"] for c in CATEGORIAS],
+                key="kat_cat_sel")
+            cat_slug = next((c["slug"] for c in CATEGORIAS if c["nombre"] == cat_sel), None)
+            estilos_filtrados = [e for e in CATALOGO_ESTILOS if e["categoria"] == cat_slug]
+
+            canal_estilo_default = None
+            if s.get("canal_id_pipeline") and API_DISPONIBLE:
+                try:
+                    canal_info_k = api_client.estado_canal(s["canal_id_pipeline"])
+                    id_vis = canal_info_k.get("identidad_visual", {})
+                    if id_vis.get("configurado"):
+                        canal_estilo_default = id_vis.get("estilo_slug")
+                        st.caption(f"Estilo del canal: **{canal_estilo_default}** (puedes hacer override)")
+                except Exception:
+                    pass
+
+            opciones_estilo = [f"{e['slug']} — {e['nombre']}" for e in estilos_filtrados]
+            estilo = st.selectbox("Estilo visual", opciones_estilo, key="kat_estilo_sel")
+            estilo_id = estilo.split(" — ")[0] if estilo else "cinematic"
+
+            estilo_info = obtener_estilo(estilo_id)
+            if estilo_info:
+                st.caption(f"Caso de uso: {estilo_info['caso_uso']}")
 
             with st.expander("⚙️  Configuración avanzada"):
                 c_mi, c_mv = st.columns(2)

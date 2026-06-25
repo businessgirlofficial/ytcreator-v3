@@ -29,6 +29,13 @@ from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES, STORAGE_DIR, YTCREATOR_API_KEY, url_agente
 from shared.logger import get_logger
 from shared.state_manager import StateManager
+from shared.visual_styles import (
+    CATEGORIAS,
+    aplicar_estilo,
+    listar_categorias,
+    listar_estilos,
+    obtener_estilo,
+)
 from shared.youtube_client import obtener_quota_hoy
 
 log = get_logger("gateway")
@@ -245,6 +252,18 @@ class AgregarCompetidorRequest(BaseModel):
     competidor_input: str
 
 
+class IdentidadVisualRequest(BaseModel):
+    estilo_slug: str
+    personaje_principal: str | None = None
+    personaje_nombre: str | None = None
+    elementos_recurrentes: list[str] = Field(default_factory=list)
+    paleta_colores: str | None = None
+    fondo_base: str | None = None
+    iluminacion: str | None = None
+    prompt_template: str | None = None
+    negative_prompt: str | None = None
+
+
 @app.post("/canales/conectar", dependencies=[Depends(verificar_api_key)])
 def conectar_canal(request: ConectarCanalRequest, background_tasks: BackgroundTasks):
     resp = httpx.post(
@@ -398,6 +417,75 @@ def refrescar_ideas(canal_id: str):
 @app.get("/quota/hoy", dependencies=[Depends(verificar_api_key)])
 def quota_hoy():
     return obtener_quota_hoy()
+
+
+# ── Estilos visuales e Identidad de Canal ────────────────────────────
+
+@app.get("/estilos")
+def get_estilos(categoria: str | None = None):
+    return {
+        "categorias": listar_categorias(),
+        "estilos": listar_estilos(categoria),
+    }
+
+
+@app.get("/estilos/{slug}")
+def get_estilo(slug: str):
+    estilo = obtener_estilo(slug)
+    if not estilo:
+        raise HTTPException(status_code=404, detail=f"Estilo '{slug}' no encontrado")
+    return estilo
+
+
+@app.get("/canales/{canal_id}/identidad-visual", dependencies=[Depends(verificar_api_key)])
+def get_identidad_visual(canal_id: str):
+    try:
+        estado = channel_mgr.leer(canal_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Canal '{canal_id}' no encontrado")
+    return estado.identidad_visual.model_dump()
+
+
+@app.post("/canales/{canal_id}/identidad-visual", dependencies=[Depends(verificar_api_key)])
+def set_identidad_visual(canal_id: str, request: IdentidadVisualRequest):
+    try:
+        channel_mgr.leer(canal_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Canal '{canal_id}' no encontrado")
+
+    if request.estilo_slug == "custom":
+        if not request.prompt_template or "{prompt}" not in request.prompt_template:
+            raise HTTPException(
+                status_code=422,
+                detail="Para estilo 'custom', prompt_template es obligatorio y debe contener {prompt}",
+            )
+        prompt_tpl = request.prompt_template
+        neg_prompt = request.negative_prompt or ""
+    else:
+        estilo = obtener_estilo(request.estilo_slug)
+        if not estilo:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Estilo '{request.estilo_slug}' no existe en el catalogo",
+            )
+        prompt_tpl = estilo["prompt_template"]
+        neg_prompt = estilo["negative_prompt"]
+
+    identidad_data = {
+        "configurado": True,
+        "estilo_slug": request.estilo_slug,
+        "prompt_template": prompt_tpl,
+        "negative_prompt": neg_prompt,
+        "personaje_principal": request.personaje_principal,
+        "personaje_nombre": request.personaje_nombre,
+        "elementos_recurrentes": request.elementos_recurrentes,
+        "paleta_colores": request.paleta_colores,
+        "fondo_base": request.fondo_base,
+        "iluminacion": request.iluminacion,
+    }
+
+    channel_mgr.actualizar(canal_id, identidad_visual=identidad_data)
+    return channel_mgr.leer(canal_id).identidad_visual.model_dump()
 
 
 # ── Estado del pipeline ─────────────────────────────────────────────

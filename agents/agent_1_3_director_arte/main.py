@@ -2,13 +2,12 @@
 Agente 1.3 - Director de arte
 Depto 1 (Estrategia)
 
-FASE 1 - IMPLEMENTACION REAL
-================================
-Toma el titulo ganador del Copywriter (1.2) y le pide a Groq que
-diseñe la composicion completa de la miniatura: fondo, texto overlay
-corto, posicion, paleta de color y el elemento focal. Con eso arma
-el prompt de imagen final, listo para que el Agente 3.2 (Generador
-Visual) lo use mas adelante en Kaggle con Juggernaut XL.
+Toma el titulo ganador del Copywriter (1.2) y diseña la composicion
+completa de la miniatura: fondo, texto overlay, paleta, elemento focal
+y el prompt de imagen final para Juggernaut XL.
+
+Cuando el canal tiene Identidad Visual configurada, la miniatura
+respeta la paleta, personaje y estilo del canal.
 """
 
 import sys
@@ -25,6 +24,7 @@ from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
+from shared.visual_styles import aplicar_estilo, aplicar_estilo_custom
 
 AGENTE_ID = "1.3_director_arte"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Disena el concepto y prompt de la miniatura")
@@ -44,6 +44,22 @@ SIEMPRE respondes en JSON valido con este formato exacto:
   "prompt_imagen": "prompt completo EN INGLES, listo para un generador de imagenes (estilo, iluminacion, composicion), sin incluir el texto superpuesto"
 }"""
 
+SYSTEM_PROMPT_CON_IDENTIDAD = """Eres un director de arte especializado en miniaturas (thumbnails)
+de YouTube de alto CTR. Trabajas en espanol salvo el prompt de imagen final.
+
+El canal tiene una IDENTIDAD VISUAL que DEBES respetar en la miniatura:
+{constraints}
+
+SIEMPRE respondes en JSON valido con este formato exacto:
+{{
+  "fondo": "descripcion visual concreta del fondo, coherente con el entorno del canal",
+  "texto_principal": "version corta del titulo para overlay, maximo 5 palabras, en mayusculas",
+  "posicion_texto": "izquierda, derecha o centro",
+  "paleta": "DEBE usar la paleta del canal. Explica como se aplica para este video",
+  "elemento_focal": "que objeto, persona o expresion debe ser el punto focal (usar personaje del canal si tiene)",
+  "prompt_imagen": "prompt completo EN INGLES, coherente con el estilo visual del canal, sin incluir el texto superpuesto"
+}}"""
+
 
 def logica(request: AgenteRequest) -> dict:
     estado = state.leer(request.proyecto_id)
@@ -53,23 +69,51 @@ def logica(request: AgenteRequest) -> dict:
     if not titulo:
         raise ValueError("No hay titulo_ganador en el estado: corre primero el Agente 1.2 (Copywriter)")
 
+    canal_id = estado.estrategia.canal_id or estado.canal_id
+    identidad = None
+    if canal_id:
+        try:
+            canal = channels.leer(canal_id)
+            if canal.identidad_visual.configurado:
+                identidad = canal.identidad_visual
+        except FileNotFoundError:
+            pass
+
     user_prompt = f"""Nicho: {nicho}
 Titulo ganador: {titulo}"""
 
-    ctx = estado.estrategia.contexto_canal
-    if ctx and ctx.get("estilo_visual"):
-        user_prompt += f"""
+    if identidad:
+        constraints = []
+        if identidad.personaje_principal:
+            constraints.append(f"- Personaje principal: {identidad.personaje_principal}")
+            if identidad.personaje_nombre:
+                constraints.append(f"  (nombre: {identidad.personaje_nombre})")
+        if identidad.paleta_colores:
+            constraints.append(f"- Paleta de colores del canal: {identidad.paleta_colores}")
+        if identidad.fondo_base:
+            constraints.append(f"- Entorno base: {identidad.fondo_base}")
+        if identidad.elementos_recurrentes:
+            constraints.append(f"- Elementos recurrentes: {', '.join(identidad.elementos_recurrentes)}")
+        if identidad.iluminacion:
+            constraints.append(f"- Iluminacion: {identidad.iluminacion}")
+
+        system_prompt = SYSTEM_PROMPT_CON_IDENTIDAD.format(
+            constraints=chr(10).join(constraints)
+        )
+    else:
+        system_prompt = SYSTEM_PROMPT
+        ctx = estado.estrategia.contexto_canal
+        if ctx and ctx.get("estilo_visual"):
+            user_prompt += f"""
 
 Estilo visual establecido del canal: {ctx['estilo_visual']}
 Mantén coherencia con este estilo pero hazlo atractivo para el tema actual."""
 
-    # Performance feedback: CTR de miniaturas anteriores
-    canal_id = estado.estrategia.canal_id or estado.canal_id
     if canal_id:
         try:
-            canal = channels.leer(canal_id)
-            if canal.patrones_exitosos:
-                alto_ctr = [p for p in canal.patrones_exitosos[-5:] if p.get("ctr")]
+            canal_data = channels.leer(canal_id)
+            if canal_data.patrones_exitosos:
+                alto_ctr = [p for p in canal_data.patrones_exitosos[-5:] if p.get("ctr")]
                 if alto_ctr:
                     user_prompt += f"""
 
@@ -77,8 +121,8 @@ Miniaturas con ALTO CTR en videos anteriores (referencia de estilo que funciona)
 {chr(10).join(f'- "{p.get("titulo", "?")}" → CTR {p.get("ctr")}%' for p in alto_ctr)}
 Intenta capturar elementos visuales similares al estilo que genera alto CTR."""
 
-            if canal.patrones_a_evitar:
-                bajo_ctr = [p for p in canal.patrones_a_evitar[-3:] if p.get("ctr")]
+            if canal_data.patrones_a_evitar:
+                bajo_ctr = [p for p in canal_data.patrones_a_evitar[-3:] if p.get("ctr")]
                 if bajo_ctr:
                     user_prompt += f"""
 
@@ -89,7 +133,7 @@ Miniaturas con BAJO CTR (evita este estilo):
 
     user_prompt += "\n\nDisena la miniatura para este video."
 
-    resultado = generar_json(SYSTEM_PROMPT, user_prompt)
+    resultado = generar_json(system_prompt, user_prompt)
 
     miniatura_composicion = {
         "fondo": resultado.get("fondo"),
@@ -98,16 +142,34 @@ Miniaturas con BAJO CTR (evita este estilo):
         "paleta": resultado.get("paleta"),
         "elemento_focal": resultado.get("elemento_focal"),
     }
-    miniatura_prompt = resultado.get("prompt_imagen", "")
+    miniatura_prompt_raw = resultado.get("prompt_imagen", "")
+
+    if identidad and identidad.prompt_template:
+        miniatura_prompt, miniatura_negative = aplicar_estilo_custom(
+            identidad.prompt_template, identidad.negative_prompt, miniatura_prompt_raw
+        )
+    elif identidad:
+        miniatura_prompt, miniatura_negative = aplicar_estilo(
+            identidad.estilo_slug, miniatura_prompt_raw
+        )
+    else:
+        miniatura_prompt = miniatura_prompt_raw
+        miniatura_negative = ""
 
     state.actualizar(
         request.proyecto_id,
         estrategia={
             "miniatura_prompt": miniatura_prompt,
+            "miniatura_negative": miniatura_negative,
             "miniatura_composicion": miniatura_composicion,
         },
     )
-    return {"miniatura_prompt": miniatura_prompt, "miniatura_composicion": miniatura_composicion}
+    return {
+        "miniatura_prompt": miniatura_prompt,
+        "miniatura_negative": miniatura_negative,
+        "miniatura_composicion": miniatura_composicion,
+        "identidad_canal_usada": identidad is not None,
+    }
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

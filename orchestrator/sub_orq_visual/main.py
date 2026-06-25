@@ -28,18 +28,21 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
+from shared.channel_manager import ChannelManager
 from shared.config import HF_API_TOKEN, REGISTRO_AGENTES, RESOLUCION_VIDEO
 from shared.groq_client import parsear_json_llm
 from shared.hf_client import llamar_modelo
 from shared.http_client import llamar_con_reintento
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
+from shared.visual_styles import obtener_estilo
 
 AGENTE_ID = "sub_orq_visual"
 app: FastAPI = crear_agente_app(
     AGENTE_ID, descripcion="Orquesta Prompt Maker, Generador Visual y validacion de calidad"
 )
 state = StateManager()
+channels = ChannelManager()
 
 _res = RESOLUCION_VIDEO.split("x")
 MIN_ANCHO = int(_res[0]) if len(_res) == 2 else 1920
@@ -62,11 +65,25 @@ Check for: deformed hands/faces, text artifacts, blurry regions, unnatural anato
 
 PROMPT_CONSISTENCIA = """Compare these two consecutive frames from the same YouTube video. They should share the same visual style, subject appearance, and background.
 Answer in JSON only:
-{
+{{
   "style_consistent": true/false,
   "subject_consistent": true/false,
   "issues": "brief description of inconsistencies, empty string if none"
-}"""
+}}"""
+
+PROMPT_CONSISTENCIA_CON_ESTILO = """Compare these two consecutive frames from the same YouTube video.
+They should follow the channel's visual identity:
+- Visual style: {estilo_nombre}
+- Expected color palette: {paleta}
+
+Check that both frames share the same visual style, subject appearance, and background.
+Answer in JSON only:
+{{
+  "style_consistent": true/false,
+  "subject_consistent": true/false,
+  "matches_channel_style": true/false,
+  "issues": "brief description of inconsistencies, empty string if none"
+}}"""
 
 UMBRAL_CALIDAD = 4
 
@@ -213,13 +230,36 @@ def _validar_visual_multimodal(proyecto_id: str) -> tuple[bool, list[str]]:
             problemas.append(f"{p.name}: el contenido no corresponde al prompt solicitado")
 
     if len(imagenes_validas) >= 2:
-        _validar_consistencia_pares(imagenes_validas, problemas)
+        prompt_consist = _obtener_prompt_consistencia(proyecto_id)
+        _validar_consistencia_pares(imagenes_validas, problemas, prompt_consist)
 
     aprobado = len(problemas) == 0
     return aprobado, problemas
 
 
-def _validar_consistencia_pares(imagenes: list[Path], problemas: list[str]):
+def _obtener_prompt_consistencia(proyecto_id: str) -> str:
+    """Construye el prompt de consistencia, enriquecido con estilo del canal si existe."""
+    estado = state.leer(proyecto_id)
+    canal_id = estado.estrategia.canal_id or estado.canal_id
+    if canal_id:
+        try:
+            canal = channels.leer(canal_id)
+            if canal.identidad_visual.configurado:
+                identidad = canal.identidad_visual
+                estilo = obtener_estilo(identidad.estilo_slug)
+                estilo_nombre = estilo["nombre"] if estilo else identidad.estilo_slug
+                paleta = identidad.paleta_colores or "not specified"
+                return PROMPT_CONSISTENCIA_CON_ESTILO.format(
+                    estilo_nombre=estilo_nombre, paleta=paleta
+                )
+        except FileNotFoundError:
+            pass
+    return PROMPT_CONSISTENCIA
+
+
+def _validar_consistencia_pares(
+    imagenes: list[Path], problemas: list[str], prompt_consist: str
+):
     """Compara pares de imagenes consecutivas para verificar consistencia de estilo."""
     max_pares = min(len(imagenes) - 1, 3)
     paso = max(1, (len(imagenes) - 1) // max_pares)
@@ -233,7 +273,7 @@ def _validar_consistencia_pares(imagenes: list[Path], problemas: list[str]):
 
         b64_a = _imagen_a_base64(img_a)
 
-        resultado = _llamar_llava(b64_a, PROMPT_CONSISTENCIA)
+        resultado = _llamar_llava(b64_a, prompt_consist)
         if resultado is None:
             continue
 
@@ -247,6 +287,11 @@ def _validar_consistencia_pares(imagenes: list[Path], problemas: list[str]):
             issues = resultado.get("issues", "el sujeto cambia de apariencia")
             problemas.append(
                 f"inconsistencia de sujeto entre {img_a.name} y {img_b.name}: {issues}"
+            )
+
+        if resultado.get("matches_channel_style") is False:
+            problemas.append(
+                f"{img_a.name}: no coincide con el estilo visual del canal"
             )
 
 
