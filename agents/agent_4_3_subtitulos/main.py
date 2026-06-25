@@ -21,6 +21,7 @@ con un error claro cuando alguien de verdad intenta usarlo -- el
 mismo patron que ya usamos para Kaggle.
 """
 
+import re
 import sys
 from pathlib import Path
 
@@ -68,6 +69,38 @@ def _agrupar_en_bloques_cortos(segmentos: list[dict], max_palabras: int = MAX_PA
     return bloques
 
 
+OVERLAP_SEG = 0.3
+_KEYWORDS_PROMINENCIA = re.compile(
+    r"(?i)\b(importante|increíble|increible|atención|atencion|de repente|cuidado|secreto|peligro)\b"
+)
+
+
+def _aplicar_prominencia_y_overlap(bloques: list[dict]) -> list[dict]:
+    """Ajusta end_times para prominencia visual y overlap anti-parpadeo."""
+    for i, bloque in enumerate(bloques):
+        texto = bloque["texto"]
+        duracion = bloque["fin"] - bloque["inicio"]
+
+        multiplicador = 1.0
+        if len(texto) <= 15 and any(c in texto for c in "!?¡¿"):
+            multiplicador = max(multiplicador, 1.5)
+        elif len(texto) <= 20:
+            multiplicador = max(multiplicador, 1.3)
+        if _KEYWORDS_PROMINENCIA.search(texto):
+            multiplicador = max(multiplicador, 1.3)
+
+        if multiplicador > 1.0:
+            bloque["fin"] = bloque["inicio"] + duracion * multiplicador
+
+        bloque["fin"] += OVERLAP_SEG
+
+        if i < len(bloques) - 1:
+            limite = bloques[i + 1]["inicio"] + 0.1
+            bloque["fin"] = min(bloque["fin"], limite)
+
+    return bloques
+
+
 def _generar_srt(bloques: list[dict]) -> str:
     lineas = []
     for i, b in enumerate(bloques, start=1):
@@ -94,6 +127,7 @@ def logica(request: AgenteRequest) -> dict:
     if not bloques:
         raise ValueError("Whisper no devolvio palabras con timestamps; revisa el audio de entrada")
 
+    bloques = _aplicar_prominencia_y_overlap(bloques)
     contenido_srt = _generar_srt(bloques)
     subtitulos_path = str(Path(voz_path).with_name(Path(voz_path).stem + "_subtitulos.srt"))
     Path(subtitulos_path).write_text(contenido_srt, encoding="utf-8")

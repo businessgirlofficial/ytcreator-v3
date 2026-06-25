@@ -17,6 +17,8 @@ import sys
 import time
 from pathlib import Path
 
+GRACEFUL_TIMEOUT = 10
+
 BASE = Path(__file__).resolve().parent
 
 # Orden sugerido: no es obligatorio (cada servicio es independiente y
@@ -65,14 +67,33 @@ def main():
         print(f"  [OK] {script.parent.name} (PID {p.pid})")
         time.sleep(0.3)
 
-    print("\nTodos los servicios corriendo. Ctrl+C para apagar.\n")
+    print(f"\nTodos los servicios corriendo. Ctrl+C para apagar (graceful), doble Ctrl+C para forzar.\n")
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\nApagando todos los servicios...")
-        for p in procesos:
-            p.terminate()
+        print(f"\nCtrl+C recibido. Los hijos reciben la señal automaticamente.")
+        print(f"Esperando {GRACEFUL_TIMEOUT}s a que terminen...")
+
+        inicio = time.time()
+        try:
+            while time.time() - inicio < GRACEFUL_TIMEOUT:
+                vivos = [p for p in procesos if p.poll() is None]
+                if not vivos:
+                    print("Todos los servicios terminaron limpiamente.")
+                    return
+                time.sleep(0.5)
+
+            vivos = [p for p in procesos if p.poll() is None]
+            if vivos:
+                print(f"{len(vivos)} servicios no respondieron, enviando terminate...")
+                for p in vivos:
+                    p.terminate()
+        except KeyboardInterrupt:
+            print("\nDoble Ctrl+C: forzando cierre inmediato...")
+            for p in procesos:
+                if p.poll() is None:
+                    p.terminate()
 
 
 if __name__ == "__main__":

@@ -17,7 +17,6 @@ FALLBACK: Pixabay Music API (endpoint no documentado oficialmente).
 """
 
 import sys
-import time
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
@@ -27,7 +26,9 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import HF_API_TOKEN, PIXABAY_API_KEY, REGISTRO_AGENTES, STORAGE_DIR
+from shared.config import MAX_AUDIO_BYTES, PIXABAY_API_KEY, REGISTRO_AGENTES, STORAGE_DIR
+from shared.hf_client import llamar_modelo
+from shared.rate_limiter import PIXABAY_LIMITER
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -36,8 +37,6 @@ app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera o busca musica de
 state = StateManager()
 
 HF_MUSICGEN_URL = "https://api-inference.huggingface.co/models/facebook/musicgen-small"
-HF_MAX_ESPERA_CARGA = 120
-HF_POLL_INTERVAL = 10
 
 
 def _construir_prompt_musicgen(mood: str | None) -> str:
@@ -48,40 +47,9 @@ def _construir_prompt_musicgen(mood: str | None) -> str:
 
 
 def _generar_musicgen(mood: str | None, proyecto_id: str) -> str:
-    if not HF_API_TOKEN:
-        raise RuntimeError(
-            "HF_API_TOKEN no esta configurada. Generala gratis en "
-            "huggingface.co/settings/tokens"
-        )
-
     prompt = _construir_prompt_musicgen(mood)
-    headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
 
-    esperado = 0
-    while esperado < HF_MAX_ESPERA_CARGA:
-        resp = httpx.post(
-            HF_MUSICGEN_URL,
-            headers=headers,
-            json={"inputs": prompt},
-            timeout=180,
-        )
-
-        if resp.status_code == 503:
-            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-            wait = min(body.get("estimated_time", HF_POLL_INTERVAL), 30)
-            time.sleep(wait)
-            esperado += wait
-            continue
-
-        if resp.status_code == 429:
-            raise RuntimeError("MusicGen: rate limit de HF alcanzado")
-
-        resp.raise_for_status()
-        break
-    else:
-        raise RuntimeError(
-            f"MusicGen: el modelo no termino de cargar tras {HF_MAX_ESPERA_CARGA}s"
-        )
+    resp = llamar_modelo(HF_MUSICGEN_URL, {"inputs": prompt}, max_bytes=MAX_AUDIO_BYTES)
 
     content_type = resp.headers.get("content-type", "")
     if "flac" in content_type:
@@ -105,6 +73,7 @@ def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
     if not PIXABAY_API_KEY:
         raise RuntimeError("PIXABAY_API_KEY no esta configurada en tu .env")
 
+    PIXABAY_LIMITER.esperar()
     resp = httpx.get(
         "https://pixabay.com/api/music/",
         params={"key": PIXABAY_API_KEY, "q": mood, "per_page": 5},
@@ -127,6 +96,10 @@ def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
 
     audio_resp = httpx.get(audio_url, timeout=60)
     audio_resp.raise_for_status()
+    if len(audio_resp.content) > MAX_AUDIO_BYTES:
+        raise RuntimeError(
+            f"Audio de Pixabay excede 50MB: {len(audio_resp.content) / 1024 / 1024:.1f}MB"
+        )
     destino.write_bytes(audio_resp.content)
 
     return str(destino)

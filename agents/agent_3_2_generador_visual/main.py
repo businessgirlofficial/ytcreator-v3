@@ -41,15 +41,17 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 import uvicorn
 from fastapi import FastAPI
 
-from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import KAGGLE_DATASET_SLUG, KAGGLE_KERNEL_SLUG, REGISTRO_AGENTES, STORAGE_DIR
+from shared.base_agent import crear_agente_app, envolver_logica, shutdown_requested
+from shared.config import KAGGLE_DATASET_SLUG, KAGGLE_KERNEL_SLUG, MAX_IMAGEN_BYTES, MAX_VIDEO_BYTES, REGISTRO_AGENTES, STORAGE_DIR
 from shared.kaggle_client import descargar_resultados, estado_kernel, lanzar_kernel, subir_dataset
+from shared.logger import get_logger
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
 AGENTE_ID = "3.2_generador_visual"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Ejecuta generacion hibrida de imagenes y video en Kaggle")
 state = StateManager()
+log = get_logger(AGENTE_ID)
 
 POLL_INTERVAL_SEG = 30
 TIMEOUT_SEG = 60 * 60 * 2  # 2 horas de margen (GPU T4 x2, tier gratuito)
@@ -80,6 +82,8 @@ def _preparar_dataset(proyecto_id: str, escenas: list[dict]) -> Path:
 def _esperar_kernel() -> None:
     transcurrido = 0
     while transcurrido < TIMEOUT_SEG:
+        if shutdown_requested():
+            raise RuntimeError("Shutdown solicitado mientras esperaba al kernel de Kaggle")
         status, error_msg = estado_kernel(KAGGLE_KERNEL_SLUG)
         if status and "complete" in status.lower():
             return
@@ -107,16 +111,31 @@ def logica(request: AgenteRequest) -> dict:
     destino.mkdir(parents=True, exist_ok=True)
     archivos = descargar_resultados(KAGGLE_KERNEL_SLUG, str(destino))
 
+    descartados = 0
+    for p in destino.iterdir():
+        size = p.stat().st_size
+        if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp") and size > MAX_IMAGEN_BYTES:
+            p.unlink()
+            descartados += 1
+            log.warning("imagen eliminada por exceder 50MB: %s (%.1fMB)", p.name, size / 1024 / 1024)
+        elif p.suffix.lower() == ".mp4" and size > MAX_VIDEO_BYTES:
+            p.unlink()
+            descartados += 1
+            log.warning("video eliminado por exceder 500MB: %s (%.1fMB)", p.name, size / 1024 / 1024)
+
     imagenes = sorted(str(p) for p in destino.glob("*.png"))
     clips_video = sorted(str(p) for p in destino.glob("*.mp4"))
 
     state.actualizar(request.proyecto_id, visual={"imagenes": imagenes, "clips_video": clips_video})
-    return {
+    resultado = {
         "imagenes_generadas": len(imagenes),
         "clips_generados": len(clips_video),
         "archivos_descargados": len(archivos),
         "carpeta_salida": str(destino),
     }
+    if descartados:
+        resultado["assets_descartados_por_tamano"] = descartados
+    return resultado
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

@@ -24,10 +24,24 @@ from .logger import get_logger
 from .schemas import AgenteRequest, AgenteResponse
 
 _START_TIME = time.time()
+_shutdown_flag = False
+
+
+def shutdown_requested() -> bool:
+    """Retorna True si Uvicorn inicio su apagado graceful. Los agentes de
+    larga duracion pueden checar esto entre pasos para salir limpiamente."""
+    return _shutdown_flag
 
 
 def crear_agente_app(agente_id: str, descripcion: str = "", version: str = "0.1.0") -> FastAPI:
     app = FastAPI(title=f"Agente {agente_id}", description=descripcion, version=version)
+
+    @app.on_event("shutdown")
+    def _on_shutdown():
+        global _shutdown_flag
+        _shutdown_flag = True
+        log = get_logger("shutdown")
+        log.info("shutdown iniciado para %s", agente_id)
 
     @app.get("/health")
     def health():

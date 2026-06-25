@@ -9,6 +9,7 @@ mas importante del pipeline: si el guion no pasa el score minimo,
 lo manda de vuelta al Guionista en vez de avanzar con un guion flojo.
 """
 
+import re
 import sys
 import time
 from datetime import datetime
@@ -103,8 +104,17 @@ def _fase(proyecto_id: str, fase: str):
 FASES_ORDEN = ["estrategia", "guion", "visual", "audio", "cierre", "completado", "publicado"]
 
 
+def _archivo_existe(ruta: str | None) -> bool:
+    """Verifica que un archivo exista en disco y no este vacio."""
+    if not ruta:
+        return False
+    p = Path(ruta)
+    return p.exists() and p.stat().st_size > 0
+
+
 def _fase_completada(proyecto_id: str, fase_objetivo: str) -> bool:
-    """Verifica si una fase ya fue completada revisando el estado del proyecto."""
+    """Verifica si una fase ya fue completada revisando el estado del proyecto
+    Y que los archivos criticos de esa fase existan en disco."""
     try:
         estado = state.leer(proyecto_id)
     except FileNotFoundError:
@@ -118,14 +128,30 @@ def _fase_completada(proyecto_id: str, fase_objetivo: str) -> bool:
 
     if fase_objetivo == "estrategia":
         return bool(estado.estrategia.titulo_ganador)
+
     if fase_objetivo == "guion":
         return estado.guion.aprobado
+
     if fase_objetivo == "visual":
-        return estado.visual.prompts_generados
+        if not estado.visual.prompts_generados:
+            return False
+        rutas = estado.visual.imagenes + estado.visual.clips_video
+        if not rutas:
+            return False
+        return all(_archivo_existe(r) for r in rutas)
+
     if fase_objetivo == "audio":
-        return estado.audio.voz_path is not None
+        if not _archivo_existe(estado.audio.voz_path):
+            return False
+        if estado.audio.subtitulos_path and not _archivo_existe(estado.audio.subtitulos_path):
+            return False
+        return True
+
     if fase_objetivo == "cierre":
-        return estado.video_final_path is not None and estado.compliance.aprobado is not None
+        if not _archivo_existe(estado.video_final_path):
+            return False
+        return estado.compliance.aprobado is not None
+
     return False
 
 
@@ -155,9 +181,29 @@ def listar_proyectos():
     return {"proyectos": state.listar_proyectos()}
 
 
+MAX_NICHO_LEN = 200
+_NICHO_PERMITIDO = re.compile(r"^[\w\sáéíóúñüÁÉÍÓÚÑÜ\-,.\&/\(\)]+$")
+_NICHO_PROHIBIDO = re.compile(r"[<>\{\}\"\';`\\|]")
+
+
 @app.post("/pipeline/ejecutar")
 def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", canal_id: str | None = None):
     """Corre el pipeline completo con tracking de fase, reintentos y recovery."""
+
+    nicho = nicho.strip()
+    if not nicho:
+        raise HTTPException(status_code=422, detail="El parametro 'nicho' no puede estar vacio")
+    if len(nicho) > MAX_NICHO_LEN:
+        raise HTTPException(
+            status_code=422,
+            detail=f"El parametro 'nicho' excede {MAX_NICHO_LEN} caracteres ({len(nicho)})",
+        )
+    chars_prohibidos = _NICHO_PROHIBIDO.findall(nicho)
+    if chars_prohibidos:
+        raise HTTPException(
+            status_code=422,
+            detail=f"El parametro 'nicho' contiene caracteres no permitidos: {' '.join(set(chars_prohibidos))}",
+        )
 
     log.info("pipeline inicio | proyecto=%s | nicho=%s | canal=%s | canal_id=%s", proyecto_id, nicho, canal, canal_id)
     pipeline_inicio = time.time()

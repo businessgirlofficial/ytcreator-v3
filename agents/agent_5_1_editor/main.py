@@ -50,7 +50,7 @@ from moviepy import (
 )
 from moviepy.video.tools.subtitles import SubtitlesClip
 
-from shared.base_agent import crear_agente_app, envolver_logica
+from shared.base_agent import crear_agente_app, envolver_logica, shutdown_requested
 from shared.config import FPS_VIDEO, REGISTRO_AGENTES, RESOLUCION_VIDEO, STORAGE_DIR, SUBTITULOS_FONT_PATH
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
@@ -149,10 +149,13 @@ def logica(request: AgenteRequest) -> dict:
     voz = AudioFileClip(estado.audio.voz_path)
     duraciones = calcular_duraciones_por_palabras(escenas, voz.duration)
 
-    clips_escenas = [
-        _construir_clip_escena(escena, duraciones[escena["numero"]], imagenes, clips, resolucion)
-        for escena in escenas
-    ]
+    clips_escenas = []
+    for escena in escenas:
+        if shutdown_requested():
+            raise RuntimeError("Shutdown solicitado durante ensamblaje de video")
+        clips_escenas.append(
+            _construir_clip_escena(escena, duraciones[escena["numero"]], imagenes, clips, resolucion)
+        )
     video = concatenate_videoclips(clips_escenas, method="chain")
 
     pistas_audio = [voz]

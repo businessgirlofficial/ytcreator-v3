@@ -10,17 +10,16 @@ el .png final en STORAGE_DIR/miniaturas/{proyecto_id}_thumbnail.png.
 """
 
 import sys
-import time
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-import httpx
 import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import HF_API_TOKEN, REGISTRO_AGENTES, STORAGE_DIR
+from shared.config import REGISTRO_AGENTES, STORAGE_DIR
+from shared.hf_client import llamar_modelo
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -29,46 +28,12 @@ app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera la imagen de mini
 state = StateManager()
 
 HF_FLUX_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
-HF_MAX_ESPERA_CARGA = 120
-HF_POLL_INTERVAL = 10
 
 SALIDA_DIR = Path(STORAGE_DIR) / "miniaturas"
 
 
 def _generar_miniatura(prompt: str, proyecto_id: str) -> str:
-    if not HF_API_TOKEN:
-        raise RuntimeError(
-            "HF_API_TOKEN no esta configurada. Generala gratis en "
-            "huggingface.co/settings/tokens"
-        )
-
-    headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
-
-    esperado = 0
-    while esperado < HF_MAX_ESPERA_CARGA:
-        resp = httpx.post(
-            HF_FLUX_URL,
-            headers=headers,
-            json={"inputs": prompt},
-            timeout=180,
-        )
-
-        if resp.status_code == 503:
-            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-            wait = min(body.get("estimated_time", HF_POLL_INTERVAL), 30)
-            time.sleep(wait)
-            esperado += wait
-            continue
-
-        if resp.status_code == 429:
-            raise RuntimeError("FLUX.1-schnell: rate limit de HF alcanzado")
-
-        resp.raise_for_status()
-        break
-    else:
-        raise RuntimeError(
-            f"FLUX.1-schnell: el modelo no termino de cargar tras {HF_MAX_ESPERA_CARGA}s"
-        )
+    resp = llamar_modelo(HF_FLUX_URL, {"inputs": prompt})
 
     SALIDA_DIR.mkdir(parents=True, exist_ok=True)
     destino = SALIDA_DIR / f"{proyecto_id}_thumbnail.png"

@@ -20,17 +20,17 @@ Kaggle, este sub-orquestador verifica calidad en dos niveles:
 
 import base64
 import sys
-import time
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-import httpx
 import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
 from shared.config import HF_API_TOKEN, REGISTRO_AGENTES, RESOLUCION_VIDEO
+from shared.groq_client import parsear_json_llm
+from shared.hf_client import llamar_modelo
 from shared.http_client import llamar_con_reintento
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
@@ -46,8 +46,6 @@ MIN_ANCHO = int(_res[0]) if len(_res) == 2 else 1920
 MIN_ALTO = int(_res[1]) if len(_res) == 2 else 1080
 
 HF_LLAVA_URL = "https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf"
-HF_MAX_ESPERA_CARGA = 120
-HF_POLL_INTERVAL = 10
 
 PROMPT_VALIDACION_INDIVIDUAL = """Analyze this AI-generated image for a YouTube video. Answer in JSON only:
 {
@@ -143,11 +141,10 @@ def _imagen_a_base64(path: Path) -> str:
 
 
 def _llamar_llava(image_b64: str, prompt: str) -> dict | None:
-    """Llama a LLaVA via HF Inference API con manejo de cold start."""
+    """Llama a LLaVA via HF Inference API con rate limiting y manejo de cold start."""
     if not HF_API_TOKEN:
         return None
 
-    headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
     payload = {
         "inputs": {
             "image": image_b64,
@@ -156,38 +153,15 @@ def _llamar_llava(image_b64: str, prompt: str) -> dict | None:
         "parameters": {"max_new_tokens": 300},
     }
 
-    esperado = 0
-    while esperado < HF_MAX_ESPERA_CARGA:
-        try:
-            resp = httpx.post(HF_LLAVA_URL, headers=headers, json=payload, timeout=120)
-        except httpx.TimeoutException:
-            return None
-
-        if resp.status_code == 503:
-            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-            wait = min(body.get("estimated_time", HF_POLL_INTERVAL), 30)
-            time.sleep(wait)
-            esperado += wait
-            continue
-
-        if resp.status_code == 429:
-            return None
-
-        if resp.status_code != 200:
-            return None
-
-        break
-    else:
+    try:
+        resp = llamar_modelo(HF_LLAVA_URL, payload, timeout=120)
+    except Exception:
         return None
 
     try:
         data = resp.json()
         texto = data[0].get("generated_text", "") if isinstance(data, list) else data.get("generated_text", "")
-        inicio = texto.find("{")
-        fin = texto.rfind("}") + 1
-        if inicio >= 0 and fin > inicio:
-            import json
-            return json.loads(texto[inicio:fin])
+        return parsear_json_llm(texto)
     except Exception:
         pass
     return None

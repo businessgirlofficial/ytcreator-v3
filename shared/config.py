@@ -37,6 +37,17 @@ YTCREATOR_API_KEY = os.getenv("YTCREATOR_API_KEY", "")
 STORAGE_DIR = os.getenv("STORAGE_DIR", ".")
 BUFFER_MAX_VIDEOS = int(os.getenv("BUFFER_MAX_VIDEOS", "3"))
 
+# -- rate limits (requests por minuto, ajustar segun tu tier) ----
+GROQ_RATE_LIMIT = float(os.getenv("GROQ_RATE_LIMIT", "30"))
+HF_RATE_LIMIT = float(os.getenv("HF_RATE_LIMIT", "10"))
+PIXABAY_RATE_LIMIT = float(os.getenv("PIXABAY_RATE_LIMIT", "0.83"))
+RATE_LIMIT_SAFETY_FACTOR = float(os.getenv("RATE_LIMIT_SAFETY_FACTOR", "0.8"))
+
+# -- limites de tamaño de assets descargados (bytes) ----
+MAX_IMAGEN_BYTES = int(os.getenv("MAX_IMAGEN_BYTES", str(50 * 1024 * 1024)))    # 50 MB
+MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(50 * 1024 * 1024)))      # 50 MB
+MAX_VIDEO_BYTES = int(os.getenv("MAX_VIDEO_BYTES", str(500 * 1024 * 1024)))     # 500 MB
+
 # -- registro de puertos: agente_id -> puerto -------------------------------
 REGISTRO_AGENTES: dict[str, int] = {
     # Depto 0 - Inteligencia de Canal
