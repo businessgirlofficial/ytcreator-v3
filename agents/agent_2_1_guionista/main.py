@@ -32,6 +32,7 @@ from fastapi import FastAPI
 from shared.base_agent import crear_agente_app, envolver_logica
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -134,6 +135,7 @@ No cambies lo que ya funcionaba si el feedback no lo menciono."""
 
 Escribe el guion completo desde cero."""
 
+    user_prompt = inyectar_knowledge(user_prompt, "depto_2_guion")
     resultado = generar_json(SYSTEM_PROMPT, user_prompt, temperatura=0.9 if es_reescritura else 0.8)
     escenas_raw = resultado.get("escenas", [])
     if not escenas_raw:

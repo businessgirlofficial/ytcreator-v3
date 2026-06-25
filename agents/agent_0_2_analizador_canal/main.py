@@ -24,6 +24,7 @@ from shared.base_agent import crear_agente_app, envolver_logica
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
 
 AGENTE_ID = "0.2_analizador_canal"
@@ -119,6 +120,7 @@ Ultimos 20 titulos publicados:
 
 Analiza este canal y genera su perfil estrategico."""
 
+    user_prompt = inyectar_knowledge(user_prompt, "depto_0_inteligencia")
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
 
     freq_texto = None

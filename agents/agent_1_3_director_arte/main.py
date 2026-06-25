@@ -22,6 +22,7 @@ from shared.base_agent import crear_agente_app, envolver_logica
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 from shared.visual_styles import aplicar_estilo, aplicar_estilo_custom
@@ -133,6 +134,7 @@ Miniaturas con BAJO CTR (evita este estilo):
 
     user_prompt += "\n\nDisena la miniatura para este video."
 
+    user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
     resultado = generar_json(system_prompt, user_prompt)
 
     miniatura_composicion = {

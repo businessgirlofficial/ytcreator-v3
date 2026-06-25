@@ -29,15 +29,13 @@ from fastapi import FastAPI
 from shared.base_agent import crear_agente_app, envolver_logica
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import cargar_politicas
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
 AGENTE_ID = "5.3_compliance"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Verifica compliance con politicas de YouTube")
 state = StateManager()
-
-KNOWLEDGE_DIR = Path(__file__).resolve().parents[2] / "knowledge"
-POLICIES_PATH = KNOWLEDGE_DIR / "youtube_policies.md"
 
 SYSTEM_PROMPT = """Eres un auditor de compliance especializado en las politicas de YouTube.
 Tu trabajo es proteger el canal de sanciones, perdida de monetizacion y
@@ -86,11 +84,7 @@ IMPORTANTE:
 
 
 def _cargar_politicas() -> str:
-    if not POLICIES_PATH.exists():
-        raise FileNotFoundError(
-            f"No se encontro {POLICIES_PATH}. El archivo de politicas es requerido."
-        )
-    return POLICIES_PATH.read_text(encoding="utf-8")
+    return cargar_politicas()
 
 
 def logica(request: AgenteRequest) -> dict:

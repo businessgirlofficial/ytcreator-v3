@@ -29,6 +29,7 @@ from shared.base_agent import crear_agente_app, envolver_logica
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 
@@ -150,6 +151,7 @@ Titulos que tuvieron BAJO CTR (EVITA este estilo):
 
     user_prompt += "\n\nGenera 10 titulos usando frameworks distintos."
 
+    user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
     titulos_raw = resultado.get("titulos", [])
     if not titulos_raw:

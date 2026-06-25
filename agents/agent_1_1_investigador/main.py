@@ -27,6 +27,7 @@ from fastapi import FastAPI
 from shared.base_agent import crear_agente_app, envolver_logica
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 from shared.web_search import buscar
@@ -127,6 +128,7 @@ patrones que ya han demostrado funcionar en este canal y su competencia."""
     else:
         user_prompt += "\n\nSintetiza patrones virales concretos a partir de esto."
 
+    user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
 
     patrones_virales = resultado.get("patrones_virales", [])

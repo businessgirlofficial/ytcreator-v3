@@ -32,6 +32,7 @@ from shared.base_agent import crear_agente_app, envolver_logica
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse, IdentidadVisualCanal
 from shared.state_manager import StateManager
 from shared.visual_styles import aplicar_estilo, aplicar_estilo_custom
@@ -128,6 +129,7 @@ def _generar_locks_sin_identidad(nicho: str, titulo: str, canal_tono: str | None
     user_prompt = f"""Nicho: {nicho}
 Titulo del video: {titulo}
 Tono de canal: {canal_tono or "no especificado"}"""
+    user_prompt = inyectar_knowledge(user_prompt, "depto_3_visual")
     return generar_json(SYSTEM_PROMPT_LOCKS, user_prompt, temperatura=0.7)
 
 

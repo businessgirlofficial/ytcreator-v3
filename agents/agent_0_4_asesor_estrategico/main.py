@@ -23,6 +23,7 @@ from shared.base_agent import crear_agente_app, envolver_logica
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
 
 AGENTE_ID = "0.4_asesor_estrategico"
@@ -134,6 +135,7 @@ Genera ideas de video rankeadas por potencial viral, aprovechando las
 brechas y tendencias. PRIORIZA patrones que ya funcionaron y EVITA
 los que tuvieron bajo rendimiento. Adapta al tono y formatos que funcionan."""
 
+    user_prompt = inyectar_knowledge(user_prompt, "depto_0_inteligencia")
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
 
     ideas = resultado.get("ideas", [])

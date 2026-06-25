@@ -33,6 +33,7 @@ from shared.base_agent import crear_agente_app, envolver_logica
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.groq_client import generar_json
+from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
 from shared.video_utils import calcular_duraciones_por_palabras
@@ -190,6 +191,7 @@ Numero de escenas: {len(escenas)}
 Guion completo:
 {estado.guion.texto_completo or ""}{seo_feedback}"""
 
+    user_prompt = inyectar_knowledge(user_prompt, "depto_5_cierre")
     resultado = generar_json(SYSTEM_PROMPT_SEO, user_prompt, temperatura=0.6)
 
     titulos_capitulo = resultado.get("titulos_capitulo") or []
