@@ -23,6 +23,7 @@ from fastapi import FastAPI, HTTPException
 
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES, url_agente
+from shared import event_store
 from shared.health_checks import HealthCheckError, validar_fase, validar_todo
 from shared.logger import get_logger
 from shared.schemas import AgenteRequest
@@ -60,6 +61,12 @@ def _llamar(agente_id: str, proyecto_id: str, parametros: dict | None = None) ->
 
             duracion = round((datetime.utcnow() - inicio).total_seconds(), 2)
             log.info("completado %s | proyecto=%s | duracion=%.2fs | intentos=%d", agente_id, proyecto_id, duracion, intento)
+            event_store.registrar(
+                "agent_completed", "success",
+                source=agente_id, proyecto_id=proyecto_id,
+                data={"intentos": intento},
+                duration_seg=duracion,
+            )
             state.registrar_resultado_agente(proyecto_id, {
                 "agente_id": agente_id,
                 "estado": "completado",
@@ -80,6 +87,12 @@ def _llamar(agente_id: str, proyecto_id: str, parametros: dict | None = None) ->
 
     duracion = round((datetime.utcnow() - inicio).total_seconds(), 2)
     log.error("fallo %s | proyecto=%s | duracion=%.2fs | %s", agente_id, proyecto_id, duracion, ultimo_error)
+    event_store.registrar(
+        "agent_failed", "error",
+        source=agente_id, proyecto_id=proyecto_id,
+        data={"error": str(ultimo_error), "intentos": MAX_REINTENTOS_AGENTE},
+        duration_seg=duracion,
+    )
     state.registrar_resultado_agente(proyecto_id, {
         "agente_id": agente_id,
         "estado": "error",
@@ -99,6 +112,11 @@ def _llamar(agente_id: str, proyecto_id: str, parametros: dict | None = None) ->
 
 def _fase(proyecto_id: str, fase: str):
     state.actualizar(proyecto_id, fase_actual=fase)
+    event_store.registrar(
+        "pipeline_phase", "success",
+        source="orquestador_central", proyecto_id=proyecto_id,
+        data={"fase": fase},
+    )
 
 
 FASES_ORDEN = ["estrategia", "guion", "visual", "audio", "cierre", "completado", "publicado"]
@@ -206,6 +224,11 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
         )
 
     log.info("pipeline inicio | proyecto=%s | nicho=%s | canal=%s | canal_id=%s", proyecto_id, nicho, canal, canal_id)
+    event_store.registrar(
+        "pipeline_started", "success",
+        source="orquestador_central", proyecto_id=proyecto_id,
+        data={"nicho": nicho, "canal": canal, "canal_id": canal_id},
+    )
     pipeline_inicio = time.time()
 
     try:
@@ -294,12 +317,24 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
         state.actualizar(proyecto_id, fase_actual="completado", agente_actual=None)
         duracion_total = round(time.time() - pipeline_inicio, 2)
         log.info("pipeline completado | proyecto=%s | duracion_total=%.2fs", proyecto_id, duracion_total)
+        event_store.registrar(
+            "pipeline_completed", "success",
+            source="orquestador_central", proyecto_id=proyecto_id,
+            data={"nicho": nicho},
+            duration_seg=duracion_total,
+        )
         return state.leer(proyecto_id)
 
     except HTTPException:
         raise
     except HealthCheckError as exc:
         log.error("pipeline health check fallo | proyecto=%s | %s", proyecto_id, exc)
+        event_store.registrar(
+            "pipeline_failed", "error",
+            source="orquestador_central", proyecto_id=proyecto_id,
+            data={"error": str(exc), "fallos": exc.fallos},
+            duration_seg=round(time.time() - pipeline_inicio, 2),
+        )
         state.actualizar(
             proyecto_id,
             fase_actual="error",
@@ -309,6 +344,12 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
         log.error("pipeline error | proyecto=%s | %s", proyecto_id, exc, exc_info=True)
+        event_store.registrar(
+            "pipeline_failed", "error",
+            source="orquestador_central", proyecto_id=proyecto_id,
+            data={"error": str(exc)},
+            duration_seg=round(time.time() - pipeline_inicio, 2),
+        )
         state.actualizar(
             proyecto_id,
             fase_actual="error",
@@ -408,13 +449,24 @@ def puede_generar(canal_id: str | None = None, frecuencia: str | None = None):
     n8n llama esto ANTES de disparar /pipeline/ejecutar.
 
     Chequea:
+      0. Pausa global: si la automatizacion esta pausada, no se puede generar
       1. Buffer: cuantos proyectos completados pero no publicados hay
       2. Frecuencia: si la frecuencia del canal permite generar hoy
       3. Ultimo generado: que no haya un pipeline corriendo ahora mismo
 
     Responde {puede: true/false, razon: "...", detalle: {...}}
     """
+    from shared import scheduler
     from shared.config import BUFFER_MAX_VIDEOS
+
+    # Check 0: pausa global
+    if scheduler.esta_pausado():
+        pausa = scheduler.obtener_pausa()
+        return {
+            "puede": False,
+            "razon": f"Automatizacion pausada{': ' + pausa['razon'] if pausa.get('razon') else ''}",
+            "detalle": {"pausado": True, "pausado_en": pausa.get("pausado_en"), "pausado_por": pausa.get("pausado_por")},
+        }
 
     proyectos_ids = state.listar_proyectos()
 

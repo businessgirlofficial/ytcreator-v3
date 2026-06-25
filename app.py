@@ -4,7 +4,9 @@ Flujo: Guión → Audio → Kaggle → Subtítulos → Ensamblar
 Estado en sidebar derecho fijo
 """
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import os, json, asyncio, requests, zipfile
+from html import escape as _html_escape
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
@@ -15,6 +17,13 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+_REFRESH_INTERVALS = {"Off": 0, "15s": 15000, "30s": 30000, "60s": 60000}
+if "autorefresh_interval" not in st.session_state:
+    st.session_state["autorefresh_interval"] = "30s"
+_ar_interval = _REFRESH_INTERVALS[st.session_state["autorefresh_interval"]]
+if _ar_interval > 0:
+    st_autorefresh(interval=_ar_interval, key="global_autorefresh")
 
 GROQ_KEY    = os.getenv("GROQ_API_KEY", "")
 KAGGLE_USER = os.getenv("KAGGLE_USERNAME", "")
@@ -252,6 +261,343 @@ label{color:var(--text2)!important;font-size:.8rem!important;font-weight:500!imp
 .lok{color:var(--green)}.lerr{color:var(--red)}.linf{color:var(--blue)}
 
 hr{border-color:var(--border)!important;margin:18px 0!important}
+
+/* ── Monitor Dashboard ── */
+.mon-score{
+  text-align:center;padding:28px 20px;border-radius:14px;
+  border:1px solid var(--border);position:relative;overflow:hidden;
+}
+.mon-score-num{font-size:3.2rem;font-weight:800;line-height:1;margin-bottom:2px;
+  font-family:'Bebas Neue',sans-serif;letter-spacing:2px}
+.mon-score-label{font-size:.72rem;color:var(--text3);text-transform:uppercase;
+  letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.mon-healthy{background:linear-gradient(160deg,rgba(29,185,84,.08) 0%,var(--dark2) 100%);
+  border-color:rgba(29,185,84,.25)}
+.mon-healthy .mon-score-num{color:var(--green)}
+.mon-degraded{background:linear-gradient(160deg,rgba(255,149,0,.08) 0%,var(--dark2) 100%);
+  border-color:rgba(255,149,0,.25)}
+.mon-degraded .mon-score-num{color:var(--orange)}
+.mon-critical{background:linear-gradient(160deg,rgba(255,0,0,.08) 0%,var(--dark2) 100%);
+  border-color:rgba(255,0,0,.25)}
+.mon-critical .mon-score-num{color:var(--red)}
+
+.mon-depto{
+  background:var(--dark2);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;transition:border-color .2s;
+}
+.mon-depto:hover{border-color:var(--border3)}
+.mon-depto-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mon-depto-name{font-size:.82rem;font-weight:700;color:var(--text)}
+.mon-depto-badge{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace}
+.mon-depto-ok .mon-depto-badge{background:var(--green-dim);color:var(--green);border:1px solid rgba(29,185,84,.2)}
+.mon-depto-warn .mon-depto-badge{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
+.mon-depto-down .mon-depto-badge{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,0,0,.2)}
+.mon-depto-bar{background:var(--dark5);border-radius:3px;height:4px;overflow:hidden;margin-bottom:8px}
+.mon-depto-fill{height:100%;border-radius:3px;transition:width .4s}
+
+.mon-srv{display:flex;align-items:center;gap:8px;padding:4px 0;
+  font-size:.73rem;font-family:'JetBrains Mono',monospace}
+.mon-srv-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.mon-srv-name{color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mon-srv-info{color:var(--text3);font-size:.67rem}
+
+.mon-proj{
+  background:var(--dark2);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s;
+}
+.mon-proj:hover{border-color:var(--border3);transform:translateX(2px)}
+.mon-proj-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.mon-proj-id{font-size:.85rem;font-weight:700;color:var(--text)}
+.mon-proj-fase{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:10px;
+  font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+.mon-proj-bar{display:flex;gap:3px;margin-top:8px}
+.mon-proj-seg{flex:1;height:4px;border-radius:2px;background:var(--dark5)}
+
+.mon-agent-row{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  border-left:2px solid var(--border);margin-left:6px;
+  font-size:.78rem;transition:all .15s;
+}
+.mon-agent-row:hover{background:var(--dark3);border-radius:0 6px 6px 0}
+.mon-agent-row.a-ok{border-left-color:var(--green)}
+.mon-agent-row.a-err{border-left-color:var(--red)}
+.mon-agent-row.a-run{border-left-color:var(--orange)}
+.mon-agent-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;font-size:.7rem;flex-shrink:0}
+.a-ok .mon-agent-icon{background:var(--green-dim);color:var(--green)}
+.a-err .mon-agent-icon{background:var(--red-dim);color:var(--red)}
+.a-run .mon-agent-icon{background:var(--orange-dim);color:var(--orange)}
+.mon-agent-name{font-weight:600;color:var(--text);flex:1}
+.mon-agent-meta{color:var(--text3);font-size:.7rem;font-family:'JetBrains Mono',monospace;
+  display:flex;gap:12px}
+
+.mon-log{
+  background:#070B10;border:1px solid #151E2E;border-radius:10px;
+  padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:.7rem;
+  color:#5A8AB0;max-height:420px;overflow-y:auto;line-height:1.85;
+  scrollbar-width:thin;scrollbar-color:#1A2535 #070B10;
+}
+.mon-log .l-time{color:#3A5068}
+.mon-log .l-name{color:var(--blue)}
+.mon-log .l-info{color:#5A8AB0}
+.mon-log .l-warn{color:var(--orange)}
+.mon-log .l-err{color:var(--red)}
+
+/* ── Sidebar Health Widget ── */
+.sb-health{padding:12px 14px}
+.sb-health-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sb-health-title{font-size:.68rem;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+.sb-health-score{font-size:.72rem;font-weight:800;padding:2px 8px;border-radius:8px;
+  font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.sb-h-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(29,185,84,.2)}
+.sb-h-warn{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
+.sb-h-crit{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,0,0,.2)}
+.sb-h-off{background:var(--dark5);color:var(--text4);border:1px solid var(--border)}
+
+.sb-deptos{display:flex;flex-direction:column;gap:4px}
+.sb-depto-row{display:flex;align-items:center;gap:8px;padding:3px 0}
+.sb-depto-dots{display:flex;gap:3px;flex-shrink:0}
+.sb-depto-dot{width:6px;height:6px;border-radius:50%}
+.sb-depto-label{font-size:.7rem;color:var(--text3);flex:1;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.sb-depto-count{font-size:.65rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+.sb-health-bar{background:var(--dark5);border-radius:3px;height:5px;
+  overflow:hidden;margin:8px 0 6px}
+.sb-health-fill{height:100%;border-radius:3px;transition:width .4s}
+
+.sb-pipeline-ready{display:flex;align-items:center;gap:6px;margin-top:8px;
+  font-size:.7rem;font-family:'JetBrains Mono',monospace}
+
+/* ── Header enhanced ── */
+.hdr-health{display:flex;align-items:center;gap:12px}
+.hdr-health-item{display:flex;align-items:center;gap:5px;font-size:.68rem;
+  color:var(--text3);font-family:'JetBrains Mono',monospace}
+.hdr-health-num{font-weight:700;color:var(--text2)}
+
+/* ── Timeline / Gantt ── */
+.tl-wrap{background:var(--dark2);border:1px solid var(--border);border-radius:12px;
+  padding:18px 20px;overflow-x:auto}
+.tl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.tl-title{font-size:.82rem;font-weight:700;color:var(--text)}
+.tl-duration{font-size:.72rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+.tl-axis{position:relative;height:18px;margin-bottom:4px;border-bottom:1px solid var(--border)}
+.tl-tick{position:absolute;bottom:0;font-size:.58rem;color:var(--text4);
+  font-family:'JetBrains Mono',monospace;transform:translateX(-50%);padding-bottom:3px}
+.tl-tick::before{content:'';position:absolute;bottom:-1px;left:50%;
+  width:1px;height:6px;background:var(--border2)}
+
+.tl-row{display:flex;align-items:center;gap:0;height:30px;position:relative}
+.tl-label{width:140px;flex-shrink:0;font-size:.7rem;font-weight:600;
+  color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding-right:8px;text-align:right;font-family:'JetBrains Mono',monospace}
+.tl-track{flex:1;height:20px;position:relative;min-width:0}
+.tl-bar{position:absolute;height:16px;top:2px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.58rem;font-weight:700;color:#fff;
+  font-family:'JetBrains Mono',monospace;letter-spacing:.3px;
+  min-width:2px;transition:opacity .15s;cursor:default;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
+.tl-bar:hover{opacity:.85;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+
+.tl-bar.b-0{background:linear-gradient(90deg,#3EA6FF,#2196F3)}
+.tl-bar.b-1{background:linear-gradient(90deg,#A855F7,#7C3AED)}
+.tl-bar.b-2{background:linear-gradient(90deg,#FF9500,#F59E0B)}
+.tl-bar.b-3{background:linear-gradient(90deg,#1DB954,#16A34A)}
+.tl-bar.b-4{background:linear-gradient(90deg,#FF6B9D,#EC4899)}
+.tl-bar.b-5{background:linear-gradient(90deg,#6366F1,#4F46E5)}
+.tl-bar.b-err{background:linear-gradient(90deg,#FF0000,#DC2626)}
+
+.tl-phase-sep{position:absolute;top:0;bottom:0;width:1px;
+  background:var(--border);opacity:.4}
+
+.tl-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:10px;
+  border-top:1px solid var(--border)}
+.tl-legend-item{display:flex;align-items:center;gap:5px;font-size:.65rem;
+  color:var(--text3);font-family:'JetBrains Mono',monospace}
+.tl-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ── API Reference ── */
+.api-group{margin-bottom:14px}
+.api-group-title{font-size:.72rem;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.8px;padding:6px 0 6px;
+  font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--border);
+  margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.api-row{display:flex;align-items:center;gap:8px;padding:5px 8px;
+  border-radius:6px;transition:background .12s;font-family:'JetBrains Mono',monospace}
+.api-row:hover{background:var(--dark3)}
+.api-method{font-size:.6rem;font-weight:800;padding:2px 6px;border-radius:4px;
+  min-width:38px;text-align:center;letter-spacing:.5px;flex-shrink:0}
+.api-get{background:rgba(29,185,84,.12);color:var(--green);border:1px solid rgba(29,185,84,.2)}
+.api-post{background:rgba(62,166,255,.12);color:var(--blue);border:1px solid rgba(62,166,255,.2)}
+.api-delete{background:rgba(255,0,0,.1);color:var(--red);border:1px solid rgba(255,0,0,.2)}
+.api-path{font-size:.73rem;color:var(--text);font-weight:500;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.api-desc{font-size:.65rem;color:var(--text3);flex-shrink:0;max-width:280px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.api-auth{font-size:.55rem;color:var(--text4);padding:1px 4px;border-radius:3px;
+  border:1px solid var(--border);flex-shrink:0}
+
+/* ── Logs enhanced ── */
+.mon-log-stats{display:flex;gap:16px;padding:8px 0}
+.mon-log-stat{display:flex;align-items:center;gap:5px;font-size:.72rem;
+  font-family:'JetBrains Mono',monospace}
+.mon-log-stat-num{font-weight:700}
+.mon-log-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+
+/* ── Cola de publicación ── */
+.sb-queue{padding:12px 14px}
+.sb-queue-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sb-queue-title{font-size:.68rem;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+.sb-queue-buf{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:8px;
+  font-family:'JetBrains Mono',monospace}
+.sb-q-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(29,185,84,.2)}
+.sb-q-full{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
+
+.sb-q-item{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border-radius:6px;margin-bottom:4px;transition:background .15s;
+}
+.sb-q-item:hover{background:var(--dark4)}
+.sb-q-icon{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:.65rem;flex-shrink:0}
+.sb-q-info{flex:1;min-width:0;overflow:hidden}
+.sb-q-title{font-size:.73rem;font-weight:600;color:var(--text);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.sb-q-meta{font-size:.62rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.sb-q-badge{font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:8px;
+  font-family:'JetBrains Mono',monospace;flex-shrink:0}
+
+.q-item-ready .sb-q-icon{background:var(--green-dim);color:var(--green)}
+.q-item-ready .sb-q-badge{background:var(--green-dim);color:var(--green);border:1px solid rgba(29,185,84,.2)}
+.q-item-process .sb-q-icon{background:var(--orange-dim);color:var(--orange)}
+.q-item-process .sb-q-badge{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
+.q-item-pub .sb-q-icon{background:var(--blue-dim);color:var(--blue)}
+.q-item-pub .sb-q-badge{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(62,166,255,.2)}
+.q-item-err .sb-q-icon{background:var(--red-dim);color:var(--red)}
+.q-item-err .sb-q-badge{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,0,0,.2)}
+
+.q-section-label{font-size:.62rem;font-weight:700;color:var(--text4);
+  text-transform:uppercase;letter-spacing:.8px;padding:6px 8px 2px;
+  font-family:'JetBrains Mono',monospace}
+
+.q-empty{font-size:.7rem;color:var(--text4);padding:4px 8px;font-style:italic}
+
+/* ── Eventos de automatización ── */
+.sb-events{padding:12px 14px}
+.sb-events-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sb-events-title{font-size:.68rem;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+.sb-events-count{font-size:.65rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+.sb-ev{display:flex;align-items:flex-start;gap:8px;padding:5px 4px;
+  border-left:2px solid var(--border);margin-left:2px;transition:all .12s}
+.sb-ev:hover{background:var(--dark4);border-radius:0 4px 4px 0}
+.sb-ev.ev-success{border-left-color:var(--green)}
+.sb-ev.ev-error{border-left-color:var(--red)}
+.sb-ev.ev-warning{border-left-color:var(--orange)}
+
+.sb-ev-icon{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:.6rem;flex-shrink:0;margin-top:1px}
+.ev-success .sb-ev-icon{background:var(--green-dim);color:var(--green)}
+.ev-error .sb-ev-icon{background:var(--red-dim);color:var(--red)}
+.ev-warning .sb-ev-icon{background:var(--orange-dim);color:var(--orange)}
+
+.sb-ev-body{flex:1;min-width:0;overflow:hidden}
+.sb-ev-msg{font-size:.7rem;font-weight:600;color:var(--text);line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-ev-time{font-size:.6rem;color:var(--text4);font-family:'JetBrains Mono',monospace;
+  margin-top:1px}
+
+.mon-events-table{width:100%;border-collapse:separate;border-spacing:0;font-size:.75rem;
+  font-family:'JetBrains Mono',monospace}
+.mon-events-table th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;font-size:.65rem;
+  border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--dark2)}
+.mon-events-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2)}
+.mon-events-table tr:hover td{background:var(--dark3)}
+.mon-ev-type{padding:2px 6px;border-radius:4px;font-size:.65rem;font-weight:700}
+.met-pipeline{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(62,166,255,.2)}
+.met-agent{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(168,85,247,.2)}
+.met-system{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
+.mon-ev-status{padding:1px 6px;border-radius:8px;font-size:.62rem;font-weight:700}
+.mes-success{background:var(--green-dim);color:var(--green);border:1px solid rgba(29,185,84,.2)}
+.mes-error{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,0,0,.2)}
+
+/* ── Scheduler ── */
+.sb-sched{padding:12px 14px}
+.sb-sched-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sb-sched-title{font-size:.68rem;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+.sb-sched-count{font-size:.65rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.sb-sched-next{display:flex;align-items:center;gap:6px;margin-bottom:10px;
+  padding:6px 8px;background:var(--dark3);border-radius:6px;border:1px solid var(--border)}
+.sb-sched-next-icon{font-size:.85rem}
+.sb-sched-next-info{flex:1}
+.sb-sched-next-label{font-size:.68rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.sb-sched-next-time{font-size:.78rem;font-weight:700;color:var(--text)}
+
+.sb-task{display:flex;align-items:center;gap:8px;padding:5px 4px;
+  border-radius:4px;transition:background .12s}
+.sb-task:hover{background:var(--dark4)}
+.sb-task-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sb-task-info{flex:1;min-width:0;overflow:hidden}
+.sb-task-name{font-size:.7rem;font-weight:600;color:var(--text);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.sb-task-meta{font-size:.6rem;color:var(--text4);font-family:'JetBrains Mono',monospace}
+
+.mon-sched-card{background:var(--dark2);border:1px solid var(--border);border-radius:10px;
+  padding:16px 18px;transition:border-color .2s}
+.mon-sched-card:hover{border-color:var(--border3)}
+.mon-sched-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mon-sched-card-name{font-size:.85rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.mon-sched-card-cron{font-size:.68rem;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  padding:2px 6px;background:var(--dark4);border-radius:4px}
+.mon-sched-card-desc{font-size:.75rem;color:var(--text3);margin-bottom:10px;line-height:1.5}
+.mon-sched-card-meta{display:flex;gap:16px;flex-wrap:wrap}
+.mon-sched-meta-item{font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  display:flex;align-items:center;gap:4px}
+.mon-sched-meta-item strong{color:var(--text2)}
+
+/* ── Pausa global ── */
+.pause-banner{
+  background:linear-gradient(135deg,rgba(255,149,0,.12) 0%,rgba(255,0,0,.08) 100%);
+  border:1px solid rgba(255,149,0,.3);border-radius:8px;
+  padding:10px 12px;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.pause-banner-icon{font-size:1.1rem}
+.pause-banner-text{flex:1}
+.pause-banner-title{font-size:.75rem;font-weight:700;color:var(--orange)}
+.pause-banner-sub{font-size:.65rem;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:1px}
+
+.mon-pause-card{
+  background:var(--dark2);border-radius:12px;padding:20px 24px;
+  border:2px solid var(--border);transition:border-color .2s;
+}
+.mon-pause-active{border-color:rgba(255,149,0,.4);
+  background:linear-gradient(160deg,rgba(255,149,0,.06) 0%,var(--dark2) 100%)}
+.mon-pause-inactive{border-color:rgba(29,185,84,.3);
+  background:linear-gradient(160deg,rgba(29,185,84,.04) 0%,var(--dark2) 100%)}
+
+/* ── Keywords table ── */
+.kw-table{width:100%;border-collapse:separate;border-spacing:0;font-size:.75rem;
+  font-family:'JetBrains Mono',monospace}
+.kw-table th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;font-size:.65rem;
+  border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--dark2)}
+.kw-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2)}
+.kw-table tr:hover td{background:var(--dark3)}
+.kw-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;
+  font-weight:600;background:var(--blue-dim);color:var(--blue);
+  border:1px solid rgba(62,166,255,.2);max-width:180px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.kw-bar{height:4px;border-radius:2px;background:var(--dark5);overflow:hidden;min-width:40px}
+.kw-bar-fill{height:100%;border-radius:2px;transition:width .3s}
 </style>
 """, unsafe_allow_html=True)
 
@@ -268,6 +614,293 @@ for k,v in {
 }.items():
     if k not in st.session_state: st.session_state[k]=v
 s=st.session_state
+
+
+@st.cache_data(ttl=30)
+def _cached_health_servicios():
+    """Health de servicios cacheado 30s para no ralentizar cada rerun."""
+    try:
+        import api_client as _hc
+        if not _hc.health():
+            return None
+        return _hc.health_servicios()
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=30)
+def _cached_pipeline_cola():
+    """Cola de publicación cacheada 30s."""
+    try:
+        import api_client as _hc
+        if not _hc.health():
+            return None
+        return _hc.pipeline_cola()
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=30)
+def _cached_eventos_recientes():
+    """Últimos eventos de automatización cacheados 30s."""
+    try:
+        import api_client as _hc
+        if not _hc.health():
+            return None
+        return _hc.listar_eventos(limit=15)
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=30)
+def _cached_scheduler():
+    """Resumen del scheduler cacheado 30s."""
+    try:
+        import api_client as _hc
+        if not _hc.health():
+            return None
+        return _hc.scheduler_resumen()
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=10)
+def _cached_pausa():
+    """Estado de pausa cacheado 10s (TTL corto porque es critico)."""
+    try:
+        import api_client as _hc
+        if not _hc.health():
+            return None
+        return _hc.scheduler_pausa()
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=60)
+def _cached_keywords_top():
+    """Top keywords cacheado 60s."""
+    try:
+        import api_client as _hc
+        if not _hc.health():
+            return None
+        return _hc.keywords_top(limit=30)
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=60)
+def _cached_keywords_stats():
+    """Stats de keywords cacheado 60s."""
+    try:
+        import api_client as _hc
+        if not _hc.health():
+            return None
+        return _hc.keywords_stats()
+    except Exception:
+        return None
+
+
+def _leer_logs(storage_dir: str, incluir_rotados: bool = False) -> list[str]:
+    """Lee las líneas de log del archivo principal y opcionalmente los rotados."""
+    log_dir = Path(storage_dir) / "logs"
+    lineas = []
+    if incluir_rotados:
+        for i in [3, 2, 1]:
+            rotado = log_dir / f"ytcreator.log.{i}"
+            if rotado.exists():
+                lineas.extend(rotado.read_text(encoding="utf-8", errors="replace").strip().split("\n"))
+    principal = log_dir / "ytcreator.log"
+    if principal.exists():
+        lineas.extend(principal.read_text(encoding="utf-8", errors="replace").strip().split("\n"))
+    return [l for l in lineas if l.strip()]
+
+
+def _parsear_linea_log(linea: str) -> dict:
+    """Parsea una línea de log al formato estructurado."""
+    parts = linea.split(" | ", 3)
+    if len(parts) >= 4:
+        return {"ts": parts[0], "name": parts[1].strip(), "level": parts[2].strip(), "msg": parts[3]}
+    return {"ts": "", "name": "", "level": "INFO", "msg": linea}
+
+
+def _extraer_servicios_unicos(lineas_parseadas: list[dict]) -> list[str]:
+    """Extrae los nombres de servicios únicos de las líneas de log."""
+    nombres = sorted(set(l["name"] for l in lineas_parseadas if l["name"]))
+    return nombres
+
+
+_AGENTE_A_DEPTO = {
+    "sub_orq_inteligencia": 0, "0.1_escaner_canal": 0, "0.2_analizador_canal": 0,
+    "0.3_monitor_mercado": 0, "0.4_asesor_estrategico": 0, "0.5_tracker_performance": 0,
+    "sub_orq_estrategia": 1, "1.1_investigador": 1, "1.2_copywriter": 1,
+    "1.3_director_arte": 1, "1.4_generador_miniatura": 1,
+    "sub_orq_guion": 2, "2.1_guionista": 2,
+    "sub_orq_visual": 3, "3.1_prompt_maker": 3, "3.2_generador_visual": 3,
+    "sub_orq_audio": 4, "4.1_locucion": 4, "4.2_musica": 4, "4.3_subtitulos": 4,
+    "sub_orq_cierre": 5, "5.1_editor": 5, "5.2_seo": 5, "5.3_compliance": 5,
+    "5.4_policy_monitor": 5, "5.5_publicador": 5,
+}
+_DEPTO_NOMBRES = ["Intel", "Estrategia", "Guión", "Visual", "Audio", "Cierre"]
+_DEPTO_COLORES_HEX = ["#3EA6FF", "#A855F7", "#FF9500", "#1DB954", "#FF6B9D", "#6366F1"]
+
+
+def _renderizar_timeline_html(historial: list[dict], titulo: str = "") -> str:
+    """Genera un Gantt chart HTML puro a partir del historial de agentes."""
+    if not historial:
+        return ""
+
+    from datetime import datetime as _dt
+
+    entries = []
+    for h in historial:
+        inicio_str = h.get("inicio")
+        fin_str = h.get("fin")
+        if not inicio_str or not fin_str:
+            continue
+        try:
+            inicio_dt = _dt.fromisoformat(inicio_str)
+            fin_dt = _dt.fromisoformat(fin_str)
+        except (ValueError, TypeError):
+            continue
+        entries.append({
+            "agente": h.get("agente_id", "?"),
+            "inicio": inicio_dt,
+            "fin": fin_dt,
+            "duracion": h.get("duracion_seg", 0) or (fin_dt - inicio_dt).total_seconds(),
+            "estado": h.get("estado", "?"),
+            "intentos": h.get("intentos", 1),
+            "error": h.get("error"),
+        })
+
+    if not entries:
+        return ""
+
+    pipeline_start = min(e["inicio"] for e in entries)
+    pipeline_end = max(e["fin"] for e in entries)
+    total_seg = (pipeline_end - pipeline_start).total_seconds()
+    if total_seg <= 0:
+        total_seg = 1
+
+    def _fmt_dur(seg):
+        if seg >= 3600:
+            return f"{seg/3600:.1f}h"
+        if seg >= 60:
+            return f"{seg/60:.1f}m"
+        return f"{seg:.0f}s"
+
+    # Eje de tiempo (ticks)
+    n_ticks = min(8, max(3, int(total_seg / 30) + 1))
+    tick_html = ""
+    for i in range(n_ticks + 1):
+        pct = (i / n_ticks) * 100
+        seg_val = (i / n_ticks) * total_seg
+        tick_html += f'<span class="tl-tick" style="left:{pct}%">{_fmt_dur(seg_val)}</span>'
+
+    # Barras
+    rows_html = ""
+    for e in entries:
+        offset_seg = (e["inicio"] - pipeline_start).total_seconds()
+        left_pct = (offset_seg / total_seg) * 100
+        width_pct = max((e["duracion"] / total_seg) * 100, 0.5)
+
+        depto_idx = _AGENTE_A_DEPTO.get(e["agente"], 5)
+        bar_cls = "b-err" if e["estado"] == "error" else f"b-{depto_idx}"
+
+        label_short = e["agente"].split("_", 1)[-1] if "_" in e["agente"] else e["agente"]
+        bar_text = _fmt_dur(e["duracion"])
+        if width_pct > 8:
+            bar_text = f'{_fmt_dur(e["duracion"])}'
+        elif width_pct < 3:
+            bar_text = ""
+
+        retry_mark = f' ×{e["intentos"]}' if e["intentos"] > 1 else ""
+        tooltip = f'{e["agente"]} — {_fmt_dur(e["duracion"])}{retry_mark}'
+
+        rows_html += (
+            f'<div class="tl-row">'
+            f'<div class="tl-label" title="{_html_escape(e["agente"])}">{_html_escape(label_short)}</div>'
+            f'<div class="tl-track">'
+            f'<div class="tl-bar {bar_cls}" style="left:{left_pct:.2f}%;width:{width_pct:.2f}%" '
+            f'title="{_html_escape(tooltip)}">{bar_text}</div>'
+            f'</div></div>'
+        )
+
+    # Leyenda
+    deptos_usados = sorted(set(_AGENTE_A_DEPTO.get(e["agente"], 5) for e in entries))
+    legend_html = ""
+    for di in deptos_usados:
+        legend_html += (
+            f'<div class="tl-legend-item">'
+            f'<span class="tl-legend-dot" style="background:{_DEPTO_COLORES_HEX[di]}"></span>'
+            f'{_DEPTO_NOMBRES[di]}</div>'
+        )
+    has_errors = any(e["estado"] == "error" for e in entries)
+    if has_errors:
+        legend_html += '<div class="tl-legend-item"><span class="tl-legend-dot" style="background:#FF0000"></span>Error</div>'
+
+    # Resumen por fase
+    fase_tiempos = {}
+    for e in entries:
+        di = _AGENTE_A_DEPTO.get(e["agente"], 5)
+        nombre = _DEPTO_NOMBRES[di]
+        fase_tiempos[nombre] = fase_tiempos.get(nombre, 0) + e["duracion"]
+    resumen_parts = [f'{nombre}: {_fmt_dur(dur)}' for nombre, dur in fase_tiempos.items()]
+    resumen_html = " · ".join(resumen_parts)
+
+    return (
+        f'<div class="tl-wrap">'
+        f'<div class="tl-header">'
+        f'<span class="tl-title">{_html_escape(titulo) if titulo else "Timeline del pipeline"}</span>'
+        f'<span class="tl-duration">Total: {_fmt_dur(total_seg)}</span>'
+        f'</div>'
+        f'<div class="tl-axis">{tick_html}</div>'
+        f'{rows_html}'
+        f'<div style="font-size:.65rem;color:var(--text3);margin-top:8px;'
+        f'font-family:\'JetBrains Mono\',monospace">{resumen_html}</div>'
+        f'<div class="tl-legend">{legend_html}</div>'
+        f'</div>'
+    )
+
+
+def _renderizar_logs_html(lineas_parseadas: list[dict], busqueda: str = "") -> str:
+    """Genera el HTML del visor de logs con resaltado de búsqueda."""
+    html_parts = []
+    for lp in lineas_parseadas:
+        ts = _html_escape(lp["ts"])
+        name = _html_escape(lp["name"])
+        level = lp["level"]
+        msg = _html_escape(lp["msg"])
+
+        lcls = "l-info"
+        if "ERROR" in level:
+            lcls = "l-err"
+        elif "WARNING" in level:
+            lcls = "l-warn"
+
+        if busqueda and busqueda.lower() in (lp["ts"] + lp["name"] + lp["msg"]).lower():
+            msg = msg.replace(
+                _html_escape(busqueda),
+                f'<mark style="background:rgba(255,255,0,.25);color:var(--text);border-radius:2px;padding:0 2px">{_html_escape(busqueda)}</mark>',
+            )
+            name_esc = _html_escape(busqueda)
+            if name_esc.lower() in name.lower():
+                name = name.replace(
+                    name_esc,
+                    f'<mark style="background:rgba(255,255,0,.25);color:var(--text);border-radius:2px;padding:0 2px">{name_esc}</mark>',
+                )
+
+        if name:
+            html_parts.append(
+                f'<div class="{lcls}">'
+                f'<span class="l-time">{ts}</span> '
+                f'<span class="l-name">{name}</span> '
+                f'{msg}</div>'
+            )
+        else:
+            html_parts.append(f'<div class="{lcls}">{msg}</div>')
+
+    return "".join(html_parts)
+
 
 # ══════════════════════════════════════════════════════════════
 # SIDEBAR — Estado del proyecto (panel derecho fijo)
@@ -347,12 +980,460 @@ with st.sidebar:
         st.success("🎉 ¡Todo listo!")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # ── Health de servicios (siempre visible) ──
+    st.divider()
+    _sb_health = _cached_health_servicios()
+
+    if _sb_health is None:
+        st.markdown("""
+        <div class="sb-health">
+          <div class="sb-health-head">
+            <span class="sb-health-title">📡 Servicios</span>
+            <span class="sb-health-score sb-h-off">OFF</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--text4)">Agentes no conectados</div>
+        </div>""", unsafe_allow_html=True)
+    else:
+        _sb_score = _sb_health.get("score", 0)
+        _sb_nivel = _sb_health.get("nivel", "critico")
+        _sb_vivos = _sb_health.get("vivos", 0)
+        _sb_total = _sb_health.get("total", 0)
+        _sb_puede = _sb_health.get("puede_pipeline", False)
+        _sb_mem = _sb_health.get("memoria_total_mb")
+        _sb_criticos = _sb_health.get("criticos_caidos", [])
+        _sb_desglose = _sb_health.get("desglose_departamentos", {})
+        _sb_servicios = _sb_health.get("servicios", {})
+
+        _sb_score_cls = "sb-h-ok" if _sb_nivel == "saludable" else ("sb-h-warn" if _sb_nivel == "degradado" else "sb-h-crit")
+        _sb_bar_color = "var(--green)" if _sb_nivel == "saludable" else ("var(--orange)" if _sb_nivel == "degradado" else "var(--red)")
+        _sb_bar_pct = min(_sb_score, 100)
+
+        _SB_DEPTOS = [
+            ("depto_0_inteligencia", "Intel"),
+            ("depto_1_estrategia", "Estrat"),
+            ("depto_2_guion", "Guión"),
+            ("depto_3_visual", "Visual"),
+            ("depto_4_audio", "Audio"),
+            ("depto_5_cierre", "Cierre"),
+            ("orquestador", "Orq"),
+        ]
+
+        _sb_deptos_html = ""
+        for _sbdk, _sbdl in _SB_DEPTOS:
+            _sbd_info = _sb_desglose.get(_sbdk, {"vivos": 0, "total": 0})
+            _sbd_v = _sbd_info["vivos"]
+            _sbd_t = _sbd_info["total"]
+
+            _SB_DEPTO_AGENTS = {
+                "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
+                "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
+                "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
+                "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],
+                "depto_4_audio": ["4.1_locucion", "4.2_musica", "4.3_subtitulos", "sub_orq_audio"],
+                "depto_5_cierre": ["5.1_editor", "5.2_seo", "5.3_compliance", "5.4_policy_monitor", "5.5_publicador", "sub_orq_cierre"],
+                "orquestador": ["orquestador_central"],
+            }
+
+            _dots_html = ""
+            for _sba in _SB_DEPTO_AGENTS.get(_sbdk, []):
+                _sba_st = _sb_servicios.get(_sba, {}).get("estado", "caido")
+                _sba_c = "#1DB954" if _sba_st == "ok" else ("#FF9500" if _sba_st == "error" else "#FF0000")
+                _dots_html += f'<span class="sb-depto-dot" style="background:{_sba_c}" title="{_html_escape(_sba)}"></span>'
+
+            _sb_deptos_html += (
+                f'<div class="sb-depto-row">'
+                f'<div class="sb-depto-dots">{_dots_html}</div>'
+                f'<span class="sb-depto-label">{_sbdl}</span>'
+                f'<span class="sb-depto-count">{_sbd_v}/{_sbd_t}</span>'
+                f'</div>'
+            )
+
+        _sb_pipe_icon = '<span class="dot on"></span>' if _sb_puede else '<span class="dot off"></span>'
+        _sb_pipe_text = "Pipeline listo" if _sb_puede else "Pipeline bloqueado"
+        _sb_pipe_color = "var(--green)" if _sb_puede else "var(--red)"
+
+        _sb_crit_html = ""
+        if _sb_criticos:
+            _sb_crit_names = ", ".join(_html_escape(c) for c in _sb_criticos[:3])
+            _sb_crit_extra = f" +{len(_sb_criticos)-3}" if len(_sb_criticos) > 3 else ""
+            _sb_crit_html = (
+                f'<div style="font-size:.65rem;color:var(--red);margin-top:6px;'
+                f'font-family:\'JetBrains Mono\',monospace">'
+                f'⚠ {_sb_crit_names}{_sb_crit_extra}</div>'
+            )
+
+        _sb_mem_html = f'<span style="font-size:.65rem;color:var(--text3);font-family:\'JetBrains Mono\',monospace">{_sb_mem} MB</span>' if _sb_mem else ""
+
+        st.markdown(f"""
+        <div class="sb-health">
+          <div class="sb-health-head">
+            <span class="sb-health-title">📡 Servicios</span>
+            <span class="sb-health-score {_sb_score_cls}">{_sb_score}%</span>
+          </div>
+          <div class="sb-health-bar">
+            <div class="sb-health-fill" style="width:{_sb_bar_pct}%;background:{_sb_bar_color}"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:.68rem;color:var(--text3);font-family:'JetBrains Mono',monospace">{_sb_vivos}/{_sb_total} vivos</span>
+            {_sb_mem_html}
+          </div>
+          <div class="sb-deptos">
+            {_sb_deptos_html}
+          </div>
+          <div class="sb-pipeline-ready">
+            {_sb_pipe_icon}
+            <span style="color:{_sb_pipe_color}">{_sb_pipe_text}</span>
+          </div>
+          {_sb_crit_html}
+        </div>""", unsafe_allow_html=True)
+
+    if _sb_health is not None:
+        _col_ref, _col_ar = st.columns([1, 1])
+        with _col_ref:
+            if st.button("🔄  Refrescar", key="sb_refresh_health", use_container_width=True):
+                _cached_health_servicios.clear()
+                _cached_pipeline_cola.clear()
+                st.rerun()
+        with _col_ar:
+            _ar_sel = st.selectbox(
+                "Auto-refresh",
+                options=list(_REFRESH_INTERVALS.keys()),
+                index=list(_REFRESH_INTERVALS.keys()).index(st.session_state["autorefresh_interval"]),
+                key="sb_autorefresh_sel",
+                label_visibility="collapsed",
+            )
+            if _ar_sel != st.session_state["autorefresh_interval"]:
+                st.session_state["autorefresh_interval"] = _ar_sel
+                st.rerun()
+
+    # ── Cola de publicación (siempre visible) ──
+    st.divider()
+    _sb_cola = _cached_pipeline_cola()
+
+    if _sb_cola is None:
+        st.markdown("""
+        <div class="sb-queue">
+          <div class="sb-queue-head">
+            <span class="sb-queue-title">📋 Cola</span>
+            <span class="sb-queue-buf sb-h-off">—</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--text4)">Sin conexión a agentes</div>
+        </div>""", unsafe_allow_html=True)
+    else:
+        _sq_buf = _sb_cola.get("buffer", {})
+        _sq_buf_actual = _sq_buf.get("actual", 0)
+        _sq_buf_max = _sq_buf.get("max", 3)
+        _sq_en_proc = _sb_cola.get("en_proceso", [])
+        _sq_listos = _sb_cola.get("listos_para_publicar", [])
+        _sq_pubs = _sb_cola.get("publicados", [])
+        _sq_errs = _sb_cola.get("con_error", [])
+
+        _sq_buf_cls = "sb-q-full" if _sq_buf_actual >= _sq_buf_max else "sb-q-ok"
+        _sq_total_items = len(_sq_en_proc) + len(_sq_listos) + len(_sq_pubs) + len(_sq_errs)
+
+        _sq_items_html = ""
+
+        if _sq_en_proc:
+            _sq_items_html += '<div class="q-section-label">▶ En proceso</div>'
+            for _sqp in _sq_en_proc[:3]:
+                _sqp_titulo = _html_escape(_sqp.get("titulo", _sqp.get("proyecto_id", "?")))
+                if len(_sqp_titulo) > 28:
+                    _sqp_titulo = _sqp_titulo[:28] + "…"
+                _sqp_fase = _sqp.get("fase_actual", "?")
+                _sqp_pct = _sqp.get("progreso_pct", 0)
+                _sq_items_html += (
+                    f'<div class="sb-q-item q-item-process">'
+                    f'<div class="sb-q-icon">⏳</div>'
+                    f'<div class="sb-q-info">'
+                    f'<div class="sb-q-title">{_sqp_titulo}</div>'
+                    f'<div class="sb-q-meta">{_sqp_fase} · {_sqp_pct}%</div>'
+                    f'</div>'
+                    f'<span class="sb-q-badge">{_sqp_pct}%</span>'
+                    f'</div>'
+                )
+
+        if _sq_listos:
+            _sq_items_html += '<div class="q-section-label">✓ Listos para publicar</div>'
+            for _sql in _sq_listos:
+                _sql_titulo = _html_escape(_sql.get("titulo", _sql.get("proyecto_id", "?")))
+                if len(_sql_titulo) > 28:
+                    _sql_titulo = _sql_titulo[:28] + "…"
+                _sql_canal = _html_escape(_sql.get("canal", ""))
+                _sq_items_html += (
+                    f'<div class="sb-q-item q-item-ready">'
+                    f'<div class="sb-q-icon">✓</div>'
+                    f'<div class="sb-q-info">'
+                    f'<div class="sb-q-title">{_sql_titulo}</div>'
+                    f'<div class="sb-q-meta">{_sql_canal}</div>'
+                    f'</div>'
+                    f'<span class="sb-q-badge">LISTO</span>'
+                    f'</div>'
+                )
+
+        if _sq_errs:
+            _sq_items_html += '<div class="q-section-label">✗ Con error</div>'
+            for _sqe in _sq_errs[:2]:
+                _sqe_titulo = _html_escape(_sqe.get("titulo", _sqe.get("proyecto_id", "?")))
+                if len(_sqe_titulo) > 28:
+                    _sqe_titulo = _sqe_titulo[:28] + "…"
+                _sq_items_html += (
+                    f'<div class="sb-q-item q-item-err">'
+                    f'<div class="sb-q-icon">✗</div>'
+                    f'<div class="sb-q-info">'
+                    f'<div class="sb-q-title">{_sqe_titulo}</div>'
+                    f'<div class="sb-q-meta">error</div>'
+                    f'</div>'
+                    f'<span class="sb-q-badge">ERR</span>'
+                    f'</div>'
+                )
+
+        if _sq_pubs:
+            _sq_items_html += '<div class="q-section-label">📺 Publicados</div>'
+            for _sqpb in _sq_pubs[:3]:
+                _sqpb_titulo = _html_escape(_sqpb.get("titulo", _sqpb.get("proyecto_id", "?")))
+                if len(_sqpb_titulo) > 28:
+                    _sqpb_titulo = _sqpb_titulo[:28] + "…"
+                _sqpb_vid = _sqpb.get("youtube_video_id", "")
+                _sqpb_meta = _sqpb_vid if _sqpb_vid else "publicado"
+                _sq_items_html += (
+                    f'<div class="sb-q-item q-item-pub">'
+                    f'<div class="sb-q-icon">📺</div>'
+                    f'<div class="sb-q-info">'
+                    f'<div class="sb-q-title">{_sqpb_titulo}</div>'
+                    f'<div class="sb-q-meta">{_html_escape(_sqpb_meta)}</div>'
+                    f'</div>'
+                    f'<span class="sb-q-badge">PUB</span>'
+                    f'</div>'
+                )
+
+        if not _sq_items_html:
+            _sq_items_html = '<div class="q-empty">Sin proyectos todavía</div>'
+
+        st.markdown(f"""
+        <div class="sb-queue">
+          <div class="sb-queue-head">
+            <span class="sb-queue-title">📋 Cola</span>
+            <span class="sb-queue-buf {_sq_buf_cls}">{_sq_buf_actual}/{_sq_buf_max}</span>
+          </div>
+          {_sq_items_html}
+        </div>""", unsafe_allow_html=True)
+
+    # ── Eventos recientes (siempre visible) ──
+    st.divider()
+    _sb_eventos = _cached_eventos_recientes()
+
+    _EVENT_ICONS = {
+        "pipeline_started": "🚀", "pipeline_completed": "✅", "pipeline_failed": "❌",
+        "pipeline_phase": "📋", "agent_completed": "⚙️", "agent_failed": "💥",
+        "system_startup": "🔌", "health_check": "💓",
+    }
+    _EVENT_LABELS = {
+        "pipeline_started": "Pipeline iniciado",
+        "pipeline_completed": "Pipeline completado",
+        "pipeline_failed": "Pipeline falló",
+        "pipeline_phase": "Fase",
+        "agent_completed": "Agente OK",
+        "agent_failed": "Agente falló",
+        "system_startup": "Sistema iniciado",
+        "health_check": "Health check",
+    }
+
+    if _sb_eventos is None:
+        st.markdown("""
+        <div class="sb-events">
+          <div class="sb-events-head">
+            <span class="sb-events-title">📜 Eventos</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--text4)">Sin conexión</div>
+        </div>""", unsafe_allow_html=True)
+    elif not _sb_eventos:
+        st.markdown("""
+        <div class="sb-events">
+          <div class="sb-events-head">
+            <span class="sb-events-title">📜 Eventos</span>
+            <span class="sb-events-count">0</span>
+          </div>
+          <div class="q-empty">Sin eventos registrados</div>
+        </div>""", unsafe_allow_html=True)
+    else:
+        _sbe_html = ""
+        for _ev in _sb_eventos[:10]:
+            _ev_type = _ev.get("event_type", "?")
+            _ev_status = _ev.get("status", "?")
+            _ev_ts = _ev.get("timestamp", "")
+            _ev_source = _ev.get("source", "")
+            _ev_pid = _ev.get("proyecto_id", "")
+            _ev_data = _ev.get("data") or {}
+            _ev_dur = _ev.get("duration_seg")
+
+            _ev_icon = _EVENT_ICONS.get(_ev_type, "📌")
+            _ev_cls = "ev-error" if _ev_status == "error" else "ev-success"
+
+            _ev_label = _EVENT_LABELS.get(_ev_type, _ev_type)
+            if _ev_type == "pipeline_phase" and isinstance(_ev_data, dict):
+                _ev_label = f"Fase: {_ev_data.get('fase', '?')}"
+            elif _ev_type == "agent_completed":
+                _ev_label = f"{_ev_source} OK"
+            elif _ev_type == "agent_failed":
+                _ev_label = f"{_ev_source} falló"
+
+            _ev_time_short = _ev_ts[11:16] if len(_ev_ts) >= 16 else _ev_ts
+            _ev_dur_str = f" · {_ev_dur:.1f}s" if _ev_dur else ""
+            _ev_pid_str = f" · {_html_escape(_ev_pid[:12])}" if _ev_pid else ""
+
+            _sbe_html += (
+                f'<div class="sb-ev {_ev_cls}">'
+                f'<div class="sb-ev-icon">{_ev_icon}</div>'
+                f'<div class="sb-ev-body">'
+                f'<div class="sb-ev-msg">{_html_escape(_ev_label)}</div>'
+                f'<div class="sb-ev-time">{_ev_time_short}{_ev_dur_str}{_ev_pid_str}</div>'
+                f'</div></div>'
+            )
+
+        st.markdown(f"""
+        <div class="sb-events">
+          <div class="sb-events-head">
+            <span class="sb-events-title">📜 Eventos</span>
+            <span class="sb-events-count">{len(_sb_eventos)}</span>
+          </div>
+          {_sbe_html}
+        </div>""", unsafe_allow_html=True)
+
+    # ── Scheduler (tareas programadas) ──
+    st.divider()
+    _sb_sched = _cached_scheduler()
+    _sb_pausa = _cached_pausa()
+
+    # Banner de pausa global
+    _sb_esta_pausado = _sb_pausa is not None and _sb_pausa.get("pausado", False)
+    if _sb_esta_pausado:
+        _sb_pausa_en = _sb_pausa.get("pausado_en", "")
+        _sb_pausa_razon = _sb_pausa.get("razon", "")
+        _sb_pausa_time = _sb_pausa_en[11:16] if _sb_pausa_en and len(_sb_pausa_en) >= 16 else ""
+        _sb_pausa_sub = f"Desde {_sb_pausa_time}" + (f" — {_html_escape(_sb_pausa_razon)}" if _sb_pausa_razon else "")
+        st.markdown(f"""
+        <div class="pause-banner">
+          <span class="pause-banner-icon">⏸️</span>
+          <div class="pause-banner-text">
+            <div class="pause-banner-title">AUTOMATIZACIÓN PAUSADA</div>
+            <div class="pause-banner-sub">{_sb_pausa_sub}</div>
+          </div>
+        </div>""", unsafe_allow_html=True)
+        if st.button("▶  Reanudar automatización", key="sb_resume_auto", use_container_width=True):
+            try:
+                import api_client as _pause_api
+                _pause_api.scheduler_reanudar()
+                _cached_pausa.clear()
+                _cached_scheduler.clear()
+                st.rerun()
+            except Exception as _e:
+                st.error(f"Error: {_e}")
+    elif _sb_pausa is not None:
+        if st.button("⏸  Pausar automatización", key="sb_pause_auto", use_container_width=True):
+            try:
+                import api_client as _pause_api
+                _pause_api.scheduler_pausar()
+                _cached_pausa.clear()
+                _cached_scheduler.clear()
+                st.rerun()
+            except Exception as _e:
+                st.error(f"Error: {_e}")
+
+    if _sb_sched is None:
+        st.markdown("""
+        <div class="sb-sched">
+          <div class="sb-sched-head">
+            <span class="sb-sched-title">🕐 Schedule</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--text4)">Sin conexión</div>
+        </div>""", unsafe_allow_html=True)
+    else:
+        _sc_tareas = _sb_sched.get("tareas", [])
+        _sc_habilitadas = _sb_sched.get("habilitadas", 0)
+        _sc_proxima = _sb_sched.get("proxima_ejecucion")
+        _sc_proxima_nombre = _sb_sched.get("proxima_tarea", "")
+
+        _sc_next_html = ""
+        if _sc_proxima:
+            _sc_prox_hora = _sc_proxima[11:16] if len(_sc_proxima) >= 16 else _sc_proxima
+            _sc_next_html = (
+                f'<div class="sb-sched-next">'
+                f'<span class="sb-sched-next-icon">⏰</span>'
+                f'<div class="sb-sched-next-info">'
+                f'<div class="sb-sched-next-label">Próxima ejecución</div>'
+                f'<div class="sb-sched-next-time">{_sc_prox_hora} — {_html_escape(_sc_proxima_nombre or "?")}</div>'
+                f'</div></div>'
+            )
+
+        _sc_tasks_html = ""
+        for _sct in _sc_tareas:
+            _sct_hab = _sct.get("habilitado", False)
+            _sct_dot_color = "#1DB954" if _sct_hab else "#FF0000"
+            _sct_name = _html_escape(_sct.get("nombre", "?"))
+            _sct_freq = _html_escape(_sct.get("hora_legible", _sct.get("frecuencia", "?")))
+            _sct_last = _sct.get("ultima_ejecucion")
+            _sct_last_str = _sct_last[11:16] if _sct_last and len(_sct_last) >= 16 else "nunca"
+            _sct_status = _sct.get("ultimo_estado", "")
+            _sct_status_icon = "✓" if _sct_status == "success" else ("✗" if _sct_status == "error" else "—")
+
+            _sc_tasks_html += (
+                f'<div class="sb-task">'
+                f'<span class="sb-task-dot" style="background:{_sct_dot_color}"></span>'
+                f'<div class="sb-task-info">'
+                f'<div class="sb-task-name">{_sct_name}</div>'
+                f'<div class="sb-task-meta">{_sct_freq} · último: {_sct_last_str} {_sct_status_icon}</div>'
+                f'</div></div>'
+            )
+
+        st.markdown(f"""
+        <div class="sb-sched">
+          <div class="sb-sched-head">
+            <span class="sb-sched-title">🕐 Schedule</span>
+            <span class="sb-sched-count">{_sc_habilitadas} activas</span>
+          </div>
+          {_sc_next_html}
+          {_sc_tasks_html}
+        </div>""", unsafe_allow_html=True)
+
 # ══════════════════════════════════════════════════════════════
 # MAIN CONTENT
 # ══════════════════════════════════════════════════════════════
 
 # ── Header ────────────────────────────────────────────────────
 keys_ok = bool(GROQ_KEY and KAGGLE_KEY and KAGGLE_USER)
+_hdr_health = _cached_health_servicios()
+
+if _hdr_health:
+    _hdr_score = _hdr_health.get("score", 0)
+    _hdr_vivos = _hdr_health.get("vivos", 0)
+    _hdr_total = _hdr_health.get("total", 0)
+    _hdr_mem = _hdr_health.get("memoria_total_mb")
+    _hdr_nivel = _hdr_health.get("nivel", "critico")
+    _hdr_dot = "on" if _hdr_nivel == "saludable" else "off"
+    _hdr_score_color = "#1DB954" if _hdr_nivel == "saludable" else ("#FF9500" if _hdr_nivel == "degradado" else "#FF0000")
+    _hdr_status_html = (
+        f'<div class="hdr-health">'
+        f'<div class="hdr-health-item"><span class="dot {_hdr_dot}"></span>'
+        f'<span class="hdr-health-num" style="color:{_hdr_score_color}">{_hdr_score}%</span> {_hdr_nivel}</div>'
+        f'<div class="hdr-health-item">{_hdr_vivos}/{_hdr_total} servicios</div>'
+        + (f'<div class="hdr-health-item">{_hdr_mem} MB</div>' if _hdr_mem else '')
+        + '</div>'
+    )
+elif keys_ok:
+    _hdr_status_html = (
+        '<div class="hdr-st">'
+        '<span class="dot on"></span>'
+        'sistema listo'
+        '</div>'
+    )
+else:
+    _hdr_status_html = (
+        '<div class="hdr-st">'
+        '<span class="dot off"></span>'
+        'configura .env con tus API keys'
+        '</div>'
+    )
+
 st.markdown(f"""
 <div class="hdr">
   <div class="hdr-brand">
@@ -360,10 +1441,7 @@ st.markdown(f"""
     <span class="hdr-logo">YT<em>Creator</em> Studio</span>
     <span class="hdr-badge">v3</span>
   </div>
-  <div class="hdr-st">
-    <span class="dot {'on' if keys_ok else 'off'}"></span>
-    {'sistema listo' if keys_ok else 'configura .env con tus API keys'}
-  </div>
+  {_hdr_status_html}
 </div>
 """, unsafe_allow_html=True)
 
@@ -400,11 +1478,27 @@ try:
 except Exception:
     API_DISPONIBLE = False
 
-c_sp.markdown(f"""<div style="display:flex;align-items:center;gap:6px;height:100%;padding-top:28px">
-<span class="dot {'on' if API_DISPONIBLE else 'off'}"></span>
-<span style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace">
-{'agentes conectados' if API_DISPONIBLE else 'modo local (agentes no disponibles)'}</span>
-</div>""", unsafe_allow_html=True)
+if _hdr_health and API_DISPONIBLE:
+    _pb_puede = _hdr_health.get("puede_pipeline", False)
+    _pb_criticos = len(_hdr_health.get("criticos_caidos", []))
+    _pb_pipe_txt = "pipeline listo" if _pb_puede else f"pipeline bloqueado ({_pb_criticos} críticos caídos)"
+    _pb_pipe_dot = "on" if _pb_puede else "off"
+    c_sp.markdown(f"""<div style="display:flex;align-items:center;gap:12px;height:100%;padding-top:28px">
+    <div style="display:flex;align-items:center;gap:5px">
+      <span class="dot on"></span>
+      <span style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace">agentes conectados</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px">
+      <span class="dot {_pb_pipe_dot}"></span>
+      <span style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace">{_pb_pipe_txt}</span>
+    </div>
+    </div>""", unsafe_allow_html=True)
+else:
+    c_sp.markdown(f"""<div style="display:flex;align-items:center;gap:6px;height:100%;padding-top:28px">
+    <span class="dot {'on' if API_DISPONIBLE else 'off'}"></span>
+    <span style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace">
+    {'agentes conectados' if API_DISPONIBLE else 'modo local (agentes no disponibles)'}</span>
+    </div>""", unsafe_allow_html=True)
 
 # ── Modo Automático ──────────────────────────────────────────
 if API_DISPONIBLE:
@@ -467,7 +1561,7 @@ if API_DISPONIBLE:
 st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
 
 # ── Tabs ─────────────────────────────────────────────────────
-tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Canal", "📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar"])
+tab0, tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Canal", "📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar", "📡 Monitor"])
 
 # ══════════════════════════════════════════════════════════════
 # TAB 0 — CANAL (Channel Intelligence)
@@ -1649,3 +2743,854 @@ with tab5:
                             st.download_button(f"⬇️  Descargar", f.read(),
                                 file_name=fi[0].name, mime="video/mp4",
                                 key=f"dl_{p.name}", use_container_width=True)
+
+# ══════════════════════════════════════════════════════════════
+# TAB 6 — MONITOR (Dashboard de monitoreo en tiempo real)
+# ══════════════════════════════════════════════════════════════
+with tab6:
+    st.markdown('<div class="step-title">Monitor del Sistema</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Estado en tiempo real de todos los servicios, pipelines activos y logs del sistema.</div>', unsafe_allow_html=True)
+
+    if not API_DISPONIBLE:
+        st.warning("Los agentes no están conectados. Levanta los servicios con `python run_dev.py` para ver health y cola.")
+        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+    else:
+        import api_client as _mc
+
+        # ── Cargar datos ──
+        _health_data = None
+        _health_error = None
+
+        try:
+            _health_data = _mc.health_servicios()
+        except Exception as _e:
+            _health_error = str(_e)
+
+        # ════════════════════════════════════════════════
+        # SECCION 1 — Health del sistema
+        # ════════════════════════════════════════════════
+        st.markdown('<div class="section-label">Estado del sistema</div>', unsafe_allow_html=True)
+
+        if _health_error:
+            st.error(f"No se pudo obtener health de servicios: {_health_error}")
+        elif _health_data:
+            _score = _health_data.get("score", 0)
+            _nivel = _health_data.get("nivel", "critico")
+            _vivos = _health_data.get("vivos", 0)
+            _total = _health_data.get("total", 0)
+            _mem = _health_data.get("memoria_total_mb")
+            _puede = _health_data.get("puede_pipeline", False)
+            _criticos_caidos = _health_data.get("criticos_caidos", [])
+
+            _col_score, _col_m1, _col_m2, _col_m3, _col_m4 = st.columns([1.2, 1, 1, 1, 1])
+
+            with _col_score:
+                st.markdown(f"""
+                <div class="mon-score mon-{_nivel}">
+                  <div class="mon-score-num">{_score}%</div>
+                  <div class="mon-score-label">{_nivel.upper()}</div>
+                </div>""", unsafe_allow_html=True)
+
+            _col_m1.metric("Servicios", f"{_vivos}/{_total}")
+            _col_m2.metric("Memoria", f"{_mem} MB" if _mem else "N/A")
+            _col_m3.metric("Pipeline", "LISTO" if _puede else "NO LISTO")
+            _col_m4.metric("Críticos caídos", len(_criticos_caidos))
+
+            if _criticos_caidos:
+                st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+                _cc_html = " · ".join(
+                    f'<span style="color:var(--red);font-family:\'JetBrains Mono\',monospace;font-size:.75rem">{c}</span>'
+                    for c in _criticos_caidos
+                )
+                st.markdown(
+                    f'<div style="background:var(--red-dim);border:1px solid rgba(255,0,0,.2);'
+                    f'border-radius:8px;padding:10px 14px">'
+                    f'<span style="font-size:.72rem;font-weight:700;color:var(--red);margin-right:8px">SERVICIOS CRÍTICOS CAÍDOS:</span>'
+                    f'{_cc_html}</div>',
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-label">Departamentos</div>', unsafe_allow_html=True)
+
+            _desglose = _health_data.get("desglose_departamentos", {})
+            _servicios = _health_data.get("servicios", {})
+
+            _DEPTO_LABELS = {
+                "depto_0_inteligencia": ("🧠", "Inteligencia de Canal"),
+                "depto_1_estrategia": ("🎯", "Estrategia"),
+                "depto_2_guion": ("📝", "Guión"),
+                "depto_3_visual": ("🎨", "Visual"),
+                "depto_4_audio": ("🎙️", "Audio"),
+                "depto_5_cierre": ("🎬", "Cierre & Publicación"),
+                "orquestador": ("🧠", "Orquestador Central"),
+            }
+            _DEPTO_AGENTES = {
+                "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
+                "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
+                "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
+                "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],
+                "depto_4_audio": ["4.1_locucion", "4.2_musica", "4.3_subtitulos", "sub_orq_audio"],
+                "depto_5_cierre": ["5.1_editor", "5.2_seo", "5.3_compliance", "5.4_policy_monitor", "5.5_publicador", "sub_orq_cierre"],
+                "orquestador": ["orquestador_central"],
+            }
+            _depto_keys = list(_DEPTO_LABELS.keys())
+            for _row_deptos in [_depto_keys[:4], _depto_keys[4:]]:
+                _cols = st.columns(len(_row_deptos), gap="medium")
+                for _col, _dk in zip(_cols, _row_deptos):
+                    with _col:
+                        _icon, _label = _DEPTO_LABELS.get(_dk, ("⚙️", _dk))
+                        _info = _desglose.get(_dk, {"vivos": 0, "total": 0})
+                        _dv, _dt = _info["vivos"], _info["total"]
+                        _dpct = round((_dv / _dt) * 100) if _dt > 0 else 0
+                        _dcls = "mon-depto-ok" if _dpct == 100 else ("mon-depto-warn" if _dpct >= 50 else "mon-depto-down")
+                        _dbar_color = "var(--green)" if _dpct == 100 else ("var(--orange)" if _dpct >= 50 else "var(--red)")
+                        _srv_html = ""
+                        for _aid in _DEPTO_AGENTES.get(_dk, []):
+                            _srv = _servicios.get(_aid, {})
+                            _srv_estado = _srv.get("estado", "caido")
+                            _srv_color = "#1DB954" if _srv_estado == "ok" else ("#FF9500" if _srv_estado == "error" else "#FF0000")
+                            _srv_puerto = _srv.get("puerto", "?")
+                            _srv_mem = _srv.get("memoria_mb")
+                            _srv_info = f":{_srv_puerto}" + (f" · {_srv_mem}MB" if _srv_mem else "")
+                            _srv_html += f'<div class="mon-srv"><span class="mon-srv-dot" style="background:{_srv_color}"></span><span class="mon-srv-name">{_aid}</span><span class="mon-srv-info">{_srv_info}</span></div>'
+                        st.markdown(f'<div class="mon-depto {_dcls}"><div class="mon-depto-head"><span class="mon-depto-name">{_icon} {_label}</span><span class="mon-depto-badge">{_dv}/{_dt}</span></div><div class="mon-depto-bar"><div class="mon-depto-fill" style="width:{_dpct}%;background:{_dbar_color}"></div></div>{_srv_html}</div>', unsafe_allow_html=True)
+                st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        # ════════════════════════════════════════════════
+        # SECCION 2 — Cola de publicación
+        # ════════════════════════════════════════════════
+        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">Cola de publicación</div>', unsafe_allow_html=True)
+
+        _cola_data = _cached_pipeline_cola()
+        _FASE_COLORS = {
+            "estrategia": "var(--blue)", "guion": "var(--purple)",
+            "visual": "var(--orange)", "audio": "var(--green)",
+            "cierre": "#FF6B9D", "completado": "var(--green)",
+            "publicado": "var(--green)", "error": "var(--red)",
+            "desconocido": "var(--text4)",
+        }
+        _FASE_BG = {
+            "estrategia": "var(--blue-dim)", "guion": "var(--purple-dim)",
+            "visual": "var(--orange-dim)", "audio": "var(--green-dim)",
+            "cierre": "rgba(255,107,157,.08)", "completado": "var(--green-dim)",
+            "publicado": "var(--green-dim)", "error": "var(--red-dim)",
+            "desconocido": "var(--dark5)",
+        }
+        _FASES_PIPELINE = ["estrategia", "guion", "visual", "audio", "cierre", "completado"]
+
+        if not _cola_data:
+            st.info("No se pudo obtener la cola de publicación.")
+        else:
+            _cq_buf = _cola_data.get("buffer", {})
+            _cq_buf_actual = _cq_buf.get("actual", 0)
+            _cq_buf_max = _cq_buf.get("max", 3)
+            _cq_en_proc = _cola_data.get("en_proceso", [])
+            _cq_listos = _cola_data.get("listos_para_publicar", [])
+            _cq_pubs = _cola_data.get("publicados", [])
+            _cq_errs = _cola_data.get("con_error", [])
+
+            _cq_c1, _cq_c2, _cq_c3, _cq_c4, _cq_c5 = st.columns(5)
+            _cq_c1.metric("En proceso", len(_cq_en_proc))
+            _cq_c2.metric("Listos", len(_cq_listos))
+            _cq_c3.metric("Publicados", len(_cq_pubs))
+            _cq_c4.metric("Con error", len(_cq_errs))
+            _cq_buf_color = "normal" if _cq_buf_actual < _cq_buf_max else "inverse"
+            _cq_c5.metric("Buffer", f"{_cq_buf_actual}/{_cq_buf_max}", delta="lleno" if _cq_buf_actual >= _cq_buf_max else f"{_cq_buf_max - _cq_buf_actual} libres", delta_color=_cq_buf_color)
+
+            st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+
+            def _render_proyecto_card(_proj, _card_idx):
+                _pid = _proj.get("proyecto_id", "?")
+                _titulo = _proj.get("titulo", _pid)
+                _fase = _proj.get("fase_actual", "desconocido")
+                _canal = _proj.get("canal", "")
+                _nicho = _proj.get("nicho", "")
+                _agente = _proj.get("agente_actual")
+                _progreso = _proj.get("progreso_pct", 0)
+                _err_list = _proj.get("errores", [])
+                _creado = _proj.get("creado_en", "")
+                _pub_en = _proj.get("publicado_en", "")
+                _yt_id = _proj.get("youtube_video_id", "")
+                _fc = _FASE_COLORS.get(_fase, "var(--text3)")
+                _fb = _FASE_BG.get(_fase, "var(--dark5)")
+
+                _seg_html = ""
+                for _fp in _FASES_PIPELINE:
+                    _fp_done = _fase in ("completado", "publicado") if _fp == "completado" else (
+                        _FASES_PIPELINE.index(_fp) < _FASES_PIPELINE.index(_fase) if _fase in _FASES_PIPELINE else False
+                    )
+                    _seg_color = "var(--green)" if _fp_done else ("var(--orange)" if _fase == _fp else "var(--dark5)")
+                    _seg_html += f'<div class="mon-proj-seg" style="background:{_seg_color}" title="{_fp}"></div>'
+
+                _extra_html = ""
+                if _agente:
+                    _extra_html += f'<div style="font-size:.7rem;color:var(--orange);margin-top:4px;font-family:\'JetBrains Mono\',monospace">▶ {_html_escape(str(_agente))}</div>'
+                if _yt_id:
+                    _extra_html += f'<div style="font-size:.7rem;color:var(--blue);margin-top:4px;font-family:\'JetBrains Mono\',monospace">📺 {_html_escape(_yt_id)}{" · pub " + _pub_en[:10] if _pub_en else ""}</div>'
+                if _err_list:
+                    _last_err = str(_err_list[-1])[:120]
+                    _extra_html += f'<div style="font-size:.7rem;color:var(--red);margin-top:4px;font-family:\'JetBrains Mono\',monospace">✗ {_html_escape(_last_err)}</div>'
+
+                _meta_parts = [_html_escape(x) for x in [_canal, _nicho] if x]
+                if _creado:
+                    _meta_parts.append(_creado[:16].replace("T", " "))
+                _meta_html = f'<div style="font-size:.7rem;color:var(--text3);margin-top:2px;font-family:\'JetBrains Mono\',monospace">{" · ".join(_meta_parts)}</div>' if _meta_parts else ""
+
+                st.markdown(f"""<div class="mon-proj"><div class="mon-proj-head"><span class="mon-proj-id">{_html_escape(_titulo)}</span><span class="mon-proj-fase" style="background:{_fb};color:{_fc};border:1px solid {_fc}">{_fase}</span><span style="font-size:.72rem;color:var(--text3);margin-left:auto;font-family:'JetBrains Mono',monospace">{_progreso}%</span></div>{_meta_html}<div class="mon-proj-bar">{_seg_html}</div>{_extra_html}</div>""", unsafe_allow_html=True)
+
+                _hist = _proj.get("historial", [])
+                if _hist:
+                    with st.expander(f"⏱️  Timeline & historial — {_pid} ({len(_hist)} agentes)", expanded=False):
+                        _tl_html = _renderizar_timeline_html(_hist, titulo=_titulo)
+                        if _tl_html:
+                            st.markdown(_tl_html, unsafe_allow_html=True)
+                        st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+                        st.markdown('<div class="section-label">Detalle por agente</div>', unsafe_allow_html=True)
+
+                        _h_total_dur = sum(h.get("duracion_seg") or 0 for h in _hist)
+                        _h_total_ok = sum(1 for h in _hist if h.get("estado") == "completado")
+                        _h_total_err = sum(1 for h in _hist if h.get("estado") == "error")
+                        _h_total_retries = sum((h.get("intentos") or 1) - 1 for h in _hist)
+
+                        _hm1, _hm2, _hm3, _hm4 = st.columns(4)
+                        _hm1.metric("Agentes", len(_hist))
+                        _h_dur_fmt = f"{_h_total_dur/60:.1f} min" if _h_total_dur >= 60 else f"{_h_total_dur:.0f} seg"
+                        _hm2.metric("Tiempo total", _h_dur_fmt)
+                        _hm3.metric("Exitosos", _h_total_ok)
+                        if _h_total_err > 0 or _h_total_retries > 0:
+                            _hm4.metric("Errores / Reintentos", f"{_h_total_err} / {_h_total_retries}")
+                        else:
+                            _hm4.metric("Errores", "0")
+
+                        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+
+                        for _hi, _hag in enumerate(_hist):
+                            _hag_id = _hag.get("agente_id", "?")
+                            _hag_estado = _hag.get("estado", "?")
+                            _hag_dur = _hag.get("duracion_seg")
+                            _hag_intentos = _hag.get("intentos", 1)
+                            _hag_error = _hag.get("error")
+                            _hag_inicio = _hag.get("inicio", "")
+                            _hag_fin = _hag.get("fin", "")
+
+                            _hag_cls = "a-ok" if _hag_estado == "completado" else ("a-err" if _hag_estado == "error" else "a-run")
+                            _hag_icon = "✓" if _hag_estado == "completado" else ("✗" if _hag_estado == "error" else "▶")
+
+                            _hag_dur_fmt = ""
+                            if _hag_dur is not None:
+                                if _hag_dur >= 60:
+                                    _hag_dur_fmt = f"{_hag_dur/60:.1f}m"
+                                else:
+                                    _hag_dur_fmt = f"{_hag_dur:.1f}s"
+
+                            _hag_meta_parts = []
+                            if _hag_dur_fmt:
+                                _hag_meta_parts.append(_hag_dur_fmt)
+                            if _hag_intentos > 1:
+                                _hag_meta_parts.append(f"{_hag_intentos} intentos")
+                            if _hag_inicio:
+                                _t = _hag_inicio
+                                if "T" in _t:
+                                    _t = _t.split("T")[1][:8]
+                                _hag_meta_parts.append(_t)
+
+                            _hag_meta = " · ".join(_hag_meta_parts)
+
+                            _hag_pct = ""
+                            if _hag_dur is not None and _h_total_dur > 0:
+                                _hag_pct_val = round((_hag_dur / _h_total_dur) * 100)
+                                _hag_pct = f"{_hag_pct_val}%"
+
+                            _hag_err_html = ""
+                            if _hag_error:
+                                _hag_err_short = _hag_error[:150] + "..." if len(_hag_error) > 150 else _hag_error
+                                _hag_err_html = (
+                                    f'<div style="font-size:.67rem;color:var(--red);margin-left:32px;'
+                                    f'margin-top:2px;font-family:\'JetBrains Mono\',monospace">'
+                                    f'{_html_escape(_hag_err_short)}</div>'
+                                )
+
+                            st.markdown(f"""
+                            <div class="mon-agent-row {_hag_cls}">
+                              <div class="mon-agent-icon">{_hag_icon}</div>
+                              <span class="mon-agent-name">{_html_escape(_hag_id)}</span>
+                              <span class="mon-agent-meta">{_hag_meta}</span>
+                              <span style="font-size:.65rem;color:var(--text4);font-family:'JetBrains Mono',monospace;
+                                min-width:30px;text-align:right">{_hag_pct}</span>
+                            </div>
+                            {_hag_err_html}""", unsafe_allow_html=True)
+
+            if _cq_en_proc:
+                st.markdown(f'<div style="font-size:.75rem;font-weight:700;color:var(--orange);padding:8px 0 4px;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:var(--orange);display:inline-block"></span>En proceso ({len(_cq_en_proc)})</div>', unsafe_allow_html=True)
+                for _ci, _cp in enumerate(_cq_en_proc):
+                    _render_proyecto_card(_cp, f"proc_{_ci}")
+            if _cq_listos:
+                st.markdown(f'<div style="font-size:.75rem;font-weight:700;color:var(--green);padding:12px 0 4px">✓ Listos para publicar ({len(_cq_listos)})</div>', unsafe_allow_html=True)
+                for _ci, _cl in enumerate(_cq_listos):
+                    _render_proyecto_card(_cl, f"listo_{_ci}")
+            if _cq_errs:
+                st.markdown(f'<div style="font-size:.75rem;font-weight:700;color:var(--red);padding:12px 0 4px">✗ Con error ({len(_cq_errs)})</div>', unsafe_allow_html=True)
+                for _ci, _ce in enumerate(_cq_errs):
+                    _render_proyecto_card(_ce, f"err_{_ci}")
+            if _cq_pubs:
+                with st.expander(f"📺  Publicados ({len(_cq_pubs)})", expanded=False):
+                    for _ci, _cpb in enumerate(_cq_pubs):
+                        _render_proyecto_card(_cpb, f"pub_{_ci}")
+            if not _cq_en_proc and not _cq_listos and not _cq_errs and not _cq_pubs:
+                st.info("No hay proyectos en el sistema todavía. Lanza un pipeline para empezar.")
+
+    # ════════════════════════════════════════════════════════════
+    # SECCION 3 — API Reference
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+
+    _gw_url = os.getenv("GATEWAY_URL", "http://localhost:7861")
+
+    with st.expander("🔌  API Reference — Endpoints del Gateway", expanded=False):
+        st.markdown(f"""<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:.78rem;color:var(--text2)">Base URL: <code style="color:var(--blue)">{_html_escape(_gw_url)}</code></div>
+        <div style="display:flex;gap:8px">
+          <a href="{_html_escape(_gw_url)}/docs" target="_blank"
+            style="font-size:.7rem;color:var(--blue);text-decoration:none;
+            padding:3px 10px;border:1px solid rgba(62,166,255,.25);border-radius:6px;
+            font-family:'JetBrains Mono',monospace">Swagger UI ↗</a>
+          <a href="{_html_escape(_gw_url)}/openapi.json" target="_blank"
+            style="font-size:.7rem;color:var(--text3);text-decoration:none;
+            padding:3px 10px;border:1px solid var(--border);border-radius:6px;
+            font-family:'JetBrains Mono',monospace">OpenAPI JSON ↗</a>
+        </div></div>""", unsafe_allow_html=True)
+
+        _API_ENDPOINTS = [
+            ("Pipeline", [
+                ("POST", "/pipeline/ejecutar", "Ejecutar pipeline completo", True),
+                ("POST", "/pipeline/webhook", "Trigger async (para n8n)", True),
+                ("GET", "/pipeline/estado/{proyecto_id}", "Estado detallado del pipeline", True),
+                ("GET", "/pipeline/cola", "Cola de publicación completa", True),
+                ("POST", "/pipeline/kaggle-callback", "Callback de Kaggle", True),
+                ("GET", "/download/{proyecto_id}/final", "Descargar video final", True),
+            ]),
+            ("Proyectos", [
+                ("POST", "/proyectos", "Crear proyecto nuevo", True),
+                ("GET", "/proyectos", "Listar todos los proyectos", True),
+                ("GET", "/proyectos/{proyecto_id}", "Leer estado de un proyecto", True),
+            ]),
+            ("Agentes", [
+                ("POST", "/agentes/{agente_id}/ejecutar", "Ejecutar un agente individual", True),
+            ]),
+            ("Channel Intelligence", [
+                ("POST", "/canales/conectar", "Conectar y escanear canal", True),
+                ("GET", "/canales", "Listar canales conectados", True),
+                ("GET", "/canales/{canal_id}", "Datos completos del canal", True),
+                ("POST", "/canales/{canal_id}/refrescar", "Refrescar datos del canal", True),
+                ("DELETE", "/canales/{canal_id}", "Eliminar canal", True),
+                ("POST", "/canales/{canal_id}/competidores", "Agregar competidor", True),
+                ("DELETE", "/canales/{canal_id}/competidores/{comp_id}", "Eliminar competidor", True),
+                ("GET", "/canales/{canal_id}/ideas", "Obtener ideas de video", True),
+                ("POST", "/canales/{canal_id}/ideas/refrescar", "Re-generar ideas", True),
+                ("GET", "/canales/{canal_id}/identidad-visual", "Leer identidad visual", True),
+                ("POST", "/canales/{canal_id}/identidad-visual", "Guardar identidad visual", True),
+            ]),
+            ("Estilos & Recursos", [
+                ("GET", "/estilos", "Catálogo de estilos visuales", False),
+                ("GET", "/estilos/{slug}", "Detalle de un estilo", False),
+                ("GET", "/quota/hoy", "Quota YouTube API del día", True),
+            ]),
+            ("Scheduling & Health", [
+                ("GET", "/health", "Health check del gateway", False),
+                ("GET", "/scheduling/health_servicios", "Health de todos los servicios", True),
+                ("POST", "/scheduling/puede_generar", "¿Se puede generar un video?", True),
+            ]),
+        ]
+
+        for _grp_name, _grp_endpoints in _API_ENDPOINTS:
+            _grp_rows = ""
+            for _method, _path, _desc, _auth in _grp_endpoints:
+                _m_cls = f"api-{_method.lower()}"
+                _auth_badge = '<span class="api-auth">API Key</span>' if _auth else ""
+                _grp_rows += (
+                    f'<div class="api-row">'
+                    f'<span class="api-method {_m_cls}">{_method}</span>'
+                    f'<span class="api-path">{_html_escape(_path)}</span>'
+                    f'<span class="api-desc">{_html_escape(_desc)}</span>'
+                    f'{_auth_badge}'
+                    f'</div>'
+                )
+
+            st.markdown(f"""
+            <div class="api-group">
+              <div class="api-group-title">{_html_escape(_grp_name)} ({len(_grp_endpoints)})</div>
+              {_grp_rows}
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown(f"""<div style="margin-top:8px;padding:10px 12px;background:var(--dark3);
+        border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:.72rem;font-weight:700;color:var(--text3);margin-bottom:6px;
+          font-family:'JetBrains Mono',monospace">Autenticación</div>
+        <div style="font-size:.73rem;color:var(--text2);line-height:1.7">
+          Endpoints con <span class="api-auth" style="display:inline">API Key</span> requieren el header
+          <code style="color:var(--blue)">X-API-Key</code> con el valor de
+          <code style="color:var(--text3)">YTCREATOR_API_KEY</code> de tu <code>.env</code>.<br>
+          Endpoints sin badge son públicos.
+        </div></div>""", unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════
+    # SECCION 4 — Eventos de automatización
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Eventos de automatización</div>', unsafe_allow_html=True)
+
+    _mon_eventos = _cached_eventos_recientes()
+
+    if _mon_eventos is None and not API_DISPONIBLE:
+        st.info("Conecta los agentes para ver el historial de eventos del sistema.")
+    elif _mon_eventos is None:
+        st.warning("No se pudieron obtener los eventos.")
+    elif not _mon_eventos:
+        st.info("No hay eventos registrados aún. Se registrarán automáticamente al ejecutar pipelines.")
+    else:
+        _mev_c1, _mev_c2, _mev_c3 = st.columns([1, 1, 1])
+        try:
+            _mev_stats = api_client.eventos_stats() if API_DISPONIBLE else {}
+        except Exception:
+            _mev_stats = {}
+
+        _mev_total = _mev_stats.get("total", len(_mon_eventos))
+        _mev_por_status = _mev_stats.get("por_status", {})
+        _mev_exitos = _mev_por_status.get("success", 0)
+        _mev_errores = _mev_por_status.get("error", 0)
+
+        _mev_c1.metric("Total eventos", _mev_total)
+        _mev_c2.metric("Exitosos", _mev_exitos)
+        _mev_c3.metric("Errores", _mev_errores)
+
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        _mev_filter_col1, _mev_filter_col2 = st.columns([1, 1])
+        with _mev_filter_col1:
+            _mev_type_filter = st.selectbox(
+                "Filtrar por tipo",
+                ["Todos", "pipeline_started", "pipeline_completed", "pipeline_failed",
+                 "pipeline_phase", "agent_completed", "agent_failed"],
+                key="mon_ev_type_filter",
+            )
+        with _mev_filter_col2:
+            _mev_status_filter = st.selectbox(
+                "Filtrar por estado",
+                ["Todos", "success", "error"],
+                key="mon_ev_status_filter",
+            )
+
+        _mev_filtered = _mon_eventos
+        if _mev_type_filter != "Todos":
+            _mev_filtered = [e for e in _mev_filtered if e.get("event_type") == _mev_type_filter]
+        if _mev_status_filter != "Todos":
+            _mev_filtered = [e for e in _mev_filtered if e.get("status") == _mev_status_filter]
+
+        if not _mev_filtered:
+            st.info("No hay eventos que coincidan con los filtros.")
+        else:
+            _mev_rows = ""
+            for _mev in _mev_filtered:
+                _mev_ts = _mev.get("timestamp", "")
+                _mev_type = _mev.get("event_type", "?")
+                _mev_st = _mev.get("status", "?")
+                _mev_src = _mev.get("source", "—")
+                _mev_pid = _mev.get("proyecto_id", "—")
+                _mev_dur = _mev.get("duration_seg")
+                _mev_data = _mev.get("data") or {}
+
+                _mev_type_cls = "met-pipeline" if "pipeline" in _mev_type else ("met-agent" if "agent" in _mev_type else "met-system")
+                _mev_st_cls = "mes-success" if _mev_st == "success" else "mes-error"
+                _mev_dur_str = f"{_mev_dur:.1f}s" if _mev_dur else "—"
+
+                _mev_detail = ""
+                if isinstance(_mev_data, dict):
+                    if _mev_data.get("fase"):
+                        _mev_detail = _mev_data["fase"]
+                    elif _mev_data.get("nicho"):
+                        _mev_detail = _html_escape(str(_mev_data["nicho"])[:30])
+                    elif _mev_data.get("error"):
+                        _mev_detail = _html_escape(str(_mev_data["error"])[:40])
+
+                _mev_rows += (
+                    f'<tr>'
+                    f'<td style="white-space:nowrap;color:var(--text3);font-size:.68rem">{_html_escape(_mev_ts[5:19] if len(_mev_ts)>=19 else _mev_ts)}</td>'
+                    f'<td><span class="mon-ev-type {_mev_type_cls}">{_html_escape(_mev_type)}</span></td>'
+                    f'<td><span class="mon-ev-status {_mev_st_cls}">{_mev_st}</span></td>'
+                    f'<td style="color:var(--text2)">{_html_escape(_mev_src)}</td>'
+                    f'<td style="color:var(--text3)">{_html_escape(_mev_pid[:16] if _mev_pid else "—")}</td>'
+                    f'<td style="color:var(--text3)">{_mev_dur_str}</td>'
+                    f'<td style="color:var(--text3);font-size:.68rem">{_mev_detail}</td>'
+                    f'</tr>'
+                )
+
+            st.markdown(f"""
+            <div style="background:var(--dark2);border:1px solid var(--border);border-radius:10px;
+                 padding:2px;overflow-x:auto;max-height:400px;overflow-y:auto;
+                 scrollbar-width:thin;scrollbar-color:#1A2535 var(--dark2)">
+              <table class="mon-events-table">
+                <thead><tr>
+                  <th>Hora</th><th>Tipo</th><th>Estado</th>
+                  <th>Origen</th><th>Proyecto</th><th>Dur.</th><th>Detalle</th>
+                </tr></thead>
+                <tbody>{_mev_rows}</tbody>
+              </table>
+            </div>""", unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════
+    # SECCION 5 — Scheduler (tareas programadas)
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Tareas programadas</div>', unsafe_allow_html=True)
+
+    # ── Control global de pausa ──
+    _mon_pausa = _cached_pausa()
+    _mon_esta_pausado = _mon_pausa is not None and _mon_pausa.get("pausado", False)
+
+    if _mon_esta_pausado:
+        _mp_en = _mon_pausa.get("pausado_en", "")
+        _mp_razon = _mon_pausa.get("razon", "")
+        _mp_por = _mon_pausa.get("pausado_por", "")
+        _mp_time_str = _mp_en[0:19].replace("T", " ") if _mp_en else "?"
+
+        st.markdown(f"""
+        <div class="mon-pause-card mon-pause-active">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span style="font-size:1.8rem">⏸️</span>
+            <div>
+              <div style="font-size:1rem;font-weight:800;color:var(--orange)">AUTOMATIZACIÓN PAUSADA</div>
+              <div style="font-size:.75rem;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px">
+                Desde {_html_escape(_mp_time_str)} · por {_html_escape(_mp_por)}
+                {(' — ' + _html_escape(_mp_razon)) if _mp_razon else ''}
+              </div>
+            </div>
+          </div>
+          <div style="font-size:.78rem;color:var(--text3);line-height:1.6">
+            Mientras la automatización está pausada, n8n no podrá lanzar nuevos pipelines.
+            Los pipelines manuales desde la UI tampoco se ejecutarán via webhook.
+            Los servicios siguen activos — solo se bloquea la generación automática.
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+        if st.button("▶  Reanudar automatización", key="mon_resume_auto", use_container_width=True):
+            try:
+                api_client.scheduler_reanudar()
+                _cached_pausa.clear()
+                _cached_scheduler.clear()
+                st.rerun()
+            except Exception as _mp_err:
+                st.error(f"Error: {_mp_err}")
+    elif _mon_pausa is not None:
+        st.markdown("""
+        <div class="mon-pause-card mon-pause-inactive">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:1.8rem">▶️</span>
+            <div>
+              <div style="font-size:1rem;font-weight:800;color:var(--green)">AUTOMATIZACIÓN ACTIVA</div>
+              <div style="font-size:.75rem;color:var(--text3);margin-top:2px">
+                Las tareas programadas se ejecutan según su horario configurado.
+              </div>
+            </div>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+        _mp_col1, _mp_col2 = st.columns([2, 1])
+        with _mp_col1:
+            _mp_razon_input = st.text_input(
+                "Razón (opcional)", placeholder="ej: mantenimiento, debug...",
+                key="mon_pause_reason", label_visibility="collapsed",
+            )
+        with _mp_col2:
+            if st.button("⏸  Pausar todo", key="mon_pause_auto", use_container_width=True):
+                try:
+                    api_client.scheduler_pausar(razon=_mp_razon_input.strip() or None)
+                    _cached_pausa.clear()
+                    _cached_scheduler.clear()
+                    st.rerun()
+                except Exception as _mp_err:
+                    st.error(f"Error: {_mp_err}")
+
+    st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+
+    _mon_sched = _cached_scheduler()
+
+    if _mon_sched is None and not API_DISPONIBLE:
+        st.info("Conecta los agentes para ver las tareas programadas.")
+    elif _mon_sched is None:
+        st.warning("No se pudo obtener el schedule.")
+    else:
+        _ms_tareas = _mon_sched.get("tareas", [])
+        _ms_hab = _mon_sched.get("habilitadas", 0)
+        _ms_prox = _mon_sched.get("proxima_ejecucion")
+        _ms_prox_nombre = _mon_sched.get("proxima_tarea", "")
+
+        _ms_c1, _ms_c2, _ms_c3 = st.columns(3)
+        _ms_c1.metric("Total tareas", len(_ms_tareas))
+        _ms_c2.metric("Habilitadas", _ms_hab)
+        _ms_prox_display = f"{_ms_prox[11:16]}" if _ms_prox and len(_ms_prox) >= 16 else ("PAUSADO" if _mon_esta_pausado else "—")
+        _ms_c3.metric("Próxima ejecución", _ms_prox_display)
+
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        for _mst_idx, _mst in enumerate(_ms_tareas):
+            _mst_hab = _mst.get("habilitado", False)
+            _mst_name = _mst.get("nombre", "?")
+            _mst_desc = _mst.get("descripcion", "")
+            _mst_cron = _mst.get("cron", "?")
+            _mst_freq = _mst.get("frecuencia", "?")
+            _mst_orq = _mst.get("orquestador", "?")
+            _mst_endpoint = _mst.get("endpoint", "?")
+            _mst_last = _mst.get("ultima_ejecucion")
+            _mst_last_dur = _mst.get("ultima_duracion_seg")
+            _mst_last_st = _mst.get("ultimo_estado", "")
+            _mst_prox = _mst.get("proxima_ejecucion")
+            _mst_tid = _mst.get("task_id", "?")
+
+            _mst_dot = "🟢" if _mst_hab else "🔴"
+            _mst_last_str = _mst_last[0:19].replace("T", " ") if _mst_last else "Nunca"
+            _mst_dur_str = f"{_mst_last_dur:.1f}s" if _mst_last_dur else "—"
+            _mst_prox_str = _mst_prox[11:16] if _mst_prox and len(_mst_prox) >= 16 else "—"
+            _mst_st_icon = "✅" if _mst_last_st == "success" else ("❌" if _mst_last_st == "error" else "—")
+
+            st.markdown(f"""
+            <div class="mon-sched-card" style="margin-bottom:10px">
+              <div class="mon-sched-card-head">
+                <span class="mon-sched-card-name">{_mst_dot} {_html_escape(_mst_name)}</span>
+                <span class="mon-sched-card-cron">{_html_escape(_mst_cron)}</span>
+              </div>
+              <div class="mon-sched-card-desc">{_html_escape(_mst_desc)}</div>
+              <div class="mon-sched-card-meta">
+                <span class="mon-sched-meta-item">📅 <strong>{_html_escape(_mst_freq)}</strong></span>
+                <span class="mon-sched-meta-item">🔧 <strong>{_html_escape(_mst_orq)}</strong></span>
+                <span class="mon-sched-meta-item">📍 <strong>{_html_escape(_mst_endpoint)}</strong></span>
+                <span class="mon-sched-meta-item">⏰ Próx: <strong>{_mst_prox_str}</strong></span>
+                <span class="mon-sched-meta-item">📊 Último: <strong>{_mst_last_str}</strong> {_mst_st_icon} ({_mst_dur_str})</span>
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+            _mst_col1, _mst_col2 = st.columns([1, 3])
+            with _mst_col1:
+                _mst_new_state = not _mst_hab
+                _mst_btn_label = "⏸ Deshabilitar" if _mst_hab else "▶ Habilitar"
+                if st.button(_mst_btn_label, key=f"sched_toggle_{_mst_tid}", use_container_width=True):
+                    try:
+                        api_client.scheduler_toggle(_mst_tid, _mst_new_state)
+                        _cached_scheduler.clear()
+                        st.rerun()
+                    except Exception as _mst_err:
+                        st.error(f"Error: {_mst_err}")
+
+    # ════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════
+    # SECCION 6 — Keyword Performance Tracking
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Keyword Performance</div>', unsafe_allow_html=True)
+
+    _mon_kw_stats = _cached_keywords_stats()
+    _mon_kw_top = _cached_keywords_top()
+
+    if _mon_kw_stats is None and not API_DISPONIBLE:
+        st.info("Conecta los agentes para ver el tracking de keywords.")
+    elif _mon_kw_stats is None:
+        st.warning("No se pudo obtener datos de keywords.")
+    elif _mon_kw_stats.get("total_keywords", 0) == 0:
+        st.info("No hay datos de keywords aún. Se registrarán automáticamente cuando el tracker de performance (agente 0.5) evalúe videos publicados en los checkpoints T+7d y T+30d.")
+    else:
+        _kw_c1, _kw_c2, _kw_c3, _kw_c4 = st.columns(4)
+        _kw_c1.metric("Keywords trackeadas", _mon_kw_stats.get("total_keywords", 0))
+        _kw_c2.metric("Videos analizados", _mon_kw_stats.get("total_videos_trackeados", 0))
+        _kw_c3.metric("Registros totales", _mon_kw_stats.get("total_registros", 0))
+        _kw_mejor = _mon_kw_stats.get("mejor_keyword")
+        _kw_mejor_str = _kw_mejor["keyword"] if _kw_mejor else "—"
+        _kw_c4.metric("Mejor keyword", _kw_mejor_str)
+
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        _kw_sort_col1, _kw_sort_col2 = st.columns([1, 1])
+        with _kw_sort_col1:
+            _kw_sort = st.selectbox(
+                "Ordenar por",
+                ["vistas_promedio", "ctr_promedio", "engagement_promedio", "usos", "mejor_vistas"],
+                key="mon_kw_sort",
+            )
+        with _kw_sort_col2:
+            _kw_min_usos = st.selectbox(
+                "Mínimo de usos",
+                [1, 2, 3, 5],
+                key="mon_kw_min_usos",
+            )
+
+        if _kw_sort != "vistas_promedio" or _kw_min_usos != 1:
+            try:
+                _mon_kw_top = api_client.keywords_top(limit=30, ordenar_por=_kw_sort, min_usos=_kw_min_usos)
+            except Exception:
+                pass
+
+        if _mon_kw_top:
+            _kw_max_vistas = max((k.get("vistas_promedio", 0) or 0) for k in _mon_kw_top) if _mon_kw_top else 1
+            if _kw_max_vistas == 0:
+                _kw_max_vistas = 1
+
+            _kw_rows = ""
+            for _kw in _mon_kw_top:
+                _kw_name = _html_escape(_kw.get("keyword", "?"))
+                _kw_usos = _kw.get("usos", 0)
+                _kw_vistas_avg = _kw.get("vistas_promedio", 0) or 0
+                _kw_vistas_total = _kw.get("vistas_total", 0) or 0
+                _kw_ctr = _kw.get("ctr_promedio")
+                _kw_eng = _kw.get("engagement_promedio")
+                _kw_mejor_v = _kw.get("mejor_vistas", 0) or 0
+                _kw_mejor_t = _html_escape(_kw.get("mejor_titulo", "") or "")
+                if len(_kw_mejor_t) > 30:
+                    _kw_mejor_t = _kw_mejor_t[:30] + "…"
+
+                _kw_bar_pct = min((_kw_vistas_avg / _kw_max_vistas) * 100, 100)
+                _kw_bar_color = "var(--green)" if _kw_bar_pct >= 60 else ("var(--orange)" if _kw_bar_pct >= 30 else "var(--blue)")
+
+                _kw_ctr_str = f"{_kw_ctr:.1f}%" if _kw_ctr is not None else "—"
+                _kw_eng_str = f"{_kw_eng:.1f}%" if _kw_eng is not None else "—"
+
+                _kw_rows += (
+                    f'<tr>'
+                    f'<td><span class="kw-tag">{_kw_name}</span></td>'
+                    f'<td style="text-align:center">{_kw_usos}</td>'
+                    f'<td style="text-align:right">{_kw_vistas_avg:,.0f}</td>'
+                    f'<td><div class="kw-bar"><div class="kw-bar-fill" style="width:{_kw_bar_pct:.1f}%;background:{_kw_bar_color}"></div></div></td>'
+                    f'<td style="text-align:right">{_kw_vistas_total:,}</td>'
+                    f'<td style="text-align:center">{_kw_ctr_str}</td>'
+                    f'<td style="text-align:center">{_kw_eng_str}</td>'
+                    f'<td style="text-align:right">{_kw_mejor_v:,}</td>'
+                    f'<td style="color:var(--text3);font-size:.68rem" title="{_kw_mejor_t}">{_kw_mejor_t}</td>'
+                    f'</tr>'
+                )
+
+            st.markdown(f"""
+            <div style="background:var(--dark2);border:1px solid var(--border);border-radius:10px;
+                 padding:2px;overflow-x:auto;max-height:450px;overflow-y:auto;
+                 scrollbar-width:thin;scrollbar-color:#1A2535 var(--dark2)">
+              <table class="kw-table">
+                <thead><tr>
+                  <th>Keyword</th><th style="text-align:center">Usos</th>
+                  <th style="text-align:right">Vistas avg</th><th></th>
+                  <th style="text-align:right">Vistas total</th>
+                  <th style="text-align:center">CTR avg</th>
+                  <th style="text-align:center">Engage avg</th>
+                  <th style="text-align:right">Mejor</th><th>Video</th>
+                </tr></thead>
+                <tbody>{_kw_rows}</tbody>
+              </table>
+            </div>""", unsafe_allow_html=True)
+        else:
+            st.info("No hay keywords que coincidan con los filtros seleccionados.")
+
+    # ════════════════════════════════════════════════════════════
+    # SECCION 7 — Logs en vivo (siempre visible, con o sin agentes)
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Logs del sistema</div>', unsafe_allow_html=True)
+
+    from shared.config import STORAGE_DIR as _LOG_STORAGE_DIR
+
+    # Toolbar de controles
+    _lc1, _lc2, _lc3, _lc4 = st.columns([1, 1, 1, 2])
+    with _lc1:
+        _log_n_lines = st.selectbox("Líneas", [50, 100, 200, 500], index=1, key="mon_log_lines")
+    with _lc2:
+        _log_level_filter = st.selectbox("Nivel", ["Todos", "Solo errores", "Solo warnings", "Errores + warnings"], key="mon_log_filter")
+    with _lc3:
+        _log_include_rotated = st.checkbox("Incluir historial", value=False, key="mon_log_rotated",
+            help="Incluye archivos de log rotados (.1, .2, .3) para ver historial más antiguo")
+
+    # Leer logs
+    _all_raw_lines = _leer_logs(_LOG_STORAGE_DIR, incluir_rotados=_log_include_rotated)
+
+    if not _all_raw_lines:
+        st.info("No hay archivo de logs todavía. Se creará al ejecutar el primer pipeline.")
+    else:
+        # Parsear todas las líneas
+        _all_parsed = [_parsear_linea_log(l) for l in _all_raw_lines]
+
+        # Filtro por servicio
+        _servicios_en_log = _extraer_servicios_unicos(_all_parsed)
+        with _lc4:
+            _log_srv_filter = st.selectbox("Servicio", ["Todos"] + _servicios_en_log, key="mon_log_srv")
+
+        # Búsqueda
+        _log_search = st.text_input("Buscar en logs", placeholder="proyecto_id, error, texto...", key="mon_log_search", label_visibility="collapsed")
+
+        # Aplicar filtros
+        _filtered = _all_parsed
+
+        if _log_level_filter == "Solo errores":
+            _filtered = [l for l in _filtered if "ERROR" in l["level"]]
+        elif _log_level_filter == "Solo warnings":
+            _filtered = [l for l in _filtered if "WARNING" in l["level"]]
+        elif _log_level_filter == "Errores + warnings":
+            _filtered = [l for l in _filtered if "ERROR" in l["level"] or "WARNING" in l["level"]]
+
+        if _log_srv_filter != "Todos":
+            _filtered = [l for l in _filtered if l["name"] == _log_srv_filter]
+
+        if _log_search.strip():
+            _sq = _log_search.strip().lower()
+            _filtered = [l for l in _filtered if _sq in (l["ts"] + l["name"] + l["level"] + l["msg"]).lower()]
+
+        # Estadísticas
+        _total_shown = len(_filtered)
+        _n_errors = sum(1 for l in _filtered if "ERROR" in l["level"])
+        _n_warnings = sum(1 for l in _filtered if "WARNING" in l["level"])
+        _n_info = _total_shown - _n_errors - _n_warnings
+
+        st.markdown(f"""
+        <div class="mon-log-stats">
+          <div class="mon-log-stat">
+            <span class="mon-log-stat-num" style="color:var(--text2)">{_total_shown}</span>
+            <span style="color:var(--text3)">líneas</span>
+          </div>
+          <div class="mon-log-stat">
+            <span class="mon-log-stat-num" style="color:var(--red)">{_n_errors}</span>
+            <span style="color:var(--text3)">errores</span>
+          </div>
+          <div class="mon-log-stat">
+            <span class="mon-log-stat-num" style="color:var(--orange)">{_n_warnings}</span>
+            <span style="color:var(--text3)">warnings</span>
+          </div>
+          <div class="mon-log-stat">
+            <span class="mon-log-stat-num" style="color:var(--blue)">{_n_info}</span>
+            <span style="color:var(--text3)">info</span>
+          </div>
+          <div class="mon-log-stat" style="margin-left:auto">
+            <span style="color:var(--text4)">{len(_all_raw_lines)} total en archivo</span>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        # Recortar al número pedido
+        _display_lines = _filtered[-_log_n_lines:]
+
+        if _display_lines:
+            _logs_html = _renderizar_logs_html(_display_lines, busqueda=_log_search.strip())
+            st.markdown(f'<div class="mon-log">{_logs_html}</div>', unsafe_allow_html=True)
+        else:
+            st.info("No hay logs que coincidan con los filtros seleccionados.")
+
+        # Descarga
+        _col_dl1, _col_dl2 = st.columns([1, 4])
+        with _col_dl1:
+            _dl_text = "\n".join(
+                f"{l['ts']} | {l['name']} | {l['level']} | {l['msg']}" if l["name"] else l["msg"]
+                for l in _filtered
+            )
+            st.download_button(
+                "⬇️  Exportar logs",
+                data=_dl_text,
+                file_name="ytcreator_logs.txt",
+                mime="text/plain",
+                key="mon_log_download",
+                use_container_width=True,
+            )

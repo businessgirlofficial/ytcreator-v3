@@ -50,8 +50,11 @@ SERVICIOS = [
     BASE / "agents" / "agent_5_2_seo" / "main.py",
     BASE / "agents" / "agent_5_3_compliance" / "main.py",
     BASE / "agents" / "agent_5_4_policy_monitor" / "main.py",
+    BASE / "agents" / "agent_5_5_publicador" / "main.py",
     BASE / "orchestrator" / "sub_orq_cierre" / "main.py",
     BASE / "orchestrator" / "main.py",
+    # Gateway — proxy unico para Streamlit (puerto 7861)
+    BASE / "gateway.py",
 ]
 
 

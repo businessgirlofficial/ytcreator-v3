@@ -111,6 +111,31 @@ def _generar_srt(bloques: list[dict]) -> str:
     return "\n".join(lineas)
 
 
+PALABRAS_POR_SEGUNDO = 2.5
+
+
+def _generar_srt_estimado(texto_completo: str, max_palabras: int = MAX_PALABRAS_POR_BLOQUE) -> tuple[str, int]:
+    """Genera SRT con tiempos estimados a partir del texto, sin Whisper.
+    Usa ~2.5 palabras/segundo como velocidad de narración promedio."""
+    palabras = texto_completo.split()
+    bloques = []
+    cursor_seg = 0.0
+
+    for i in range(0, len(palabras), max_palabras):
+        grupo = palabras[i : i + max_palabras]
+        texto_bloque = " ".join(grupo)
+        duracion = len(grupo) / PALABRAS_POR_SEGUNDO
+        bloques.append({
+            "inicio": cursor_seg,
+            "fin": cursor_seg + duracion,
+            "texto": texto_bloque,
+        })
+        cursor_seg += duracion
+
+    contenido = _generar_srt(bloques)
+    return contenido, len(bloques)
+
+
 def logica(request: AgenteRequest) -> dict:
     estado = state.leer(request.proyecto_id)
     voz_path = estado.audio.voz_path
@@ -118,22 +143,40 @@ def logica(request: AgenteRequest) -> dict:
     if not voz_path:
         raise ValueError("No hay voz_path en el estado: corre primero el Agente 4.1 (Locucion)")
 
-    import whisper  # import diferido -- ver nota al inicio del archivo
+    fuente = "whisper"
+    fallback_reason = None
 
-    modelo = whisper.load_model(WHISPER_MODEL_SIZE)
-    resultado = modelo.transcribe(voz_path, language="es", word_timestamps=True)
+    try:
+        import whisper
 
-    bloques = _agrupar_en_bloques_cortos(resultado.get("segments", []))
-    if not bloques:
-        raise ValueError("Whisper no devolvio palabras con timestamps; revisa el audio de entrada")
+        modelo = whisper.load_model(WHISPER_MODEL_SIZE)
+        resultado = modelo.transcribe(voz_path, language="es", word_timestamps=True)
 
-    bloques = _aplicar_prominencia_y_overlap(bloques)
-    contenido_srt = _generar_srt(bloques)
+        bloques = _agrupar_en_bloques_cortos(resultado.get("segments", []))
+        if not bloques:
+            raise ValueError("Whisper no devolvio palabras con timestamps")
+
+        bloques = _aplicar_prominencia_y_overlap(bloques)
+        contenido_srt = _generar_srt(bloques)
+        num_bloques = len(bloques)
+    except Exception as exc_whisper:
+        fallback_reason = str(exc_whisper)
+        fuente = "estimado"
+        texto_completo = estado.guion.texto_completo
+        if not texto_completo:
+            raise ValueError(
+                f"Whisper fallo ({exc_whisper}) y no hay texto de guion para generar SRT estimado"
+            ) from exc_whisper
+        contenido_srt, num_bloques = _generar_srt_estimado(texto_completo)
+
     subtitulos_path = str(Path(voz_path).with_name(Path(voz_path).stem + "_subtitulos.srt"))
     Path(subtitulos_path).write_text(contenido_srt, encoding="utf-8")
 
     state.actualizar(request.proyecto_id, audio={"subtitulos_path": subtitulos_path})
-    return {"subtitulos_path": subtitulos_path, "num_bloques": len(bloques)}
+    resultado = {"subtitulos_path": subtitulos_path, "num_bloques": num_bloques, "fuente": fuente}
+    if fallback_reason:
+        resultado["fallback_reason"] = fallback_reason
+    return resultado
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

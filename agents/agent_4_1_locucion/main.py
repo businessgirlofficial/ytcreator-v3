@@ -71,6 +71,18 @@ def _elegir_rate(canal_tono: str | None) -> str:
     return "+0%"
 
 
+def _generar_edge_tts(texto: str, voz_id: str, rate: str, pitch: str, salida: Path) -> None:
+    import edge_tts
+    comunicador = edge_tts.Communicate(texto, voz_id, rate=rate, pitch=pitch)
+    comunicador.save_sync(str(salida))
+
+
+def _generar_gtts(texto: str, salida: Path) -> None:
+    from gtts import gTTS
+    tts = gTTS(text=texto, lang="es", slow=False)
+    tts.save(str(salida))
+
+
 def logica(request: AgenteRequest) -> dict:
     estado = state.leer(request.proyecto_id)
     texto = estado.guion.texto_completo
@@ -82,20 +94,34 @@ def logica(request: AgenteRequest) -> dict:
     rate = _elegir_rate(estado.estrategia.canal_tono)
     pitch = "+0Hz"
 
-    import edge_tts  # import normal: liviano, no requiere credenciales para importarse
-
     SALIDA_DIR.mkdir(parents=True, exist_ok=True)
     salida = SALIDA_DIR / f"{request.proyecto_id}_voz.mp3"
 
-    comunicador = edge_tts.Communicate(texto, voz_id, rate=rate, pitch=pitch)
-    comunicador.save_sync(str(salida))
+    fuente = "edge_tts"
+    fallback_reason = None
 
-    voz_config = {"voice_id": voz_id, "rate": rate, "pitch": pitch}
+    try:
+        _generar_edge_tts(texto, voz_id, rate, pitch, salida)
+    except Exception as exc_edge:
+        fallback_reason = str(exc_edge)
+        try:
+            _generar_gtts(texto, salida)
+            fuente = "gtts"
+        except Exception as exc_gtts:
+            raise RuntimeError(
+                f"TTS fallo con ambos proveedores. "
+                f"edge-tts: {exc_edge} | gTTS: {exc_gtts}"
+            ) from exc_gtts
+
+    voz_config = {"voice_id": voz_id if fuente == "edge_tts" else "gtts_es", "rate": rate, "pitch": pitch}
     state.actualizar(
         request.proyecto_id,
         audio={"voz_path": str(salida), "voz_config": voz_config},
     )
-    return {"voz_path": str(salida), "voz_config": voz_config}
+    resultado = {"voz_path": str(salida), "voz_config": voz_config, "fuente": fuente}
+    if fallback_reason:
+        resultado["fallback_reason"] = fallback_reason
+    return resultado
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

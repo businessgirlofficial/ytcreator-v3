@@ -92,7 +92,7 @@ class ChannelManager:
     def listar_canales(self) -> list[dict]:
         canales = []
         for path in self.channels_dir.glob("*.json"):
-            if path.name.startswith("_"):
+            if path.name.startswith("_") or ".bak." in path.name or ".tmp." in path.name:
                 continue
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))

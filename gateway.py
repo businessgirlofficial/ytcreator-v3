@@ -42,6 +42,9 @@ log = get_logger("gateway")
 
 app = FastAPI(title="YTCreator Studio v3 - Gateway", version="3.0.0")
 
+from shared import event_store
+event_store.registrar("system_startup", "success", source="gateway", data={"version": "3.0.0"})
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -199,6 +202,20 @@ def _run_pipeline_async(proyecto_id: str, nicho: str, canal: str, callback_url: 
 
 @app.post("/pipeline/webhook", dependencies=[Depends(verificar_api_key)])
 def webhook_trigger(request: WebhookRequest, background_tasks: BackgroundTasks):
+    from shared import scheduler
+
+    if scheduler.esta_pausado():
+        pausa = scheduler.obtener_pausa()
+        event_store.registrar(
+            "pipeline_blocked", "warning",
+            source="gateway",
+            data={"razon": "automatizacion pausada", "nicho": request.nicho},
+        )
+        raise HTTPException(
+            status_code=409,
+            detail=f"Automatizacion pausada{': ' + pausa['razon'] if pausa.get('razon') else ''}. Reanuda desde el panel para lanzar pipelines.",
+        )
+
     proyecto_id = request.proyecto_id or f"proy_{uuid.uuid4().hex[:8]}"
 
     try:
@@ -488,6 +505,29 @@ def set_identidad_visual(canal_id: str, request: IdentidadVisualRequest):
     return channel_mgr.leer(canal_id).identidad_visual.model_dump()
 
 
+# ── Scheduling & Health de servicios ───────────────────────────────
+
+@app.get("/scheduling/health_servicios", dependencies=[Depends(verificar_api_key)])
+def health_servicios():
+    resp = httpx.get(f"{ORQUESTADOR_URL}/scheduling/health_servicios", timeout=30)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    return resp.json()
+
+
+@app.post("/scheduling/puede_generar", dependencies=[Depends(verificar_api_key)])
+def puede_generar(canal_id: str | None = None, frecuencia: str | None = None):
+    params = {}
+    if canal_id:
+        params["canal_id"] = canal_id
+    if frecuencia:
+        params["frecuencia"] = frecuencia
+    resp = httpx.post(f"{ORQUESTADOR_URL}/scheduling/puede_generar", params=params, timeout=30)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    return resp.json()
+
+
 # ── Estado del pipeline ─────────────────────────────────────────────
 
 TOTAL_AGENTES_PIPELINE = 16
@@ -536,6 +576,79 @@ def pipeline_estado(proyecto_id: str):
         raise HTTPException(status_code=404, detail=f"Proyecto '{proyecto_id}' no encontrado")
 
 
+# ── Cola de publicación ────────────────────────────────────────────
+
+@app.get("/pipeline/cola", dependencies=[Depends(verificar_api_key)])
+def pipeline_cola():
+    from shared.config import BUFFER_MAX_VIDEOS
+
+    proyectos_ids = state.listar_proyectos()
+    en_proceso = []
+    listos = []
+    publicados_list = []
+    con_error = []
+
+    for pid in proyectos_ids:
+        try:
+            est = state.leer(pid)
+        except Exception:
+            continue
+
+        historial_resumen = [
+            {
+                "agente_id": r.agente_id,
+                "estado": r.estado.value if hasattr(r.estado, "value") else r.estado,
+                "inicio": r.inicio.isoformat() if r.inicio else None,
+                "fin": r.fin.isoformat() if r.fin else None,
+                "duracion_seg": r.duracion_seg,
+                "intentos": r.intentos,
+                "error": r.error,
+            }
+            for r in est.historial_agentes
+        ]
+
+        item = {
+            "proyecto_id": pid,
+            "fase_actual": est.fase_actual,
+            "titulo": est.estrategia.titulo_ganador or pid,
+            "canal": est.canal,
+            "creado_en": est.creado_en.isoformat() if est.creado_en else None,
+            "actualizado_en": est.actualizado_en.isoformat() if est.actualizado_en else None,
+            "publicado": est.publicado,
+            "youtube_video_id": est.youtube_video_id,
+            "publicado_en": est.publicado_en.isoformat() if est.publicado_en else None,
+            "video_final_path": est.video_final_path,
+            "agente_actual": est.agente_actual,
+            "errores": est.errores,
+            "nicho": est.estrategia.nicho,
+            "progreso_pct": min(round(len(est.historial_agentes) / TOTAL_AGENTES_PIPELINE * 100), 100),
+            "historial": historial_resumen,
+        }
+
+        if est.publicado:
+            publicados_list.append(item)
+        elif est.fase_actual == "completado":
+            listos.append(item)
+        elif est.fase_actual == "error":
+            con_error.append(item)
+        elif est.fase_actual in ("estrategia", "guion", "visual", "audio", "cierre"):
+            en_proceso.append(item)
+
+    publicados_list.sort(key=lambda x: x.get("publicado_en") or "", reverse=True)
+    listos.sort(key=lambda x: x.get("actualizado_en") or "", reverse=True)
+    en_proceso.sort(key=lambda x: x.get("creado_en") or "", reverse=True)
+    con_error.sort(key=lambda x: x.get("actualizado_en") or "", reverse=True)
+
+    return {
+        "buffer": {"actual": len(listos), "max": BUFFER_MAX_VIDEOS},
+        "en_proceso": en_proceso,
+        "listos_para_publicar": listos,
+        "publicados": publicados_list[:10],
+        "con_error": con_error,
+        "total_proyectos": len(proyectos_ids),
+    }
+
+
 # ── Descarga de video final ─────────────────────────────────────────
 
 @app.get("/download/{proyecto_id}/final", dependencies=[Depends(verificar_api_key)])
@@ -557,6 +670,122 @@ def download_final(proyecto_id: str):
         media_type="video/mp4",
         filename=f"{proyecto_id}_final.mp4",
     )
+
+
+# ── Eventos de automatización ──────────────────────────────────────
+
+@app.get("/eventos", dependencies=[Depends(verificar_api_key)])
+def listar_eventos(
+    limit: int = 100,
+    event_type: str | None = None,
+    status: str | None = None,
+    proyecto_id: str | None = None,
+    source: str | None = None,
+    desde: str | None = None,
+):
+    from shared import event_store
+    return {
+        "eventos": event_store.consultar(
+            limit=limit,
+            event_type=event_type,
+            status=status,
+            proyecto_id=proyecto_id,
+            source=source,
+            desde=desde,
+        ),
+    }
+
+
+@app.get("/eventos/stats", dependencies=[Depends(verificar_api_key)])
+def eventos_stats():
+    from shared import event_store
+    return event_store.contar()
+
+
+@app.post("/eventos/purgar", dependencies=[Depends(verificar_api_key)])
+def purgar_eventos(dias: int = 90):
+    from shared import event_store
+    eliminados = event_store.purgar(dias=dias)
+    return {"eliminados": eliminados, "dias_cutoff": dias}
+
+
+# ── Scheduler (tareas programadas) ────────────────────────────────
+
+@app.get("/scheduler", dependencies=[Depends(verificar_api_key)])
+def scheduler_resumen():
+    from shared import scheduler
+    return scheduler.resumen()
+
+
+@app.get("/scheduler/tareas", dependencies=[Depends(verificar_api_key)])
+def scheduler_tareas():
+    from shared import scheduler
+    return {"tareas": scheduler.listar_tareas()}
+
+
+@app.post("/scheduler/tareas/{task_id}/toggle", dependencies=[Depends(verificar_api_key)])
+def scheduler_toggle(task_id: str, habilitado: bool):
+    from shared import scheduler
+    result = scheduler.toggle_tarea(task_id, habilitado)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Tarea '{task_id}' no encontrada")
+    event_store.registrar(
+        "scheduler_toggle", "success",
+        source="gateway",
+        data={"task_id": task_id, "habilitado": habilitado},
+    )
+    return result
+
+
+@app.get("/scheduler/pausa", dependencies=[Depends(verificar_api_key)])
+def scheduler_pausa_estado():
+    from shared import scheduler
+    return scheduler.obtener_pausa()
+
+
+@app.post("/scheduler/pausar", dependencies=[Depends(verificar_api_key)])
+def scheduler_pausar(razon: str | None = None):
+    from shared import scheduler
+    result = scheduler.pausar(razon=razon)
+    event_store.registrar(
+        "automation_paused", "warning",
+        source="gateway",
+        data={"razon": razon},
+    )
+    log.warning("AUTOMATIZACION PAUSADA — razon: %s", razon or "sin razon")
+    return result
+
+
+@app.post("/scheduler/reanudar", dependencies=[Depends(verificar_api_key)])
+def scheduler_reanudar():
+    from shared import scheduler
+    result = scheduler.reanudar()
+    event_store.registrar(
+        "automation_resumed", "success",
+        source="gateway",
+    )
+    log.info("AUTOMATIZACION REANUDADA")
+    return result
+
+
+# ── Keyword Performance Tracking ──────────────────────────────────
+
+@app.get("/keywords/top", dependencies=[Depends(verificar_api_key)])
+def keywords_top(limit: int = 30, ordenar_por: str = "vistas_promedio", min_usos: int = 1):
+    from shared import keyword_tracker
+    return {"keywords": keyword_tracker.top_keywords(limit=limit, ordenar_por=ordenar_por, min_usos=min_usos)}
+
+
+@app.get("/keywords/{keyword}/historial", dependencies=[Depends(verificar_api_key)])
+def keyword_historial(keyword: str, limit: int = 20):
+    from shared import keyword_tracker
+    return {"keyword": keyword, "historial": keyword_tracker.historial_keyword(keyword, limit=limit)}
+
+
+@app.get("/keywords/stats", dependencies=[Depends(verificar_api_key)])
+def keywords_stats():
+    from shared import keyword_tracker
+    return keyword_tracker.stats()
 
 
 # ── Main ────────────────────────────────────────────────────────────

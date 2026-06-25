@@ -201,6 +201,7 @@ def logica(request: AgenteRequest) -> dict:
     if tipo in (CheckpointTipo.T_7D, CheckpointTipo.T_30D):
         _actualizar_promedios_canal(canal_id, metricas)
         _registrar_patrones(canal_id, metricas, vs_promedio, proyecto)
+        _registrar_keywords(proyecto, video_id, metricas, score, tipo)
 
     log.info(
         "checkpoint %s completado | video=%s | score=%s | grade=%s | acciones=%d",
@@ -534,6 +535,33 @@ def _registrar_patrones(canal_id: str, metricas: MetricasVideo, vs_promedio: dic
         channels.actualizar(canal_id, performance_historial=historial[-50:])
     except Exception as e:
         log.error("error registrando patrones: %s", e)
+
+
+# ── Keyword performance tracking ─────────────────────────────
+
+def _registrar_keywords(proyecto, video_id: str, metricas: MetricasVideo, score: float, tipo: CheckpointTipo) -> None:
+    try:
+        tags = proyecto.metadata.tags if proyecto.metadata else []
+        if not tags:
+            return
+
+        from shared import keyword_tracker
+
+        keyword_tracker.registrar_keywords_video(
+            keywords=tags,
+            video_id=video_id,
+            proyecto_id=proyecto.proyecto_id,
+            titulo=proyecto.estrategia.titulo_ganador or "",
+            vistas=metricas.vistas,
+            ctr=metricas.ctr,
+            engagement_rate=metricas.engagement_rate,
+            retencion=metricas.retencion_promedio,
+            score=score,
+            checkpoint=tipo.value,
+        )
+        log.info("keywords registradas: %d tags | video=%s", len(tags), video_id)
+    except Exception as e:
+        log.error("error registrando keywords: %s", e)
 
 
 # ── Endpoint FastAPI ──────────────────────────────────────────

@@ -19,19 +19,29 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:7861")
+API_KEY = os.getenv("YTCREATOR_API_KEY", "")
 TIMEOUT_CORTO = 30
 TIMEOUT_AGENTE = 300
 TIMEOUT_PIPELINE = 600
 
 
+def _headers() -> dict:
+    if API_KEY:
+        return {"X-API-Key": API_KEY}
+    return {}
+
+
 def _post(path: str, timeout: int = TIMEOUT_CORTO, **kwargs) -> dict:
-    resp = httpx.post(f"{GATEWAY_URL}{path}", timeout=timeout, **kwargs)
+    headers = _headers()
+    if "headers" in kwargs:
+        headers.update(kwargs.pop("headers"))
+    resp = httpx.post(f"{GATEWAY_URL}{path}", headers=headers, timeout=timeout, **kwargs)
     resp.raise_for_status()
     return resp.json()
 
 
 def _get(path: str, timeout: int = TIMEOUT_CORTO) -> dict:
-    resp = httpx.get(f"{GATEWAY_URL}{path}", timeout=timeout)
+    resp = httpx.get(f"{GATEWAY_URL}{path}", headers=_headers(), timeout=timeout)
     resp.raise_for_status()
     return resp.json()
 
@@ -179,7 +189,7 @@ def refrescar_canal(canal_id: str) -> dict:
 
 
 def eliminar_canal(canal_id: str) -> dict:
-    resp = httpx.delete(f"{GATEWAY_URL}/canales/{canal_id}", timeout=TIMEOUT_CORTO)
+    resp = httpx.delete(f"{GATEWAY_URL}/canales/{canal_id}", headers=_headers(), timeout=TIMEOUT_CORTO)
     resp.raise_for_status()
     return resp.json()
 
@@ -193,7 +203,7 @@ def agregar_competidor(canal_id: str, competidor_input: str) -> dict:
 
 
 def eliminar_competidor(canal_id: str, comp_id: str) -> dict:
-    resp = httpx.delete(f"{GATEWAY_URL}/canales/{canal_id}/competidores/{comp_id}", timeout=TIMEOUT_CORTO)
+    resp = httpx.delete(f"{GATEWAY_URL}/canales/{canal_id}/competidores/{comp_id}", headers=_headers(), timeout=TIMEOUT_CORTO)
     resp.raise_for_status()
     return resp.json()
 
@@ -223,6 +233,25 @@ def set_identidad_visual(canal_id: str, payload: dict) -> dict:
 def get_estilos(categoria: str | None = None) -> dict:
     params = f"?categoria={categoria}" if categoria else ""
     return _get(f"/estilos{params}")
+
+
+def health_servicios() -> dict:
+    return _get("/scheduling/health_servicios", timeout=30)
+
+
+def pipeline_cola() -> dict:
+    return _get("/pipeline/cola", timeout=30)
+
+
+def listar_proyectos_detalle() -> list[dict]:
+    ids = listar_proyectos()
+    proyectos = []
+    for pid in ids:
+        try:
+            proyectos.append(pipeline_estado(pid))
+        except Exception:
+            proyectos.append({"proyecto_id": pid, "fase_actual": "desconocido", "errores": []})
+    return proyectos
 
 
 def sync_state_to_session(proyecto_id: str) -> dict:
@@ -271,3 +300,81 @@ def sync_state_to_session(proyecto_id: str) -> dict:
     }
 
     return session
+
+
+# ── Eventos de automatización ─────────────────────────────────────
+
+
+def listar_eventos(
+    limit: int = 100,
+    event_type: str | None = None,
+    status: str | None = None,
+    proyecto_id: str | None = None,
+    source: str | None = None,
+    desde: str | None = None,
+) -> list[dict]:
+    params = f"?limit={limit}"
+    if event_type:
+        params += f"&event_type={event_type}"
+    if status:
+        params += f"&status={status}"
+    if proyecto_id:
+        params += f"&proyecto_id={proyecto_id}"
+    if source:
+        params += f"&source={source}"
+    if desde:
+        params += f"&desde={desde}"
+    data = _get(f"/eventos{params}")
+    return data.get("eventos", [])
+
+
+def eventos_stats() -> dict:
+    return _get("/eventos/stats")
+
+
+# ── Scheduler (tareas programadas) ────────────────────────────────
+
+
+def scheduler_resumen() -> dict:
+    return _get("/scheduler")
+
+
+def scheduler_tareas() -> list[dict]:
+    data = _get("/scheduler/tareas")
+    return data.get("tareas", [])
+
+
+def scheduler_toggle(task_id: str, habilitado: bool) -> dict:
+    return _post(f"/scheduler/tareas/{task_id}/toggle", params={"habilitado": str(habilitado).lower()})
+
+
+def scheduler_pausa() -> dict:
+    return _get("/scheduler/pausa")
+
+
+def scheduler_pausar(razon: str | None = None) -> dict:
+    params = {}
+    if razon:
+        params["razon"] = razon
+    return _post("/scheduler/pausar", params=params)
+
+
+def scheduler_reanudar() -> dict:
+    return _post("/scheduler/reanudar")
+
+
+# ── Keyword Performance Tracking ─────────────────────────────────
+
+
+def keywords_top(limit: int = 30, ordenar_por: str = "vistas_promedio", min_usos: int = 1) -> list[dict]:
+    data = _get(f"/keywords/top?limit={limit}&ordenar_por={ordenar_por}&min_usos={min_usos}")
+    return data.get("keywords", [])
+
+
+def keyword_historial(keyword: str, limit: int = 20) -> list[dict]:
+    data = _get(f"/keywords/{keyword}/historial?limit={limit}")
+    return data.get("historial", [])
+
+
+def keywords_stats() -> dict:
+    return _get("/keywords/stats")
