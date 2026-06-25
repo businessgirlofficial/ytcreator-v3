@@ -33,6 +33,7 @@ from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
 from shared.logger import get_logger
 from shared.schemas import (
+    CHECKPOINT_HORAS,
     AccionCorrectiva,
     AgenteRequest,
     AgenteResponse,
@@ -73,15 +74,6 @@ UMBRALES = {
     "engagement_bueno": 5.0,
     "engagement_pobre": 2.0,
 }
-
-CHECKPOINT_HORAS = {
-    CheckpointTipo.T_24H: 24,
-    CheckpointTipo.T_48H: 48,
-    CheckpointTipo.T_72H: 72,
-    CheckpointTipo.T_7D: 168,
-    CheckpointTipo.T_30D: 720,
-}
-
 
 # ── Logica principal ──────────────────────────────────────────
 
@@ -161,23 +153,27 @@ def logica(request: AgenteRequest) -> dict:
             except Exception as e:
                 log.warning("demografia no disponible: %s", e)
 
-    # ── 3. Comparar contra promedios del canal ──
+    # ── 3. Calcular tendencia de vistas (comparar vs checkpoint anterior) ──
+    tendencia = _calcular_tendencia(proyecto, metricas.vistas)
+
+    # ── 4. Comparar contra promedios del canal ──
     promedios = canal.promedios_canal
     vs_promedio = _comparar_vs_canal(metricas, promedios)
 
-    # ── 4. Calcular grade y score ──
+    # ── 5. Calcular grade y score ──
     score = _calcular_score(metricas, promedios)
     grade = _score_a_grade(score)
 
-    # ── 5. Generar insights y acciones concretas ──
+    # ── 6. Generar insights y acciones concretas ──
     insights = _generar_insights(tipo, metricas, vs_promedio, traffic)
     acciones = _generar_acciones(tipo, metricas, vs_promedio, proyecto.estrategia.titulo_ganador or "")
 
-    # ── 6. Armar el checkpoint ──
+    # ── 7. Armar el checkpoint ──
     checkpoint = PerformanceCheckpoint(
         tipo=tipo,
         timestamp=datetime.utcnow(),
         metricas=metricas,
+        tendencia_vistas=tendencia,
         traffic_sources=traffic,
         demografia=demo,
         grade=grade,
@@ -220,6 +216,23 @@ def logica(request: AgenteRequest) -> dict:
         "acciones_count": len(acciones),
         "acciones": [a.model_dump() for a in acciones],
     }
+
+
+# ── Tendencia de vistas ───────────────────────────────────────
+
+def _calcular_tendencia(proyecto, vistas_actuales: int) -> str | None:
+    """Compara vistas actuales vs el checkpoint anterior para determinar tendencia."""
+    if not proyecto.performance or not proyecto.performance.checkpoints:
+        return None
+    vistas_anterior = proyecto.performance.checkpoints[-1].metricas.vistas
+    if vistas_anterior == 0:
+        return "creciendo" if vistas_actuales > 0 else "estable"
+    ratio = vistas_actuales / vistas_anterior
+    if ratio >= 1.3:
+        return "creciendo"
+    if ratio <= 0.95:
+        return "cayendo"
+    return "estable"
 
 
 # ── Comparacion vs promedio del canal ─────────────────────────

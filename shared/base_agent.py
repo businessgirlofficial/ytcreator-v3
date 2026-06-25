@@ -15,6 +15,7 @@ para ver el patron completo de uso.
 """
 
 import os
+import signal
 import time
 from typing import Callable
 
@@ -24,6 +25,22 @@ from .logger import get_logger
 from .schemas import AgenteRequest, AgenteResponse
 
 _START_TIME = time.time()
+_SHUTDOWN_REQUESTED = False
+
+
+def _handle_shutdown(signum, frame):
+    global _SHUTDOWN_REQUESTED
+    _SHUTDOWN_REQUESTED = True
+
+
+signal.signal(signal.SIGTERM, _handle_shutdown)
+signal.signal(signal.SIGINT, _handle_shutdown)
+
+
+def shutdown_solicitado() -> bool:
+    """Los agentes de larga duracion pueden consultar esto entre pasos
+    para salir limpiamente si Uvicorn inicio su apagado."""
+    return _SHUTDOWN_REQUESTED
 _shutdown_flag = False
 
 

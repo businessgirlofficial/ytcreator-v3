@@ -280,6 +280,15 @@ class CheckpointTipo(str, Enum):
     T_30D = "t_30d"
 
 
+CHECKPOINT_HORAS: dict[CheckpointTipo, int] = {
+    CheckpointTipo.T_24H: 24,
+    CheckpointTipo.T_48H: 48,
+    CheckpointTipo.T_72H: 72,
+    CheckpointTipo.T_7D: 168,
+    CheckpointTipo.T_30D: 720,
+}
+
+
 class GradePerformance(str, Enum):
     A_PLUS = "A+"
     A = "A"
@@ -329,6 +338,7 @@ class PerformanceCheckpoint(BaseModel):
     tipo: CheckpointTipo
     timestamp: datetime
     metricas: MetricasVideo = Field(default_factory=MetricasVideo)
+    tendencia_vistas: Optional[Literal["creciendo", "estable", "cayendo"]] = None
     traffic_sources: Optional[TrafficSources] = None
     demografia: Optional[DemografiaAudiencia] = None
     grade: Optional[GradePerformance] = None

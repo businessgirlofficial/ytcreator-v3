@@ -357,15 +357,7 @@ def evaluar_pendientes():
     que correspondan segun el tiempo transcurrido desde la publicacion.
     Diseñado para ser llamado periodicamente (ej. cada 6 horas via n8n).
     """
-    from shared.schemas import CheckpointTipo
-
-    CHECKPOINT_HORAS = {
-        CheckpointTipo.T_24H: 24,
-        CheckpointTipo.T_48H: 48,
-        CheckpointTipo.T_72H: 72,
-        CheckpointTipo.T_7D: 168,
-        CheckpointTipo.T_30D: 720,
-    }
+    from shared.schemas import CHECKPOINT_HORAS
 
     proyectos = state.listar_proyectos()
     resultados = []
@@ -527,7 +519,13 @@ def health_servicios():
         try:
             resp = httpx.get(f"http://localhost:{puerto}/health", timeout=5)
             if resp.status_code == 200:
-                return {"estado": "ok", "puerto": puerto}
+                data = resp.json()
+                return {
+                    "estado": "ok",
+                    "puerto": puerto,
+                    "memoria_mb": data.get("memoria_mb"),
+                    "uptime_seg": data.get("uptime_seg"),
+                }
             return {"estado": "error", "puerto": puerto, "status_code": resp.status_code}
         except Exception as e:
             return {"estado": "caido", "puerto": puerto, "error": str(e)}
@@ -581,11 +579,15 @@ def health_servicios():
         vivos_depto = sum(1 for a in agentes_depto if resultados.get(a, {}).get("estado") == "ok")
         desglose[depto] = {"vivos": vivos_depto, "total": len(agentes_depto)}
 
+    memorias = [r.get("memoria_mb") for r in resultados.values() if r.get("memoria_mb")]
+    memoria_total_mb = round(sum(memorias), 1) if memorias else None
+
     return {
         "score": score,
         "nivel": nivel,
         "vivos": vivos,
         "total": total,
+        "memoria_total_mb": memoria_total_mb,
         "puede_pipeline": puede_pipeline,
         "criticos_caidos": criticos_caidos,
         "desglose_departamentos": desglose,
