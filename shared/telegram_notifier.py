@@ -21,7 +21,8 @@ import html
 
 import httpx
 
-from .config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_NOTIFICATIONS
+from .config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_NOTIFICATIONS, \
+    TELEGRAM_PC_LABEL
 from .logger import get_logger
 from .schemas import EstadoProyecto
 
@@ -39,6 +40,10 @@ _NOMBRES = {
 
 def _habilitado() -> bool:
     return bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID and TELEGRAM_NOTIFICATIONS)
+
+
+def _pc() -> str:
+    return f"[{TELEGRAM_PC_LABEL}] " if TELEGRAM_PC_LABEL else ""
 
 
 def _enviar(mensaje: str) -> bool:
@@ -93,7 +98,7 @@ def notificar_inicio(proyecto_id: str, nicho: str, canal: str):
         return
     try:
         msg = (
-            f"🚀 <b>PIPELINE INICIADO</b>\n"
+            f"{_pc()}🚀 <b>PIPELINE INICIADO</b>\n"
             f"📁 <code>{_e(proyecto_id)}</code> · 📺 {_e(canal)}\n"
             f"🎯 Nicho: {_e(nicho)}\n\n"
             f"⬜ Estrategia → ⬜ Guión → ⬜ Visual → ⬜ Audio → ⬜ Cierre"
@@ -114,7 +119,7 @@ def notificar_fase(
     try:
         nombre = _NOMBRES.get(fase, fase).upper()
         header = (
-            f"✅ <b>{nombre} COMPLETADA</b>\n"
+            f"{_pc()}✅ <b>{nombre} COMPLETADA</b>\n"
             f"📁 <code>{_e(proyecto_id)}</code> · ⏱ {_dur(duracion_seg)}\n"
         )
         detalles = _detalles(fase, estado)
@@ -150,7 +155,7 @@ def notificar_error(
     try:
         nombre = _NOMBRES.get(fase, fase)
         msg = (
-            f"❌ <b>ERROR EN PIPELINE</b>\n"
+            f"{_pc()}❌ <b>ERROR EN PIPELINE</b>\n"
             f"📁 <code>{_e(proyecto_id)}</code>\n"
             f"📍 Fase: {nombre}\n"
             f"⏱ Falló después de: {_dur(duracion_seg)}\n\n"
@@ -267,7 +272,7 @@ def _resumen_final(
     n_tags = len(estado.metadata.tags)
 
     msg = (
-        f"🎬 <b>PIPELINE COMPLETADO</b>\n"
+        f"{_pc()}🎬 <b>PIPELINE COMPLETADO</b>\n"
         f"📁 <code>{_e(proyecto_id)}</code> · 📺 {_e(estado.canal)}\n"
         f"⏱ Tiempo total: <b>{_dur(duracion_total)}</b>\n\n"
         f"<b>📊 Resumen:</b>\n"

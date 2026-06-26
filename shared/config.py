@@ -41,6 +41,7 @@ BUFFER_MAX_VIDEOS = int(os.getenv("BUFFER_MAX_VIDEOS", "3"))
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_NOTIFICATIONS = os.getenv("TELEGRAM_NOTIFICATIONS", "true").lower() == "true"
+TELEGRAM_PC_LABEL = os.getenv("TELEGRAM_PC_LABEL", "")
 
 # -- rate limits (requests por minuto, ajustar segun tu tier) ----
 GROQ_RATE_LIMIT = float(os.getenv("GROQ_RATE_LIMIT", "30"))
