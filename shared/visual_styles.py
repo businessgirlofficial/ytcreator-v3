@@ -1,13 +1,14 @@
 """
-Catalogo de estilos visuales para SDXL / Juggernaut XL
-=======================================================
+Catalogo de estilos visuales para FLUX.1-schnell
+=================================================
 
 Prompts base tomados de Fooocus (github.com/lllyasviel/Fooocus),
 curados y organizados para canales de YouTube.
 
 Cada estilo tiene un prompt_template con {prompt} como placeholder
-y un negative_prompt. La funcion aplicar_estilo() replica la mecanica
-de Fooocus: reemplaza {prompt} por la descripcion de la escena.
+y un negative_prompt. La funcion aplicar_estilo() reemplaza {prompt}
+por la descripcion de la escena. FLUX no usa negative_prompt
+directamente pero se mantiene para compatibilidad con otros modelos.
 """
 
 from __future__ import annotations

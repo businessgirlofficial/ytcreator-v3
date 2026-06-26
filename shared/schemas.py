@@ -225,6 +225,17 @@ class IdentidadVisualCanal(BaseModel):
     iluminacion: Optional[str] = None
 
 
+class PromediosCanal(BaseModel):
+    total_videos_analizados: int = 0
+    vistas_promedio: float = 0.0
+    likes_promedio: float = 0.0
+    comentarios_promedio: float = 0.0
+    ctr_promedio: Optional[float] = None
+    retencion_promedio: Optional[float] = None
+    engagement_rate_promedio: Optional[float] = None
+    actualizado_en: Optional[datetime] = None
+
+
 class EstadoCanal(BaseModel):
     canal_id: str
     nombre: str
@@ -357,17 +368,6 @@ class PerformanceTracking(BaseModel):
     checkpoints: list[PerformanceCheckpoint] = Field(default_factory=list)
     grade_actual: Optional[GradePerformance] = None
     patrones_identificados: list[str] = Field(default_factory=list)
-
-
-class PromediosCanal(BaseModel):
-    total_videos_analizados: int = 0
-    vistas_promedio: float = 0.0
-    likes_promedio: float = 0.0
-    comentarios_promedio: float = 0.0
-    ctr_promedio: Optional[float] = None
-    retencion_promedio: Optional[float] = None
-    engagement_rate_promedio: Optional[float] = None
-    actualizado_en: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------

@@ -48,7 +48,7 @@ PLANOS_CAMARA_FALLBACK = [
 ]
 
 SYSTEM_PROMPT_LOCKS = """Eres un director de fotografia especializado en generacion de
-imagenes con IA (Stable Diffusion / Juggernaut XL) para videos de YouTube.
+imagenes con IA (FLUX.1) para videos de YouTube.
 
 Define 3 elementos que se repetiran IDENTICOS en cada escena del
 video, para garantizar consistencia visual:
@@ -71,7 +71,7 @@ generacion de imagenes):
 }"""
 
 SYSTEM_PROMPT_LOCKS_CON_IDENTIDAD = """Eres un director de fotografia especializado en generacion de
-imagenes con IA (Stable Diffusion / Juggernaut XL) para videos de YouTube.
+imagenes con IA (FLUX.1) para videos de YouTube.
 
 El canal tiene una IDENTIDAD VISUAL establecida que DEBES respetar.
 Tu trabajo es ADAPTAR estos elementos al tema del video actual,

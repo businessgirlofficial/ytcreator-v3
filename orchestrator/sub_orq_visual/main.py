@@ -19,6 +19,7 @@ Kaggle, este sub-orquestador verifica calidad en dos niveles:
 """
 
 import base64
+import re
 import sys
 from pathlib import Path
 
@@ -85,7 +86,42 @@ Answer in JSON only:
   "issues": "brief description of inconsistencies, empty string if none"
 }}"""
 
-UMBRAL_CALIDAD = 4
+UMBRAL_CALIDAD = 7
+MAX_REINTENTOS_VISUAL = 1
+
+QUALITY_BOOST = (
+    ", masterpiece, best quality, highly detailed, sharp focus, "
+    "professional photography, 8k uhd"
+)
+
+_PATRON_ESCENA = re.compile(r"escena[_-]?(\d+)")
+
+
+def _extraer_escenas_fallidas(problemas: list[str]) -> set[int]:
+    numeros = set()
+    for p in problemas:
+        m = _PATRON_ESCENA.search(p)
+        if m:
+            numeros.add(int(m.group(1)))
+    return numeros
+
+
+def _ajustar_prompts(proyecto_id: str, escenas_fallidas: set[int]) -> int:
+    estado = state.leer(proyecto_id)
+    escenas = [e.model_dump() for e in estado.guion.escenas]
+    ajustados = 0
+
+    for escena in escenas:
+        if escena["numero"] in escenas_fallidas:
+            prompt = escena.get("prompt_visual") or ""
+            if QUALITY_BOOST not in prompt:
+                escena["prompt_visual"] = prompt + QUALITY_BOOST
+                ajustados += 1
+
+    if ajustados:
+        state.actualizar(proyecto_id, guion={"escenas": escenas})
+
+    return ajustados
 
 
 def _validar_estructural(proyecto_id: str) -> tuple[bool, list[str]]:
@@ -304,15 +340,40 @@ def logica(request: AgenteRequest) -> dict:
 
     todos_los_problemas = problemas_estr + problemas_visual
     aprobado = aprobado_estr and aprobado_visual
+    reintentos = 0
+
+    if not aprobado and problemas_visual:
+        escenas_fallidas = _extraer_escenas_fallidas(problemas_visual)
+        for _intento in range(MAX_REINTENTOS_VISUAL):
+            if not escenas_fallidas:
+                break
+            ajustados = _ajustar_prompts(request.proyecto_id, escenas_fallidas)
+            if not ajustados:
+                break
+
+            reintentos += 1
+            llamar_con_reintento("3.2_generador_visual", request, timeout=300)
+
+            aprobado_estr, problemas_estr = _validar_estructural(request.proyecto_id)
+            aprobado_visual, problemas_visual = _validar_visual_multimodal(request.proyecto_id)
+            todos_los_problemas = problemas_estr + problemas_visual
+            aprobado = aprobado_estr and aprobado_visual
+
+            if aprobado:
+                break
+            escenas_fallidas = _extraer_escenas_fallidas(problemas_visual)
 
     estado = state.leer(request.proyecto_id)
-    return {
+    resultado = {
         "aprobado": aprobado,
         "imagenes": len(estado.visual.imagenes),
         "clips_video": len(estado.visual.clips_video),
         "problemas": todos_los_problemas if not aprobado else [],
         "validacion_visual_activa": bool(HF_API_TOKEN),
     }
+    if reintentos:
+        resultado["reintentos_regeneracion"] = reintentos
+    return resultado
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)
