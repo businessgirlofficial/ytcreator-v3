@@ -37,6 +37,11 @@ YTCREATOR_API_KEY = os.getenv("YTCREATOR_API_KEY", "")
 STORAGE_DIR = os.getenv("STORAGE_DIR", ".")
 BUFFER_MAX_VIDEOS = int(os.getenv("BUFFER_MAX_VIDEOS", "3"))
 
+# -- Telegram Notifications --
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_NOTIFICATIONS = os.getenv("TELEGRAM_NOTIFICATIONS", "true").lower() == "true"
+
 # -- rate limits (requests por minuto, ajustar segun tu tier) ----
 GROQ_RATE_LIMIT = float(os.getenv("GROQ_RATE_LIMIT", "30"))
 HF_RATE_LIMIT = float(os.getenv("HF_RATE_LIMIT", "10"))

@@ -28,6 +28,7 @@ from shared.health_checks import HealthCheckError, validar_fase, validar_todo
 from shared.logger import get_logger
 from shared.schemas import AgenteRequest
 from shared.state_manager import StateManager
+from shared import telegram_notifier as telegram
 
 log = get_logger("orquestador_central")
 
@@ -230,6 +231,8 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
         data={"nicho": nicho, "canal": canal, "canal_id": canal_id},
     )
     pipeline_inicio = time.time()
+    tiempos_fases = {}
+    telegram.notificar_inicio(proyecto_id, nicho, canal)
 
     try:
         # 0. Crear proyecto si no existe
@@ -250,6 +253,7 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
                 fase_actual="error",
                 errores=[f"Pre-check: {f}" for f in exc.fallos],
             )
+            telegram.notificar_error(proyecto_id, "pre-check", str(exc), round(time.time() - pipeline_inicio, 2))
             raise HTTPException(status_code=422, detail=str(exc))
 
         # 0.5 Channel Intelligence (si canal_id proporcionado)
@@ -278,13 +282,18 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
         if not _fase_completada(proyecto_id, "estrategia"):
             validar_fase("estrategia")
             _fase(proyecto_id, "estrategia")
+            _t = time.time()
             _llamar("sub_orq_estrategia", proyecto_id, {"nicho": nicho})
+            tiempos_fases["estrategia"] = round(time.time() - _t, 2)
+            telegram.notificar_fase("estrategia", proyecto_id, state.leer(proyecto_id), tiempos_fases["estrategia"])
 
         # 2. Guion (Sub-orquestador maneja loop escritura/evaluacion/reescritura)
         if not _fase_completada(proyecto_id, "guion"):
             validar_fase("guion")
             _fase(proyecto_id, "guion")
+            _t = time.time()
             resultado_guion = _llamar("sub_orq_guion", proyecto_id)
+            tiempos_fases["guion"] = round(time.time() - _t, 2)
             output = resultado_guion.get("output", {})
             if not output.get("aprobado"):
                 state.actualizar(
@@ -292,27 +301,38 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
                     fase_actual="error",
                     errores=["Guion no paso el score minimo tras varios intentos"],
                 )
+                telegram.notificar_error(proyecto_id, "guion", "Guion no paso el score minimo", tiempos_fases["guion"])
                 raise HTTPException(
                     status_code=422,
                     detail="El guion no paso el score minimo tras varios intentos de reescritura",
                 )
+            telegram.notificar_fase("guion", proyecto_id, state.leer(proyecto_id), tiempos_fases["guion"])
 
         # 3. Visual (Sub-orquestador maneja generacion + validacion de calidad)
         if not _fase_completada(proyecto_id, "visual"):
             validar_fase("visual")
             _fase(proyecto_id, "visual")
+            _t = time.time()
             _llamar("sub_orq_visual", proyecto_id)
+            tiempos_fases["visual"] = round(time.time() - _t, 2)
+            telegram.notificar_fase("visual", proyecto_id, state.leer(proyecto_id), tiempos_fases["visual"])
 
         if not _fase_completada(proyecto_id, "audio"):
             validar_fase("audio")
             _fase(proyecto_id, "audio")
+            _t = time.time()
             _llamar("sub_orq_audio", proyecto_id)
+            tiempos_fases["audio"] = round(time.time() - _t, 2)
+            telegram.notificar_fase("audio", proyecto_id, state.leer(proyecto_id), tiempos_fases["audio"])
 
         # 5. Cierre (Editor + SEO + Compliance + Publicador)
         if not _fase_completada(proyecto_id, "cierre"):
             validar_fase("cierre")
             _fase(proyecto_id, "cierre")
+            _t = time.time()
             _llamar("sub_orq_cierre", proyecto_id)
+            tiempos_fases["cierre"] = round(time.time() - _t, 2)
+            telegram.notificar_fase("cierre", proyecto_id, state.leer(proyecto_id), tiempos_fases["cierre"])
 
         state.actualizar(proyecto_id, fase_actual="completado", agente_actual=None)
         duracion_total = round(time.time() - pipeline_inicio, 2)
@@ -323,17 +343,20 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
             data={"nicho": nicho},
             duration_seg=duracion_total,
         )
-        return state.leer(proyecto_id)
+        estado_final = state.leer(proyecto_id)
+        telegram.notificar_completado(proyecto_id, estado_final, duracion_total, tiempos_fases)
+        return estado_final
 
     except HTTPException:
         raise
     except HealthCheckError as exc:
         log.error("pipeline health check fallo | proyecto=%s | %s", proyecto_id, exc)
+        duracion_err = round(time.time() - pipeline_inicio, 2)
         event_store.registrar(
             "pipeline_failed", "error",
             source="orquestador_central", proyecto_id=proyecto_id,
             data={"error": str(exc), "fallos": exc.fallos},
-            duration_seg=round(time.time() - pipeline_inicio, 2),
+            duration_seg=duracion_err,
         )
         state.actualizar(
             proyecto_id,
@@ -341,14 +364,16 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
             agente_actual=None,
             errores=[f"Pre-fase: {f}" for f in exc.fallos],
         )
+        telegram.notificar_error(proyecto_id, "health-check", str(exc), duracion_err)
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
         log.error("pipeline error | proyecto=%s | %s", proyecto_id, exc, exc_info=True)
+        duracion_err = round(time.time() - pipeline_inicio, 2)
         event_store.registrar(
             "pipeline_failed", "error",
             source="orquestador_central", proyecto_id=proyecto_id,
             data={"error": str(exc)},
-            duration_seg=round(time.time() - pipeline_inicio, 2),
+            duration_seg=duracion_err,
         )
         state.actualizar(
             proyecto_id,
@@ -356,6 +381,7 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
             agente_actual=None,
             errores=[str(exc)],
         )
+        telegram.notificar_error(proyecto_id, "pipeline", str(exc), duracion_err)
         raise HTTPException(status_code=500, detail=str(exc))
 
 
