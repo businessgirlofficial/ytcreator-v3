@@ -30,7 +30,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
-from shared.config import REGISTRO_AGENTES
+from shared.config import REGISTRO_AGENTES, STORAGE_DIR
 from shared.groq_client import generar_json
 from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
@@ -39,6 +39,7 @@ from shared.state_manager import StateManager
 AGENTE_ID = "2.1_guionista"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Escribe el guion completo con estructura viral")
 state = StateManager()
+SALIDA_DIR = Path(STORAGE_DIR) / "guiones"
 
 ESCENAS_CON_VIDEO_IA = 12  # estrategia hibrida ya decidida: primeras N con video real
 
@@ -147,12 +148,23 @@ Escribe el guion completo desde cero."""
 
     texto_completo = "\n\n".join(e["texto"] for e in escenas)
 
+    SALIDA_DIR.mkdir(parents=True, exist_ok=True)
+    archivo_guion = SALIDA_DIR / f"{request.proyecto_id}_guion.txt"
+    contenido_archivo = f"GUION: {estrategia.titulo_ganador}\n"
+    contenido_archivo += f"{'=' * 60}\n\n"
+    for e in escenas:
+        contenido_archivo += f"--- Escena {e['numero']} [{e['tipo'].upper()}] ---\n"
+        contenido_archivo += f"{e['texto']}\n"
+        contenido_archivo += f"  [Video IA: {'Sí' if e['usa_video_ia'] else 'No'}]\n\n"
+    archivo_guion.write_text(contenido_archivo, encoding="utf-8")
+
     state.actualizar(
         request.proyecto_id,
         guion={
             "texto_completo": texto_completo,
             "escenas": escenas,
-            "aprobado": False,  # el Evaluador (2.2) decide esto, no este agente
+            "aprobado": False,
+            "archivo_guion": str(archivo_guion),
         },
     )
     return {"num_escenas": len(escenas), "es_reescritura": es_reescritura}

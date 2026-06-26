@@ -32,6 +32,7 @@ notebook v7 real):
 """
 
 import json
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -112,13 +113,17 @@ def logica(request: AgenteRequest) -> dict:
     escenas = [e.model_dump() for e in estado.guion.escenas]
 
     carpeta_dataset = _preparar_dataset(request.proyecto_id, escenas)
-    subir_dataset(str(carpeta_dataset))
-    lanzar_kernel(str(KERNEL_META_DIR))
-    _esperar_kernel()
+    try:
+        subir_dataset(str(carpeta_dataset))
+        lanzar_kernel(str(KERNEL_META_DIR))
+        _esperar_kernel()
 
-    destino = OUTPUT_DIR / request.proyecto_id
-    destino.mkdir(parents=True, exist_ok=True)
-    archivos = descargar_resultados(KAGGLE_KERNEL_SLUG, str(destino))
+        destino = OUTPUT_DIR / request.proyecto_id
+        destino.mkdir(parents=True, exist_ok=True)
+        archivos = descargar_resultados(KAGGLE_KERNEL_SLUG, str(destino))
+    finally:
+        shutil.rmtree(carpeta_dataset, ignore_errors=True)
+        log.info("staging limpiado: %s", carpeta_dataset)
 
     descartados = 0
     for p in destino.iterdir():

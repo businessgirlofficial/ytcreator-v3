@@ -91,6 +91,7 @@ class Guion(BaseModel):
     intentos_reescritura: int = 0
     aprobado: bool = False
     feedback_evaluador: Optional[str] = None
+    archivo_guion: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
