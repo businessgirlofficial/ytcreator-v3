@@ -969,7 +969,7 @@ with st.sidebar:
   if _skip_sidebar:
     pass
   else:
-        pdir   = Path(f"proyectos/{s['nombre_proyecto']}")
+        pdir   = Path(f"proyectos/{s.get('canal_activo_id') or 'sin_canal'}/{s['nombre_proyecto']}")
         clips  = sorted((pdir/"videos").glob("*.mp4")) if (pdir/"videos").exists() else []
         audios = sorted((pdir/"audio").glob("*.mp3"))  if (pdir/"audio").exists()  else []
         subs   = sorted((pdir/"subs").glob("*.srt"))   if (pdir/"subs").exists()   else []
@@ -1537,6 +1537,14 @@ if s['vista_actual'] == 'home':
         except Exception:
             canales_home = []
 
+        for _ch in canales_home:
+            if not _ch.get("miniatura_url") and _ch.get("canal_id"):
+                try:
+                    _ch_full = api_client.estado_canal(_ch["canal_id"])
+                    _ch["miniatura_url"] = _ch_full.get("miniatura_url")
+                except Exception:
+                    pass
+
         n_canales = len(canales_home)
         cols_per_row = 3
         total_slots = n_canales + 1
@@ -1592,6 +1600,7 @@ if s['vista_actual'] == 'home':
                                         resultado = api_client.conectar_canal(canal_input_home.strip())
                                         canal_id_nuevo = resultado.get("canal_id", "")
                                         st.success(f"✅  Canal conectado: **{resultado.get('nombre', canal_id_nuevo)}**")
+                                        del s["canal_input_home"]
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"❌  Error: {str(e)}")
@@ -1773,7 +1782,7 @@ st.markdown(f"""<div class="breadcrumb">
   <span class="bc-current">Workspace</span>
 </div>""", unsafe_allow_html=True)
 
-col_back_w, _ = st.columns([1, 5])
+col_back_w, _ = st.columns([1, 3])
 with col_back_w:
     if st.button("← Volver al Canal", key="btn_back_channel", use_container_width=True):
         _navegar_a('channel_dashboard', s['canal_activo_id'], s.get('canal_activo_nombre'))
@@ -1802,7 +1811,8 @@ nombre_proyecto = c_np.text_input(
     "📁 Nombre del proyecto", value=s['nombre_proyecto'],
     key="np_k", label_visibility="visible")
 s['nombre_proyecto'] = nombre_proyecto
-pdir = Path(f"proyectos/{nombre_proyecto}")
+_canal_id_activo = s.get('canal_activo_id') or 'sin_canal'
+pdir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}")
 pdir.mkdir(parents=True, exist_ok=True)
 
 if _hdr_health and API_DISPONIBLE:
@@ -2562,7 +2572,7 @@ with tab2:
             if st.button("▶️  Generar narración", use_container_width=True):
                 try:
                     import edge_tts
-                    adir = Path(f"proyectos/{nombre_proyecto}/audio")
+                    adir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/audio")
                     adir.mkdir(parents=True, exist_ok=True)
                     prog = st.progress(0); stat = st.empty()
                     for i,e in enumerate(g['escenas']):
@@ -2604,7 +2614,7 @@ with tab2:
                             if data.get('hits'):
                                 au = data['hits'][0].get('audio',{}).get('url','')
                                 if au:
-                                    mdir = Path(f"proyectos/{nombre_proyecto}/musica")
+                                    mdir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/musica")
                                     mdir.mkdir(parents=True, exist_ok=True)
                                     r = requests.get(au, stream=True, timeout=30)
                                     with open(mdir/"background.mp3",'wb') as f:
@@ -2618,7 +2628,7 @@ with tab2:
             mp3_up = st.file_uploader("Arrastra aquí tu MP3 libre de derechos",
                                        type=['mp3'], label_visibility="collapsed")
             if mp3_up:
-                mdir = Path(f"proyectos/{nombre_proyecto}/musica")
+                mdir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/musica")
                 mdir.mkdir(parents=True, exist_ok=True)
                 (mdir/"background.mp3").write_bytes(mp3_up.read())
                 s['musica_lista'] = True
@@ -2718,7 +2728,7 @@ with tab3:
                 "narracion": [e['narracion'] for e in g['escenas']],
                 "titulo": g.get('titulo',''), "tags": g.get('tags',[])
             }
-            pdir2 = Path(f"proyectos/{nombre_proyecto}")
+            pdir2 = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}")
             pdir2.mkdir(parents=True, exist_ok=True)
             (pdir2/"config_kaggle.json").write_text(
                 json.dumps(config_k, ensure_ascii=False, indent=2))
@@ -2793,7 +2803,7 @@ with tab3:
                             f"https://www.kaggle.com/api/v1/kernels/{KAGGLE_USER}/{kernel_slug}/output",
                             headers=h, timeout=60, stream=True)
                         if r.status_code == 200:
-                            dest = Path(f"proyectos/{nombre_proyecto}/videos")
+                            dest = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/videos")
                             dest.mkdir(parents=True, exist_ok=True)
                             zp = dest/"output.zip"
                             with open(zp,'wb') as f:
@@ -2812,7 +2822,7 @@ with tab3:
                                          type=['mp4'], accept_multiple_files=True,
                                          label_visibility="visible")
             if clips_up:
-                vdir2 = Path(f"proyectos/{nombre_proyecto}/videos")
+                vdir2 = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/videos")
                 vdir2.mkdir(parents=True, exist_ok=True)
                 for c in clips_up: (vdir2/c.name).write_bytes(c.read())
                 s['kaggle_completado'] = True
@@ -2855,8 +2865,8 @@ with tab4:
             st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
 
             if st.button("💬  Generar subtítulos con Whisper", use_container_width=True):
-                adir = Path(f"proyectos/{nombre_proyecto}/audio")
-                sdir = Path(f"proyectos/{nombre_proyecto}/subs")
+                adir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/audio")
+                sdir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/subs")
                 sdir.mkdir(parents=True, exist_ok=True)
                 audios_list = sorted(adir.glob("*.mp3")) if adir.exists() else []
 
@@ -2916,7 +2926,7 @@ with tab4:
             subs_config = {"fuente": fuente_s, "tamaño": tamaño_s,
                            "color_texto": color_t, "color_borde": color_b,
                            "posicion": posicion_s, "estilo": estilo_s}
-            sdir2 = Path(f"proyectos/{nombre_proyecto}/subs")
+            sdir2 = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/subs")
             sdir2.mkdir(parents=True, exist_ok=True)
             (sdir2/"config_subs.json").write_text(json.dumps(subs_config, indent=2))
 
@@ -2938,7 +2948,7 @@ with tab5:
     st.markdown('<div class="step-title">Ensamblar</div>', unsafe_allow_html=True)
     st.markdown('<div class="step-sub">Combina clips + narración + música + subtítulos en un video final listo para subir a YouTube.</div>', unsafe_allow_html=True)
 
-    pdir3     = Path(f"proyectos/{nombre_proyecto}")
+    pdir3     = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}")
     ck        = sorted((pdir3/"videos").glob("*.mp4")) if (pdir3/"videos").exists() else []
     ak        = sorted((pdir3/"audio").glob("*.mp3"))  if (pdir3/"audio").exists()  else []
     mk_path   = (list((pdir3/"musica").glob("*.mp3"))[0]

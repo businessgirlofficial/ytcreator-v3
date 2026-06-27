@@ -59,7 +59,7 @@ AGENTE_ID = "5.1_editor"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Ensambla el video final con MoviePy")
 state = StateManager()
 
-SALIDA_DIR = Path(STORAGE_DIR) / "video"
+SALIDA_DIR_LEGACY = Path(STORAGE_DIR) / "video"
 
 # Patron para extraer el numero de escena de un nombre de archivo, ej.
 # "escena_3.png" -> 3, "escena-12.mp4" -> 12. AJUSTAR si tu notebook
@@ -172,8 +172,10 @@ def logica(request: AgenteRequest) -> dict:
         subtitulos = subtitulos.with_position(("center", "bottom"))
         video = CompositeVideoClip([video, subtitulos], size=resolucion)
 
-    SALIDA_DIR.mkdir(parents=True, exist_ok=True)
-    salida = SALIDA_DIR / f"{request.proyecto_id}_final.mp4"
+    cid = estado.canal_id or "sin_canal"
+    salida_dir = Path(STORAGE_DIR) / cid / "video"
+    salida_dir.mkdir(parents=True, exist_ok=True)
+    salida = salida_dir / f"{request.proyecto_id}_final.mp4"
     video = video.with_fps(FPS_VIDEO)
     video.write_videofile(str(salida), fps=FPS_VIDEO, codec="libx264", audio_codec="aac", logger=None)
 

@@ -29,14 +29,16 @@ state = StateManager()
 
 HF_FLUX_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
 
-SALIDA_DIR = Path(STORAGE_DIR) / "miniaturas"
+SALIDA_DIR_LEGACY = Path(STORAGE_DIR) / "miniaturas"
 
 
-def _generar_miniatura(prompt: str, proyecto_id: str) -> str:
+def _generar_miniatura(prompt: str, proyecto_id: str, canal_id: str | None = None) -> str:
     resp = llamar_modelo(HF_FLUX_URL, {"inputs": prompt})
 
-    SALIDA_DIR.mkdir(parents=True, exist_ok=True)
-    destino = SALIDA_DIR / f"{proyecto_id}_thumbnail.png"
+    cid = canal_id or "sin_canal"
+    salida_dir = Path(STORAGE_DIR) / cid / "miniaturas"
+    salida_dir.mkdir(parents=True, exist_ok=True)
+    destino = salida_dir / f"{proyecto_id}_thumbnail.png"
     destino.write_bytes(resp.content)
 
     return str(destino)
@@ -53,7 +55,7 @@ def logica(request: AgenteRequest) -> dict:
         )
 
     try:
-        miniatura_path = _generar_miniatura(prompt, request.proyecto_id)
+        miniatura_path = _generar_miniatura(prompt, request.proyecto_id, estado.canal_id)
     except Exception as exc:
         state.actualizar(
             request.proyecto_id,

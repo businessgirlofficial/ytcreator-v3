@@ -219,7 +219,7 @@ def webhook_trigger(request: WebhookRequest, background_tasks: BackgroundTasks):
     proyecto_id = request.proyecto_id or f"proy_{uuid.uuid4().hex[:8]}"
 
     try:
-        state.crear(proyecto_id, request.canal)
+        state.crear(proyecto_id, request.canal, canal_id=request.canal_id)
     except FileExistsError:
         pass
 

@@ -36,7 +36,7 @@ AGENTE_ID = "4.1_locucion"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Genera la narracion con Edge TTS")
 state = StateManager()
 
-SALIDA_DIR = Path(STORAGE_DIR) / "audio"
+SALIDA_DIR_LEGACY = Path(STORAGE_DIR) / "audio"
 
 # Catalogo de voces conocidas y estables de Edge TTS para espanol
 # latinoamericano. Si tu canal_tono no calza con ninguna clave, se usa
@@ -83,6 +83,13 @@ def _generar_gtts(texto: str, salida: Path) -> None:
     tts.save(str(salida))
 
 
+def _salida_dir(canal_id: str | None) -> Path:
+    cid = canal_id or "sin_canal"
+    d = Path(STORAGE_DIR) / cid / "audio"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def logica(request: AgenteRequest) -> dict:
     estado = state.leer(request.proyecto_id)
     texto = estado.guion.texto_completo
@@ -94,8 +101,8 @@ def logica(request: AgenteRequest) -> dict:
     rate = _elegir_rate(estado.estrategia.canal_tono)
     pitch = "+0Hz"
 
-    SALIDA_DIR.mkdir(parents=True, exist_ok=True)
-    salida = SALIDA_DIR / f"{request.proyecto_id}_voz.mp3"
+    salida_dir = _salida_dir(estado.canal_id)
+    salida = salida_dir / f"{request.proyecto_id}_voz.mp3"
 
     fuente = "edge_tts"
     fallback_reason = None

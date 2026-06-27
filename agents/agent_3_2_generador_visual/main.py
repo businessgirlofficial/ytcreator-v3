@@ -57,13 +57,15 @@ log = get_logger(AGENTE_ID)
 POLL_INTERVAL_SEG = 30
 TIMEOUT_SEG = 60 * 60 * 2  # 2 horas de margen (GPU T4 x2, tier gratuito)
 
-STAGING_DIR = Path(STORAGE_DIR) / "kaggle_staging"
-OUTPUT_DIR = Path(STORAGE_DIR) / "kaggle_outputs"
+STAGING_DIR_LEGACY = Path(STORAGE_DIR) / "kaggle_staging"
+OUTPUT_DIR_LEGACY = Path(STORAGE_DIR) / "kaggle_outputs"
 KERNEL_META_DIR = Path("kaggle_kernel_meta")
 
 
-def _preparar_dataset(proyecto_id: str, escenas: list[dict]) -> Path:
-    carpeta = STAGING_DIR / proyecto_id
+def _preparar_dataset(proyecto_id: str, escenas: list[dict], canal_id: str | None = None) -> Path:
+    cid = canal_id or "sin_canal"
+    staging_dir = Path(STORAGE_DIR) / cid / "kaggle_staging"
+    carpeta = staging_dir / proyecto_id
     carpeta.mkdir(parents=True, exist_ok=True)
 
     estado = state.leer(proyecto_id)
@@ -111,14 +113,17 @@ def logica(request: AgenteRequest) -> dict:
         raise ValueError("No hay prompts listos: corre primero el Agente 3.1 (Prompt Maker)")
 
     escenas = [e.model_dump() for e in estado.guion.escenas]
+    canal_id = estado.canal_id
 
-    carpeta_dataset = _preparar_dataset(request.proyecto_id, escenas)
+    carpeta_dataset = _preparar_dataset(request.proyecto_id, escenas, canal_id)
     try:
         subir_dataset(str(carpeta_dataset))
         lanzar_kernel(str(KERNEL_META_DIR))
         _esperar_kernel()
 
-        destino = OUTPUT_DIR / request.proyecto_id
+        cid = canal_id or "sin_canal"
+        output_dir = Path(STORAGE_DIR) / cid / "kaggle_outputs"
+        destino = output_dir / request.proyecto_id
         destino.mkdir(parents=True, exist_ok=True)
         archivos = descargar_resultados(KAGGLE_KERNEL_SLUG, str(destino))
     finally:

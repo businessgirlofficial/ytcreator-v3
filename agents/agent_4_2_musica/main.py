@@ -46,7 +46,7 @@ def _construir_prompt_musicgen(mood: str | None) -> str:
     return f"{base}, neutral calm ambient, no vocals, loopable"
 
 
-def _generar_musicgen(mood: str | None, proyecto_id: str) -> str:
+def _generar_musicgen(mood: str | None, proyecto_id: str, canal_id: str | None = None) -> str:
     prompt = _construir_prompt_musicgen(mood)
 
     resp = llamar_modelo(HF_MUSICGEN_URL, {"inputs": prompt}, max_bytes=MAX_AUDIO_BYTES)
@@ -61,7 +61,8 @@ def _generar_musicgen(mood: str | None, proyecto_id: str) -> str:
     else:
         extension = ".flac"
 
-    musica_dir = Path(STORAGE_DIR) / "proyectos" / proyecto_id / "musica"
+    cid = canal_id or "sin_canal"
+    musica_dir = Path(STORAGE_DIR) / "proyectos" / cid / proyecto_id / "musica"
     musica_dir.mkdir(parents=True, exist_ok=True)
     destino = musica_dir / f"background{extension}"
     destino.write_bytes(resp.content)
@@ -69,7 +70,7 @@ def _generar_musicgen(mood: str | None, proyecto_id: str) -> str:
     return str(destino)
 
 
-def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
+def _buscar_pixabay(mood: str, proyecto_id: str, canal_id: str | None = None) -> str:
     if not PIXABAY_API_KEY:
         raise RuntimeError("PIXABAY_API_KEY no esta configurada en tu .env")
 
@@ -90,7 +91,8 @@ def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
     if not audio_url:
         raise RuntimeError("Pixabay devolvio resultado sin URL de audio")
 
-    musica_dir = Path(STORAGE_DIR) / "proyectos" / proyecto_id / "musica"
+    cid = canal_id or "sin_canal"
+    musica_dir = Path(STORAGE_DIR) / "proyectos" / cid / proyecto_id / "musica"
     musica_dir.mkdir(parents=True, exist_ok=True)
     destino = musica_dir / "background.mp3"
 
@@ -108,15 +110,16 @@ def _buscar_pixabay(mood: str, proyecto_id: str) -> str:
 def logica(request: AgenteRequest) -> dict:
     estado = state.leer(request.proyecto_id)
     mood = estado.estrategia.mood
+    canal_id = estado.canal_id
     fuente = "musicgen"
     error_musicgen = None
 
     try:
-        musica_path = _generar_musicgen(mood, request.proyecto_id)
+        musica_path = _generar_musicgen(mood, request.proyecto_id, canal_id)
     except Exception as exc:
         error_musicgen = str(exc)
         fuente = "pixabay"
-        musica_path = _buscar_pixabay(mood or "epic cinematic", request.proyecto_id)
+        musica_path = _buscar_pixabay(mood or "epic cinematic", request.proyecto_id, canal_id)
 
     audio_update = {"musica_path": musica_path, "musica_fuente": fuente, "musica_volumen_db": -20.0}
     if error_musicgen:

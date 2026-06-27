@@ -106,3 +106,17 @@ def url_agente(agente_id: str) -> str:
     """Devuelve la URL base de un agente a partir de su id en el registro."""
     puerto = REGISTRO_AGENTES[agente_id]
     return f"http://localhost:{puerto}"
+
+
+def ruta_proyecto(canal_id: str, nombre_proyecto: str) -> "Path":
+    from pathlib import Path
+    p = Path(STORAGE_DIR) / "proyectos" / canal_id / nombre_proyecto
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def ruta_storage_canal(canal_id: str, subcarpeta: str) -> "Path":
+    from pathlib import Path
+    p = Path(STORAGE_DIR) / canal_id / subcarpeta
+    p.mkdir(parents=True, exist_ok=True)
+    return p

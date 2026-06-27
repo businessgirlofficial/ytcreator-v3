@@ -239,10 +239,7 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
         try:
             state.leer(proyecto_id)
         except FileNotFoundError:
-            state.crear(proyecto_id, canal)
-
-        if canal_id:
-            state.actualizar(proyecto_id, canal_id=canal_id)
+            state.crear(proyecto_id, canal, canal_id=canal_id)
 
         # 0.1 Validar TODAS las credenciales antes de gastar un solo segundo
         try:

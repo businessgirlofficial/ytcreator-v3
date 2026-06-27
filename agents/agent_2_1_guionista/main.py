@@ -39,7 +39,7 @@ from shared.state_manager import StateManager
 AGENTE_ID = "2.1_guionista"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Escribe el guion completo con estructura viral")
 state = StateManager()
-SALIDA_DIR = Path(STORAGE_DIR) / "guiones"
+SALIDA_DIR_LEGACY = Path(STORAGE_DIR) / "guiones"
 
 ESCENAS_CON_VIDEO_IA = 12  # estrategia hibrida ya decidida: primeras N con video real
 
@@ -148,8 +148,10 @@ Escribe el guion completo desde cero."""
 
     texto_completo = "\n\n".join(e["texto"] for e in escenas)
 
-    SALIDA_DIR.mkdir(parents=True, exist_ok=True)
-    archivo_guion = SALIDA_DIR / f"{request.proyecto_id}_guion.txt"
+    cid = estado.canal_id or "sin_canal"
+    salida_dir = Path(STORAGE_DIR) / cid / "guiones"
+    salida_dir.mkdir(parents=True, exist_ok=True)
+    archivo_guion = salida_dir / f"{request.proyecto_id}_guion.txt"
     contenido_archivo = f"GUION: {estrategia.titulo_ganador}\n"
     contenido_archivo += f"{'=' * 60}\n\n"
     for e in escenas:
