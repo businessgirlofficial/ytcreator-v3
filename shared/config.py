@@ -29,12 +29,16 @@ KAGGLE_USERNAME = os.getenv("KAGGLE_USERNAME", "")
 KAGGLE_KEY = os.getenv("KAGGLE_KEY", "")
 KAGGLE_DATASET_SLUG = os.getenv("KAGGLE_DATASET_SLUG", f"{KAGGLE_USERNAME}/ytcreator-prompts")
 KAGGLE_KERNEL_SLUG = os.getenv("KAGGLE_KERNEL_SLUG", f"{KAGGLE_USERNAME}/youtube-ai-studio-v7-hibrido")
+MODAL_TOKEN_ID = os.getenv("MODAL_TOKEN_ID", "")
+MODAL_TOKEN_SECRET = os.getenv("MODAL_TOKEN_SECRET", "")
+BEAM_API_KEY = os.getenv("BEAM_API_KEY", "")
 YOUTUBE_CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID", "")
 YOUTUBE_CLIENT_SECRET = os.getenv("YOUTUBE_CLIENT_SECRET", "")
 YOUTUBE_REFRESH_TOKEN = os.getenv("YOUTUBE_REFRESH_TOKEN", "")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 YTCREATOR_API_KEY = os.getenv("YTCREATOR_API_KEY", "")
 STORAGE_DIR = os.getenv("STORAGE_DIR", ".")
+ARCHIVE_DIR = os.getenv("ARCHIVE_DIR", r"D:\ytcreator_archive")
 BUFFER_MAX_VIDEOS = int(os.getenv("BUFFER_MAX_VIDEOS", "3"))
 
 # -- Telegram Notifications --
@@ -47,7 +51,12 @@ TELEGRAM_PC_LABEL = os.getenv("TELEGRAM_PC_LABEL", "")
 GROQ_RATE_LIMIT = float(os.getenv("GROQ_RATE_LIMIT", "30"))
 HF_RATE_LIMIT = float(os.getenv("HF_RATE_LIMIT", "10"))
 PIXABAY_RATE_LIMIT = float(os.getenv("PIXABAY_RATE_LIMIT", "0.83"))
+CLAUDE_RATE_LIMIT = float(os.getenv("CLAUDE_RATE_LIMIT", "10"))
 RATE_LIMIT_SAFETY_FACTOR = float(os.getenv("RATE_LIMIT_SAFETY_FACTOR", "0.8"))
+
+# -- Claude Code SDK (usa suscripcion Pro, no necesita API key) ----
+CLAUDE_MAX_TURNS = int(os.getenv("CLAUDE_MAX_TURNS", "1"))
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
 
 # -- limites de tamaño de assets descargados (bytes) ----
 MAX_IMAGEN_BYTES = int(os.getenv("MAX_IMAGEN_BYTES", str(50 * 1024 * 1024)))    # 50 MB
@@ -72,6 +81,7 @@ REGISTRO_AGENTES: dict[str, int] = {
     # Depto 2 - Guion
     "sub_orq_guion": 8210,
     "2.1_guionista": 8201,
+    "2.2_evaluador": 8202,
     # Depto 3 - Visual
     "sub_orq_visual": 8310,
     "3.1_prompt_maker": 8301,

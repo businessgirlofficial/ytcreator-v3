@@ -31,7 +31,7 @@ from fastapi import FastAPI
 
 from shared.base_agent import crear_agente_app, envolver_logica
 from shared.config import REGISTRO_AGENTES, STORAGE_DIR
-from shared.groq_client import generar_json
+from shared.claude_client import generar_json_claude
 from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
 from shared.state_manager import StateManager
@@ -137,10 +137,10 @@ No cambies lo que ya funcionaba si el feedback no lo menciono."""
 Escribe el guion completo desde cero."""
 
     user_prompt = inyectar_knowledge(user_prompt, "depto_2_guion")
-    resultado = generar_json(SYSTEM_PROMPT, user_prompt, temperatura=0.9 if es_reescritura else 0.8)
+    resultado = generar_json_claude(SYSTEM_PROMPT, user_prompt)
     escenas_raw = resultado.get("escenas", [])
     if not escenas_raw:
-        raise ValueError("Groq no devolvio escenas en el formato esperado")
+        raise ValueError("Claude no devolvio escenas en el formato esperado")
 
     escenas = _normalizar_escenas(escenas_raw)
     if not escenas:
@@ -155,7 +155,7 @@ Escribe el guion completo desde cero."""
     for e in escenas:
         contenido_archivo += f"--- Escena {e['numero']} [{e['tipo'].upper()}] ---\n"
         contenido_archivo += f"{e['texto']}\n"
-        contenido_archivo += f"  [Video IA: {'Sí' if e['usa_video_ia'] else 'No'}]\n\n"
+        contenido_archivo += f"  [Video IA: {'Si' if e['usa_video_ia'] else 'No'}]\n\n"
     archivo_guion.write_text(contenido_archivo, encoding="utf-8")
 
     state.actualizar(
@@ -163,11 +163,11 @@ Escribe el guion completo desde cero."""
         guion={
             "texto_completo": texto_completo,
             "escenas": escenas,
-            "aprobado": False,
+            "aprobado": False,  # el Evaluador (2.2) decide esto, no este agente
             "archivo_guion": str(archivo_guion),
         },
     )
-    return {"num_escenas": len(escenas), "es_reescritura": es_reescritura}
+    return {"num_escenas": len(escenas), "es_reescritura": es_reescritura, "archivo_guion": str(archivo_guion)}
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

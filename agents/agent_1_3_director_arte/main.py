@@ -21,6 +21,7 @@ from fastapi import FastAPI
 from shared.base_agent import crear_agente_app, envolver_logica
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
+from shared.claude_client import revisar_con_claude
 from shared.groq_client import generar_json
 from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse
@@ -136,6 +137,18 @@ Miniaturas con BAJO CTR (evita este estilo):
 
     user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
     resultado = generar_json(system_prompt, user_prompt)
+
+    resultado = revisar_con_claude(resultado, f"""Revisa esta composicion de miniatura para YouTube.
+Titulo del video: {titulo}
+Nicho: {nicho}
+
+Verifica y mejora si es necesario:
+1. texto_principal tiene maximo 5 palabras y es impactante para CTR
+2. prompt_imagen es detallado, en ingles, y no incluye texto overlay
+3. La paleta genera contraste y atencion visual
+4. El elemento_focal es claro y atractivo
+
+Devuelve el JSON con las mismas claves: fondo, texto_principal, posicion_texto, paleta, elemento_focal, prompt_imagen""")
 
     miniatura_composicion = {
         "fondo": resultado.get("fondo"),

@@ -31,6 +31,7 @@ from fastapi import FastAPI
 from shared.base_agent import crear_agente_app, envolver_logica
 from shared.channel_manager import ChannelManager
 from shared.config import REGISTRO_AGENTES
+from shared.claude_client import revisar_con_claude
 from shared.groq_client import generar_json
 from shared.knowledge_loader import inyectar_knowledge
 from shared.schemas import AgenteRequest, AgenteResponse, IdentidadVisualCanal
@@ -222,6 +223,19 @@ def logica(request: AgenteRequest) -> dict:
         estilo_slug = override_slug or "cinematic"
         estilo_template = ""
         estilo_negative = ""
+
+    locks = revisar_con_claude(locks, f"""Revisa estos candados de consistencia visual para un video de YouTube.
+Titulo: {estrategia.titulo_ganador or ""}
+Nicho: {estrategia.nicho}
+
+Verifica y mejora si es necesario:
+1. subject_lock: descripcion fisica EXACTA y detallada, consistente para todas las escenas
+2. background_lock: entorno coherente y visualmente atractivo
+{"3. estilo_fijo: estilo de render completo (iluminacion, paleta, lente)" if not identidad else ""}
+4. Todo en ingles (sirve como prompt de generacion de imagenes FLUX.1)
+
+Si algo es vago, generico o inconsistente, corrigelo con mas detalle.
+Devuelve el JSON con las mismas claves.""")
 
     variaciones_raw = _generar_variaciones(escenas)
     variaciones = _aplicar_anticlonacion(escenas, variaciones_raw)

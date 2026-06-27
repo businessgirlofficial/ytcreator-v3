@@ -25,7 +25,7 @@ from pathlib import Path
 
 from filelock import FileLock
 
-from .config import GROQ_RATE_LIMIT, HF_RATE_LIMIT, PIXABAY_RATE_LIMIT, RATE_LIMIT_SAFETY_FACTOR, STORAGE_DIR
+from .config import CLAUDE_RATE_LIMIT, GROQ_RATE_LIMIT, HF_RATE_LIMIT, PIXABAY_RATE_LIMIT, RATE_LIMIT_SAFETY_FACTOR, STORAGE_DIR
 from .logger import get_logger
 
 log = get_logger("rate_limiter")
@@ -175,6 +175,13 @@ HF_LIMITER = TokenBucketRateLimiter(
 PIXABAY_LIMITER = TokenBucketRateLimiter(
     nombre="pixabay",
     requests_por_minuto=PIXABAY_RATE_LIMIT,
+    margen_seguridad=RATE_LIMIT_SAFETY_FACTOR,
+    burst_max=2,
+)
+
+CLAUDE_LIMITER = TokenBucketRateLimiter(
+    nombre="claude",
+    requests_por_minuto=CLAUDE_RATE_LIMIT,
     margen_seguridad=RATE_LIMIT_SAFETY_FACTOR,
     burst_max=2,
 )
