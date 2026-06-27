@@ -13,6 +13,11 @@ venv/
 # Logs
 logs/
 
+# Bases de datos y datos de runtime
+analytics/
+events/
+scheduler/
+
 # Archivos generados por el pipeline
 projects/*.json
 projects/*.lock

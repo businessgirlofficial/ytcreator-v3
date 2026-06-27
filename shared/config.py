@@ -78,10 +78,9 @@ REGISTRO_AGENTES: dict[str, int] = {
     "1.2_copywriter": 8102,
     "1.3_director_arte": 8103,
     "1.4_generador_miniatura": 8104,
-    # Depto 2 - Guion
+    # Depto 2 - Guion (evaluacion absorbida en sub_orq_guion)
     "sub_orq_guion": 8210,
     "2.1_guionista": 8201,
-    "2.2_evaluador": 8202,
     # Depto 3 - Visual
     "sub_orq_visual": 8310,
     "3.1_prompt_maker": 8301,
