@@ -20,10 +20,7 @@ st.set_page_config(
 
 _REFRESH_INTERVALS = {"Off": 0, "15s": 15000, "30s": 30000, "60s": 60000}
 if "autorefresh_interval" not in st.session_state:
-    st.session_state["autorefresh_interval"] = "30s"
-_ar_interval = _REFRESH_INTERVALS[st.session_state["autorefresh_interval"]]
-if _ar_interval > 0:
-    st_autorefresh(interval=_ar_interval, key="global_autorefresh")
+    st.session_state["autorefresh_interval"] = "Off"
 
 GROQ_KEY    = os.getenv("GROQ_API_KEY", "")
 KAGGLE_USER = os.getenv("KAGGLE_USERNAME", "")
@@ -598,6 +595,43 @@ hr{border-color:var(--border)!important;margin:18px 0!important}
   text-overflow:ellipsis;white-space:nowrap}
 .kw-bar{height:4px;border-radius:2px;background:var(--dark5);overflow:hidden;min-width:40px}
 .kw-bar-fill{height:100%;border-radius:2px;transition:width .3s}
+
+/* ── Home: Channel Cards ── */
+.home-title{font-size:1.6rem;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:4px}
+.home-sub{font-size:.85rem;color:var(--text3);margin-bottom:28px}
+.ch-card{
+  background:var(--dark2);border:1px solid var(--border);border-radius:14px;
+  padding:22px;text-align:center;transition:all .2s;cursor:pointer;min-height:220px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+.ch-card:hover{border-color:var(--red);transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,0,0,.08)}
+.ch-card-thumb{width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--border2);margin-bottom:4px}
+.ch-card-thumb-placeholder{width:72px;height:72px;border-radius:50%;background:var(--red-dim);
+  border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem;font-weight:800;color:var(--red);margin-bottom:4px}
+.ch-card-name{font-size:.95rem;font-weight:700;color:var(--text);line-height:1.2}
+.ch-card-stats{font-size:.75rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.ch-card-niche{font-size:.7rem;color:var(--blue);background:var(--blue-dim);
+  padding:2px 10px;border-radius:10px;border:1px solid rgba(62,166,255,.15)}
+.ch-card-add{
+  background:var(--dark3);border:2px dashed var(--border2);border-radius:14px;
+  padding:22px;text-align:center;transition:all .2s;cursor:pointer;min-height:220px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+.ch-card-add:hover{border-color:var(--red);background:var(--red-dim)}
+.ch-card-add-icon{font-size:2.5rem;color:var(--text3);line-height:1}
+.ch-card-add-text{font-size:.85rem;color:var(--text3);font-weight:600}
+
+/* ── Breadcrumb ── */
+.breadcrumb{
+  background:var(--dark2);border-bottom:1px solid var(--border);
+  padding:8px 32px;display:flex;align-items:center;gap:8px;
+  font-size:.78rem;color:var(--text3);font-family:'JetBrains Mono',monospace;
+}
+.breadcrumb a,.breadcrumb .bc-link{color:var(--text3);text-decoration:none;cursor:pointer}
+.breadcrumb a:hover,.breadcrumb .bc-link:hover{color:var(--text)}
+.breadcrumb .bc-sep{color:var(--border3)}
+.breadcrumb .bc-current{color:var(--text);font-weight:600}
 </style>
 """, unsafe_allow_html=True)
 
@@ -610,10 +644,26 @@ for k,v in {
     'nicho':'','idioma_canal':'Español','nicho_analizado':False,
     'analisis_nicho':None,'titulos_generados':None,'titulo_elegido':'',
     'titulo_framework':'','titulo_trigger':'','tema_video':'',
-    'guion_texto_completo':None
+    'guion_texto_completo':None,
+    'vista_actual':'home',
+    'canal_activo_id':None,
+    'canal_activo_nombre':None,
 }.items():
     if k not in st.session_state: st.session_state[k]=v
 s=st.session_state
+
+
+def _navegar_a(vista, canal_id=None, canal_nombre=None):
+    s['vista_actual'] = vista
+    s['_health_check_pendiente'] = True
+    if canal_id is not None:
+        s['canal_activo_id'] = canal_id
+        s['canal_activo_nombre'] = canal_nombre
+        s['canal_seleccionado'] = canal_id
+        s['canal_id_pipeline'] = canal_id
+    if vista == 'home':
+        s['canal_activo_id'] = None
+        s['canal_activo_nombre'] = None
 
 
 @st.cache_data(ttl=30)
@@ -903,497 +953,510 @@ def _renderizar_logs_html(lineas_parseadas: list[dict], busqueda: str = "") -> s
 
 
 # ══════════════════════════════════════════════════════════════
-# SIDEBAR — Estado del proyecto (panel derecho fijo)
+# SIDEBAR — Solo en workspace (panel derecho fijo)
 # ══════════════════════════════════════════════════════════════
+if s.get('vista_actual') in ('home', 'channel_dashboard'):
+    _skip_sidebar = True
+    st.markdown("""<style>
+    section[data-testid="stSidebar"]{display:none!important}
+    [data-testid="collapsedControl"]{display:none!important}
+    .block-container{padding-left:80px!important}
+    </style>""", unsafe_allow_html=True)
+else:
+    _skip_sidebar = False
+
 with st.sidebar:
-    pdir   = Path(f"proyectos/{s['nombre_proyecto']}")
-    clips  = sorted((pdir/"videos").glob("*.mp4")) if (pdir/"videos").exists() else []
-    audios = sorted((pdir/"audio").glob("*.mp3"))  if (pdir/"audio").exists()  else []
-    subs   = sorted((pdir/"subs").glob("*.srt"))   if (pdir/"subs").exists()   else []
-    final  = list((pdir/"output").glob("*.mp4"))   if (pdir/"output").exists() else []
-    total  = len(s['guion_aprobado']['escenas']) if s['guion_aprobado'] else 0
+  if _skip_sidebar:
+    pass
+  else:
+        pdir   = Path(f"proyectos/{s['nombre_proyecto']}")
+        clips  = sorted((pdir/"videos").glob("*.mp4")) if (pdir/"videos").exists() else []
+        audios = sorted((pdir/"audio").glob("*.mp3"))  if (pdir/"audio").exists()  else []
+        subs   = sorted((pdir/"subs").glob("*.srt"))   if (pdir/"subs").exists()   else []
+        final  = list((pdir/"output").glob("*.mp4"))   if (pdir/"output").exists() else []
+        total  = len(s['guion_aprobado']['escenas']) if s['guion_aprobado'] else 0
 
-    st.markdown(f"""
-    <div class="sb-head">
-      <div class="sb-title">📊 Estado del proyecto</div>
-      <div class="sb-proj">{'📁 '+s['nombre_proyecto'] if s['nombre_proyecto'] else '—'}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    steps_sb = [
-        ("📝","Guión",bool(s['guion_aprobado']),
-         f"{s['guion_aprobado']['titulo'][:22]}..." if s['guion_aprobado'] else "Pendiente"),
-        ("🎙️","Audio",s['audio_generado'],
-         f"{len(audios)} audios" if audios else "Pendiente"),
-        ("🚀","Kaggle",s['kaggle_completado'],
-         f"{len(clips)}/{total} clips" if clips else "Pendiente"),
-        ("💬","Subtítulos",s['subs_generados'],
-         f"{len(subs)} archivos" if subs else "Pendiente"),
-        ("🎞️","Ensamblar",bool(s['video_final']),
-         "Video listo ✅" if s['video_final'] else "Pendiente"),
-    ]
-    first_p = next((i for i,(_,_,d,_) in enumerate(steps_sb) if not d), len(steps_sb))
-
-    for i,(ic,nm,done,desc) in enumerate(steps_sb):
-        cls  = "done" if done else ("active" if i==first_p else "pending")
-        bdg  = f'<span class="sbadge b-ok">OK</span>' if done else (
-               f'<span class="sbadge b-run">NOW</span>' if i==first_p else
-               f'<span class="sbadge b-pend">—</span>')
         st.markdown(f"""
-        <div class="sstep {cls}">
-          <div class="si-wrap">{ic}</div>
-          <div style="flex:1;min-width:0">
-            <div class="sname">{nm}</div>
-            <div class="sdesc">{desc}</div>
-          </div>
-          {bdg}
-        </div>""", unsafe_allow_html=True)
+        <div class="sb-head">
+          <div class="sb-title">📊 Estado del proyecto</div>
+          <div class="sb-proj">{'📁 '+s['nombre_proyecto'] if s['nombre_proyecto'] else '—'}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    if total > 0:
-        st.markdown('<div style="padding:10px 14px 0">', unsafe_allow_html=True)
-        pct_a = min(len(audios)/total,1.0)
-        pct_v = min(len(clips)/total,1.0)
-        st.caption("Audios")
-        st.progress(pct_a)
-        st.caption(f"{len(audios)}/{total}")
-        st.caption("Clips")
-        st.progress(pct_v)
-        st.caption(f"{len(clips)}/{total}")
+        steps_sb = [
+            ("📝","Guión",bool(s['guion_aprobado']),
+             f"{s['guion_aprobado']['titulo'][:22]}..." if s['guion_aprobado'] else "Pendiente"),
+            ("🎙️","Audio",s['audio_generado'],
+             f"{len(audios)} audios" if audios else "Pendiente"),
+            ("🚀","Kaggle",s['kaggle_completado'],
+             f"{len(clips)}/{total} clips" if clips else "Pendiente"),
+            ("💬","Subtítulos",s['subs_generados'],
+             f"{len(subs)} archivos" if subs else "Pendiente"),
+            ("🎞️","Ensamblar",bool(s['video_final']),
+             "Video listo ✅" if s['video_final'] else "Pendiente"),
+        ]
+        first_p = next((i for i,(_,_,d,_) in enumerate(steps_sb) if not d), len(steps_sb))
+
+        for i,(ic,nm,done,desc) in enumerate(steps_sb):
+            cls  = "done" if done else ("active" if i==first_p else "pending")
+            bdg  = f'<span class="sbadge b-ok">OK</span>' if done else (
+                   f'<span class="sbadge b-run">NOW</span>' if i==first_p else
+                   f'<span class="sbadge b-pend">—</span>')
+            st.markdown(f"""
+            <div class="sstep {cls}">
+              <div class="si-wrap">{ic}</div>
+              <div style="flex:1;min-width:0">
+                <div class="sname">{nm}</div>
+                <div class="sdesc">{desc}</div>
+              </div>
+              {bdg}
+            </div>""", unsafe_allow_html=True)
+
+        if total > 0:
+            st.markdown('<div style="padding:10px 14px 0">', unsafe_allow_html=True)
+            pct_a = min(len(audios)/total,1.0)
+            pct_v = min(len(clips)/total,1.0)
+            st.caption("Audios")
+            st.progress(pct_a)
+            st.caption(f"{len(audios)}/{total}")
+            st.caption("Clips")
+            st.progress(pct_v)
+            st.caption(f"{len(clips)}/{total}")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        st.divider()
+
+        # Próximo paso
+        st.markdown('<div style="padding:0 14px">', unsafe_allow_html=True)
+        st.markdown('<div class="section-label" style="padding:0">Próximo paso</div>', unsafe_allow_html=True)
+        if not s['guion_aprobado']:
+            st.info("→ Tab **Guión**")
+        elif not s['audio_generado']:
+            st.info("→ Tab **Audio**")
+        elif not s['kaggle_completado']:
+            st.info("→ Tab **Kaggle**")
+        elif not s['subs_generados']:
+            st.info("→ Tab **Subtítulos**")
+        elif not s['video_final']:
+            st.info("→ Tab **Ensamblar**")
+        else:
+            st.success("🎉 ¡Todo listo!")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    st.divider()
+        # ── Health de servicios (siempre visible) ──
+        st.divider()
+        _sb_health = _cached_health_servicios()
 
-    # Próximo paso
-    st.markdown('<div style="padding:0 14px">', unsafe_allow_html=True)
-    st.markdown('<div class="section-label" style="padding:0">Próximo paso</div>', unsafe_allow_html=True)
-    if not s['guion_aprobado']:
-        st.info("→ Tab **Guión**")
-    elif not s['audio_generado']:
-        st.info("→ Tab **Audio**")
-    elif not s['kaggle_completado']:
-        st.info("→ Tab **Kaggle**")
-    elif not s['subs_generados']:
-        st.info("→ Tab **Subtítulos**")
-    elif not s['video_final']:
-        st.info("→ Tab **Ensamblar**")
-    else:
-        st.success("🎉 ¡Todo listo!")
-    st.markdown('</div>', unsafe_allow_html=True)
+        if _sb_health is None:
+            st.markdown("""
+            <div class="sb-health">
+              <div class="sb-health-head">
+                <span class="sb-health-title">📡 Servicios</span>
+                <span class="sb-health-score sb-h-off">OFF</span>
+              </div>
+              <div style="font-size:.7rem;color:var(--text4)">Agentes no conectados</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            _sb_score = _sb_health.get("score", 0)
+            _sb_nivel = _sb_health.get("nivel", "critico")
+            _sb_vivos = _sb_health.get("vivos", 0)
+            _sb_total = _sb_health.get("total", 0)
+            _sb_puede = _sb_health.get("puede_pipeline", False)
+            _sb_mem = _sb_health.get("memoria_total_mb")
+            _sb_criticos = _sb_health.get("criticos_caidos", [])
+            _sb_desglose = _sb_health.get("desglose_departamentos", {})
+            _sb_servicios = _sb_health.get("servicios", {})
 
-    # ── Health de servicios (siempre visible) ──
-    st.divider()
-    _sb_health = _cached_health_servicios()
+            _sb_score_cls = "sb-h-ok" if _sb_nivel == "saludable" else ("sb-h-warn" if _sb_nivel == "degradado" else "sb-h-crit")
+            _sb_bar_color = "var(--green)" if _sb_nivel == "saludable" else ("var(--orange)" if _sb_nivel == "degradado" else "var(--red)")
+            _sb_bar_pct = min(_sb_score, 100)
 
-    if _sb_health is None:
-        st.markdown("""
-        <div class="sb-health">
-          <div class="sb-health-head">
-            <span class="sb-health-title">📡 Servicios</span>
-            <span class="sb-health-score sb-h-off">OFF</span>
-          </div>
-          <div style="font-size:.7rem;color:var(--text4)">Agentes no conectados</div>
-        </div>""", unsafe_allow_html=True)
-    else:
-        _sb_score = _sb_health.get("score", 0)
-        _sb_nivel = _sb_health.get("nivel", "critico")
-        _sb_vivos = _sb_health.get("vivos", 0)
-        _sb_total = _sb_health.get("total", 0)
-        _sb_puede = _sb_health.get("puede_pipeline", False)
-        _sb_mem = _sb_health.get("memoria_total_mb")
-        _sb_criticos = _sb_health.get("criticos_caidos", [])
-        _sb_desglose = _sb_health.get("desglose_departamentos", {})
-        _sb_servicios = _sb_health.get("servicios", {})
+            _SB_DEPTOS = [
+                ("depto_0_inteligencia", "Intel"),
+                ("depto_1_estrategia", "Estrat"),
+                ("depto_2_guion", "Guión"),
+                ("depto_3_visual", "Visual"),
+                ("depto_4_audio", "Audio"),
+                ("depto_5_cierre", "Cierre"),
+                ("orquestador", "Orq"),
+            ]
 
-        _sb_score_cls = "sb-h-ok" if _sb_nivel == "saludable" else ("sb-h-warn" if _sb_nivel == "degradado" else "sb-h-crit")
-        _sb_bar_color = "var(--green)" if _sb_nivel == "saludable" else ("var(--orange)" if _sb_nivel == "degradado" else "var(--red)")
-        _sb_bar_pct = min(_sb_score, 100)
+            _sb_deptos_html = ""
+            for _sbdk, _sbdl in _SB_DEPTOS:
+                _sbd_info = _sb_desglose.get(_sbdk, {"vivos": 0, "total": 0})
+                _sbd_v = _sbd_info["vivos"]
+                _sbd_t = _sbd_info["total"]
 
-        _SB_DEPTOS = [
-            ("depto_0_inteligencia", "Intel"),
-            ("depto_1_estrategia", "Estrat"),
-            ("depto_2_guion", "Guión"),
-            ("depto_3_visual", "Visual"),
-            ("depto_4_audio", "Audio"),
-            ("depto_5_cierre", "Cierre"),
-            ("orquestador", "Orq"),
-        ]
+                _SB_DEPTO_AGENTS = {
+                    "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
+                    "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
+                    "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
+                    "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],
+                    "depto_4_audio": ["4.1_locucion", "4.2_musica", "4.3_subtitulos", "sub_orq_audio"],
+                    "depto_5_cierre": ["5.1_editor", "5.2_seo", "5.3_compliance", "5.4_policy_monitor", "5.5_publicador", "sub_orq_cierre"],
+                    "orquestador": ["orquestador_central"],
+                }
 
-        _sb_deptos_html = ""
-        for _sbdk, _sbdl in _SB_DEPTOS:
-            _sbd_info = _sb_desglose.get(_sbdk, {"vivos": 0, "total": 0})
-            _sbd_v = _sbd_info["vivos"]
-            _sbd_t = _sbd_info["total"]
+                _dots_html = ""
+                for _sba in _SB_DEPTO_AGENTS.get(_sbdk, []):
+                    _sba_st = _sb_servicios.get(_sba, {}).get("estado", "caido")
+                    _sba_c = "#1DB954" if _sba_st == "ok" else ("#FF9500" if _sba_st == "error" else "#FF0000")
+                    _dots_html += f'<span class="sb-depto-dot" style="background:{_sba_c}" title="{_html_escape(_sba)}"></span>'
 
-            _SB_DEPTO_AGENTS = {
-                "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
-                "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
-                "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
-                "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],
-                "depto_4_audio": ["4.1_locucion", "4.2_musica", "4.3_subtitulos", "sub_orq_audio"],
-                "depto_5_cierre": ["5.1_editor", "5.2_seo", "5.3_compliance", "5.4_policy_monitor", "5.5_publicador", "sub_orq_cierre"],
-                "orquestador": ["orquestador_central"],
-            }
-
-            _dots_html = ""
-            for _sba in _SB_DEPTO_AGENTS.get(_sbdk, []):
-                _sba_st = _sb_servicios.get(_sba, {}).get("estado", "caido")
-                _sba_c = "#1DB954" if _sba_st == "ok" else ("#FF9500" if _sba_st == "error" else "#FF0000")
-                _dots_html += f'<span class="sb-depto-dot" style="background:{_sba_c}" title="{_html_escape(_sba)}"></span>'
-
-            _sb_deptos_html += (
-                f'<div class="sb-depto-row">'
-                f'<div class="sb-depto-dots">{_dots_html}</div>'
-                f'<span class="sb-depto-label">{_sbdl}</span>'
-                f'<span class="sb-depto-count">{_sbd_v}/{_sbd_t}</span>'
-                f'</div>'
-            )
-
-        _sb_pipe_icon = '<span class="dot on"></span>' if _sb_puede else '<span class="dot off"></span>'
-        _sb_pipe_text = "Pipeline listo" if _sb_puede else "Pipeline bloqueado"
-        _sb_pipe_color = "var(--green)" if _sb_puede else "var(--red)"
-
-        _sb_crit_html = ""
-        if _sb_criticos:
-            _sb_crit_names = ", ".join(_html_escape(c) for c in _sb_criticos[:3])
-            _sb_crit_extra = f" +{len(_sb_criticos)-3}" if len(_sb_criticos) > 3 else ""
-            _sb_crit_html = (
-                f'<div style="font-size:.65rem;color:var(--red);margin-top:6px;'
-                f'font-family:\'JetBrains Mono\',monospace">'
-                f'⚠ {_sb_crit_names}{_sb_crit_extra}</div>'
-            )
-
-        _sb_mem_html = f'<span style="font-size:.65rem;color:var(--text3);font-family:\'JetBrains Mono\',monospace">{_sb_mem} MB</span>' if _sb_mem else ""
-
-        st.markdown(f"""
-        <div class="sb-health">
-          <div class="sb-health-head">
-            <span class="sb-health-title">📡 Servicios</span>
-            <span class="sb-health-score {_sb_score_cls}">{_sb_score}%</span>
-          </div>
-          <div class="sb-health-bar">
-            <div class="sb-health-fill" style="width:{_sb_bar_pct}%;background:{_sb_bar_color}"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:.68rem;color:var(--text3);font-family:'JetBrains Mono',monospace">{_sb_vivos}/{_sb_total} vivos</span>
-            {_sb_mem_html}
-          </div>
-          <div class="sb-deptos">
-            {_sb_deptos_html}
-          </div>
-          <div class="sb-pipeline-ready">
-            {_sb_pipe_icon}
-            <span style="color:{_sb_pipe_color}">{_sb_pipe_text}</span>
-          </div>
-          {_sb_crit_html}
-        </div>""", unsafe_allow_html=True)
-
-    if _sb_health is not None:
-        _col_ref, _col_ar = st.columns([1, 1])
-        with _col_ref:
-            if st.button("🔄  Refrescar", key="sb_refresh_health", use_container_width=True):
-                _cached_health_servicios.clear()
-                _cached_pipeline_cola.clear()
-                st.rerun()
-        with _col_ar:
-            _ar_sel = st.selectbox(
-                "Auto-refresh",
-                options=list(_REFRESH_INTERVALS.keys()),
-                index=list(_REFRESH_INTERVALS.keys()).index(st.session_state["autorefresh_interval"]),
-                key="sb_autorefresh_sel",
-                label_visibility="collapsed",
-            )
-            if _ar_sel != st.session_state["autorefresh_interval"]:
-                st.session_state["autorefresh_interval"] = _ar_sel
-                st.rerun()
-
-    # ── Cola de publicación (siempre visible) ──
-    st.divider()
-    _sb_cola = _cached_pipeline_cola()
-
-    if _sb_cola is None:
-        st.markdown("""
-        <div class="sb-queue">
-          <div class="sb-queue-head">
-            <span class="sb-queue-title">📋 Cola</span>
-            <span class="sb-queue-buf sb-h-off">—</span>
-          </div>
-          <div style="font-size:.7rem;color:var(--text4)">Sin conexión a agentes</div>
-        </div>""", unsafe_allow_html=True)
-    else:
-        _sq_buf = _sb_cola.get("buffer", {})
-        _sq_buf_actual = _sq_buf.get("actual", 0)
-        _sq_buf_max = _sq_buf.get("max", 3)
-        _sq_en_proc = _sb_cola.get("en_proceso", [])
-        _sq_listos = _sb_cola.get("listos_para_publicar", [])
-        _sq_pubs = _sb_cola.get("publicados", [])
-        _sq_errs = _sb_cola.get("con_error", [])
-
-        _sq_buf_cls = "sb-q-full" if _sq_buf_actual >= _sq_buf_max else "sb-q-ok"
-        _sq_total_items = len(_sq_en_proc) + len(_sq_listos) + len(_sq_pubs) + len(_sq_errs)
-
-        _sq_items_html = ""
-
-        if _sq_en_proc:
-            _sq_items_html += '<div class="q-section-label">▶ En proceso</div>'
-            for _sqp in _sq_en_proc[:3]:
-                _sqp_titulo = _html_escape(_sqp.get("titulo", _sqp.get("proyecto_id", "?")))
-                if len(_sqp_titulo) > 28:
-                    _sqp_titulo = _sqp_titulo[:28] + "…"
-                _sqp_fase = _sqp.get("fase_actual", "?")
-                _sqp_pct = _sqp.get("progreso_pct", 0)
-                _sq_items_html += (
-                    f'<div class="sb-q-item q-item-process">'
-                    f'<div class="sb-q-icon">⏳</div>'
-                    f'<div class="sb-q-info">'
-                    f'<div class="sb-q-title">{_sqp_titulo}</div>'
-                    f'<div class="sb-q-meta">{_sqp_fase} · {_sqp_pct}%</div>'
-                    f'</div>'
-                    f'<span class="sb-q-badge">{_sqp_pct}%</span>'
+                _sb_deptos_html += (
+                    f'<div class="sb-depto-row">'
+                    f'<div class="sb-depto-dots">{_dots_html}</div>'
+                    f'<span class="sb-depto-label">{_sbdl}</span>'
+                    f'<span class="sb-depto-count">{_sbd_v}/{_sbd_t}</span>'
                     f'</div>'
                 )
 
-        if _sq_listos:
-            _sq_items_html += '<div class="q-section-label">✓ Listos para publicar</div>'
-            for _sql in _sq_listos:
-                _sql_titulo = _html_escape(_sql.get("titulo", _sql.get("proyecto_id", "?")))
-                if len(_sql_titulo) > 28:
-                    _sql_titulo = _sql_titulo[:28] + "…"
-                _sql_canal = _html_escape(_sql.get("canal", ""))
-                _sq_items_html += (
-                    f'<div class="sb-q-item q-item-ready">'
-                    f'<div class="sb-q-icon">✓</div>'
-                    f'<div class="sb-q-info">'
-                    f'<div class="sb-q-title">{_sql_titulo}</div>'
-                    f'<div class="sb-q-meta">{_sql_canal}</div>'
-                    f'</div>'
-                    f'<span class="sb-q-badge">LISTO</span>'
-                    f'</div>'
+            _sb_pipe_icon = '<span class="dot on"></span>' if _sb_puede else '<span class="dot off"></span>'
+            _sb_pipe_text = "Pipeline listo" if _sb_puede else "Pipeline bloqueado"
+            _sb_pipe_color = "var(--green)" if _sb_puede else "var(--red)"
+
+            _sb_crit_html = ""
+            if _sb_criticos:
+                _sb_crit_names = ", ".join(_html_escape(c) for c in _sb_criticos[:3])
+                _sb_crit_extra = f" +{len(_sb_criticos)-3}" if len(_sb_criticos) > 3 else ""
+                _sb_crit_html = (
+                    f'<div style="font-size:.65rem;color:var(--red);margin-top:6px;'
+                    f'font-family:\'JetBrains Mono\',monospace">'
+                    f'⚠ {_sb_crit_names}{_sb_crit_extra}</div>'
                 )
 
-        if _sq_errs:
-            _sq_items_html += '<div class="q-section-label">✗ Con error</div>'
-            for _sqe in _sq_errs[:2]:
-                _sqe_titulo = _html_escape(_sqe.get("titulo", _sqe.get("proyecto_id", "?")))
-                if len(_sqe_titulo) > 28:
-                    _sqe_titulo = _sqe_titulo[:28] + "…"
-                _sq_items_html += (
-                    f'<div class="sb-q-item q-item-err">'
-                    f'<div class="sb-q-icon">✗</div>'
-                    f'<div class="sb-q-info">'
-                    f'<div class="sb-q-title">{_sqe_titulo}</div>'
-                    f'<div class="sb-q-meta">error</div>'
-                    f'</div>'
-                    f'<span class="sb-q-badge">ERR</span>'
-                    f'</div>'
+            _sb_mem_html = f'<span style="font-size:.65rem;color:var(--text3);font-family:\'JetBrains Mono\',monospace">{_sb_mem} MB</span>' if _sb_mem else ""
+
+            st.markdown(f"""
+            <div class="sb-health">
+              <div class="sb-health-head">
+                <span class="sb-health-title">📡 Servicios</span>
+                <span class="sb-health-score {_sb_score_cls}">{_sb_score}%</span>
+              </div>
+              <div class="sb-health-bar">
+                <div class="sb-health-fill" style="width:{_sb_bar_pct}%;background:{_sb_bar_color}"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:.68rem;color:var(--text3);font-family:'JetBrains Mono',monospace">{_sb_vivos}/{_sb_total} vivos</span>
+                {_sb_mem_html}
+              </div>
+              <div class="sb-deptos">
+                {_sb_deptos_html}
+              </div>
+              <div class="sb-pipeline-ready">
+                {_sb_pipe_icon}
+                <span style="color:{_sb_pipe_color}">{_sb_pipe_text}</span>
+              </div>
+              {_sb_crit_html}
+            </div>""", unsafe_allow_html=True)
+
+        if _sb_health is not None:
+            _col_ref, _col_ar = st.columns([1, 1])
+            with _col_ref:
+                if st.button("🔄  Refrescar", key="sb_refresh_health", use_container_width=True):
+                    _cached_health_servicios.clear()
+                    _cached_pipeline_cola.clear()
+                    st.rerun()
+            with _col_ar:
+                _ar_sel = st.selectbox(
+                    "Auto-refresh",
+                    options=list(_REFRESH_INTERVALS.keys()),
+                    index=list(_REFRESH_INTERVALS.keys()).index(st.session_state["autorefresh_interval"]),
+                    key="sb_autorefresh_sel",
+                    label_visibility="collapsed",
+                )
+                if _ar_sel != st.session_state["autorefresh_interval"]:
+                    st.session_state["autorefresh_interval"] = _ar_sel
+                    st.rerun()
+
+        # ── Cola de publicación (siempre visible) ──
+        st.divider()
+        _sb_cola = _cached_pipeline_cola()
+
+        if _sb_cola is None:
+            st.markdown("""
+            <div class="sb-queue">
+              <div class="sb-queue-head">
+                <span class="sb-queue-title">📋 Cola</span>
+                <span class="sb-queue-buf sb-h-off">—</span>
+              </div>
+              <div style="font-size:.7rem;color:var(--text4)">Sin conexión a agentes</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            _sq_buf = _sb_cola.get("buffer", {})
+            _sq_buf_actual = _sq_buf.get("actual", 0)
+            _sq_buf_max = _sq_buf.get("max", 3)
+            _sq_en_proc = _sb_cola.get("en_proceso", [])
+            _sq_listos = _sb_cola.get("listos_para_publicar", [])
+            _sq_pubs = _sb_cola.get("publicados", [])
+            _sq_errs = _sb_cola.get("con_error", [])
+
+            _sq_buf_cls = "sb-q-full" if _sq_buf_actual >= _sq_buf_max else "sb-q-ok"
+            _sq_total_items = len(_sq_en_proc) + len(_sq_listos) + len(_sq_pubs) + len(_sq_errs)
+
+            _sq_items_html = ""
+
+            if _sq_en_proc:
+                _sq_items_html += '<div class="q-section-label">▶ En proceso</div>'
+                for _sqp in _sq_en_proc[:3]:
+                    _sqp_titulo = _html_escape(_sqp.get("titulo", _sqp.get("proyecto_id", "?")))
+                    if len(_sqp_titulo) > 28:
+                        _sqp_titulo = _sqp_titulo[:28] + "…"
+                    _sqp_fase = _sqp.get("fase_actual", "?")
+                    _sqp_pct = _sqp.get("progreso_pct", 0)
+                    _sq_items_html += (
+                        f'<div class="sb-q-item q-item-process">'
+                        f'<div class="sb-q-icon">⏳</div>'
+                        f'<div class="sb-q-info">'
+                        f'<div class="sb-q-title">{_sqp_titulo}</div>'
+                        f'<div class="sb-q-meta">{_sqp_fase} · {_sqp_pct}%</div>'
+                        f'</div>'
+                        f'<span class="sb-q-badge">{_sqp_pct}%</span>'
+                        f'</div>'
+                    )
+
+            if _sq_listos:
+                _sq_items_html += '<div class="q-section-label">✓ Listos para publicar</div>'
+                for _sql in _sq_listos:
+                    _sql_titulo = _html_escape(_sql.get("titulo", _sql.get("proyecto_id", "?")))
+                    if len(_sql_titulo) > 28:
+                        _sql_titulo = _sql_titulo[:28] + "…"
+                    _sql_canal = _html_escape(_sql.get("canal", ""))
+                    _sq_items_html += (
+                        f'<div class="sb-q-item q-item-ready">'
+                        f'<div class="sb-q-icon">✓</div>'
+                        f'<div class="sb-q-info">'
+                        f'<div class="sb-q-title">{_sql_titulo}</div>'
+                        f'<div class="sb-q-meta">{_sql_canal}</div>'
+                        f'</div>'
+                        f'<span class="sb-q-badge">LISTO</span>'
+                        f'</div>'
+                    )
+
+            if _sq_errs:
+                _sq_items_html += '<div class="q-section-label">✗ Con error</div>'
+                for _sqe in _sq_errs[:2]:
+                    _sqe_titulo = _html_escape(_sqe.get("titulo", _sqe.get("proyecto_id", "?")))
+                    if len(_sqe_titulo) > 28:
+                        _sqe_titulo = _sqe_titulo[:28] + "…"
+                    _sq_items_html += (
+                        f'<div class="sb-q-item q-item-err">'
+                        f'<div class="sb-q-icon">✗</div>'
+                        f'<div class="sb-q-info">'
+                        f'<div class="sb-q-title">{_sqe_titulo}</div>'
+                        f'<div class="sb-q-meta">error</div>'
+                        f'</div>'
+                        f'<span class="sb-q-badge">ERR</span>'
+                        f'</div>'
+                    )
+
+            if _sq_pubs:
+                _sq_items_html += '<div class="q-section-label">📺 Publicados</div>'
+                for _sqpb in _sq_pubs[:3]:
+                    _sqpb_titulo = _html_escape(_sqpb.get("titulo", _sqpb.get("proyecto_id", "?")))
+                    if len(_sqpb_titulo) > 28:
+                        _sqpb_titulo = _sqpb_titulo[:28] + "…"
+                    _sqpb_vid = _sqpb.get("youtube_video_id", "")
+                    _sqpb_meta = _sqpb_vid if _sqpb_vid else "publicado"
+                    _sq_items_html += (
+                        f'<div class="sb-q-item q-item-pub">'
+                        f'<div class="sb-q-icon">📺</div>'
+                        f'<div class="sb-q-info">'
+                        f'<div class="sb-q-title">{_sqpb_titulo}</div>'
+                        f'<div class="sb-q-meta">{_html_escape(_sqpb_meta)}</div>'
+                        f'</div>'
+                        f'<span class="sb-q-badge">PUB</span>'
+                        f'</div>'
+                    )
+
+            if not _sq_items_html:
+                _sq_items_html = '<div class="q-empty">Sin proyectos todavía</div>'
+
+            st.markdown(f"""
+            <div class="sb-queue">
+              <div class="sb-queue-head">
+                <span class="sb-queue-title">📋 Cola</span>
+                <span class="sb-queue-buf {_sq_buf_cls}">{_sq_buf_actual}/{_sq_buf_max}</span>
+              </div>
+              {_sq_items_html}
+            </div>""", unsafe_allow_html=True)
+
+        # ── Eventos recientes (siempre visible) ──
+        st.divider()
+        _sb_eventos = _cached_eventos_recientes()
+
+        _EVENT_ICONS = {
+            "pipeline_started": "🚀", "pipeline_completed": "✅", "pipeline_failed": "❌",
+            "pipeline_phase": "📋", "agent_completed": "⚙️", "agent_failed": "💥",
+            "system_startup": "🔌", "health_check": "💓",
+        }
+        _EVENT_LABELS = {
+            "pipeline_started": "Pipeline iniciado",
+            "pipeline_completed": "Pipeline completado",
+            "pipeline_failed": "Pipeline falló",
+            "pipeline_phase": "Fase",
+            "agent_completed": "Agente OK",
+            "agent_failed": "Agente falló",
+            "system_startup": "Sistema iniciado",
+            "health_check": "Health check",
+        }
+
+        if _sb_eventos is None:
+            st.markdown("""
+            <div class="sb-events">
+              <div class="sb-events-head">
+                <span class="sb-events-title">📜 Eventos</span>
+              </div>
+              <div style="font-size:.7rem;color:var(--text4)">Sin conexión</div>
+            </div>""", unsafe_allow_html=True)
+        elif not _sb_eventos:
+            st.markdown("""
+            <div class="sb-events">
+              <div class="sb-events-head">
+                <span class="sb-events-title">📜 Eventos</span>
+                <span class="sb-events-count">0</span>
+              </div>
+              <div class="q-empty">Sin eventos registrados</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            _sbe_html = ""
+            for _ev in _sb_eventos[:10]:
+                _ev_type = _ev.get("event_type", "?")
+                _ev_status = _ev.get("status", "?")
+                _ev_ts = _ev.get("timestamp", "")
+                _ev_source = _ev.get("source", "")
+                _ev_pid = _ev.get("proyecto_id", "")
+                _ev_data = _ev.get("data") or {}
+                _ev_dur = _ev.get("duration_seg")
+
+                _ev_icon = _EVENT_ICONS.get(_ev_type, "📌")
+                _ev_cls = "ev-error" if _ev_status == "error" else "ev-success"
+
+                _ev_label = _EVENT_LABELS.get(_ev_type, _ev_type)
+                if _ev_type == "pipeline_phase" and isinstance(_ev_data, dict):
+                    _ev_label = f"Fase: {_ev_data.get('fase', '?')}"
+                elif _ev_type == "agent_completed":
+                    _ev_label = f"{_ev_source} OK"
+                elif _ev_type == "agent_failed":
+                    _ev_label = f"{_ev_source} falló"
+
+                _ev_time_short = _ev_ts[11:16] if len(_ev_ts) >= 16 else _ev_ts
+                _ev_dur_str = f" · {_ev_dur:.1f}s" if _ev_dur else ""
+                _ev_pid_str = f" · {_html_escape(_ev_pid[:12])}" if _ev_pid else ""
+
+                _sbe_html += (
+                    f'<div class="sb-ev {_ev_cls}">'
+                    f'<div class="sb-ev-icon">{_ev_icon}</div>'
+                    f'<div class="sb-ev-body">'
+                    f'<div class="sb-ev-msg">{_html_escape(_ev_label)}</div>'
+                    f'<div class="sb-ev-time">{_ev_time_short}{_ev_dur_str}{_ev_pid_str}</div>'
+                    f'</div></div>'
                 )
 
-        if _sq_pubs:
-            _sq_items_html += '<div class="q-section-label">📺 Publicados</div>'
-            for _sqpb in _sq_pubs[:3]:
-                _sqpb_titulo = _html_escape(_sqpb.get("titulo", _sqpb.get("proyecto_id", "?")))
-                if len(_sqpb_titulo) > 28:
-                    _sqpb_titulo = _sqpb_titulo[:28] + "…"
-                _sqpb_vid = _sqpb.get("youtube_video_id", "")
-                _sqpb_meta = _sqpb_vid if _sqpb_vid else "publicado"
-                _sq_items_html += (
-                    f'<div class="sb-q-item q-item-pub">'
-                    f'<div class="sb-q-icon">📺</div>'
-                    f'<div class="sb-q-info">'
-                    f'<div class="sb-q-title">{_sqpb_titulo}</div>'
-                    f'<div class="sb-q-meta">{_html_escape(_sqpb_meta)}</div>'
-                    f'</div>'
-                    f'<span class="sb-q-badge">PUB</span>'
-                    f'</div>'
+            st.markdown(f"""
+            <div class="sb-events">
+              <div class="sb-events-head">
+                <span class="sb-events-title">📜 Eventos</span>
+                <span class="sb-events-count">{len(_sb_eventos)}</span>
+              </div>
+              {_sbe_html}
+            </div>""", unsafe_allow_html=True)
+
+        # ── Scheduler (tareas programadas) ──
+        st.divider()
+        _sb_sched = _cached_scheduler()
+        _sb_pausa = _cached_pausa()
+
+        # Banner de pausa global
+        _sb_esta_pausado = _sb_pausa is not None and _sb_pausa.get("pausado", False)
+        if _sb_esta_pausado:
+            _sb_pausa_en = _sb_pausa.get("pausado_en", "")
+            _sb_pausa_razon = _sb_pausa.get("razon", "")
+            _sb_pausa_time = _sb_pausa_en[11:16] if _sb_pausa_en and len(_sb_pausa_en) >= 16 else ""
+            _sb_pausa_sub = f"Desde {_sb_pausa_time}" + (f" — {_html_escape(_sb_pausa_razon)}" if _sb_pausa_razon else "")
+            st.markdown(f"""
+            <div class="pause-banner">
+              <span class="pause-banner-icon">⏸️</span>
+              <div class="pause-banner-text">
+                <div class="pause-banner-title">AUTOMATIZACIÓN PAUSADA</div>
+                <div class="pause-banner-sub">{_sb_pausa_sub}</div>
+              </div>
+            </div>""", unsafe_allow_html=True)
+            if st.button("▶  Reanudar automatización", key="sb_resume_auto", use_container_width=True):
+                try:
+                    import api_client as _pause_api
+                    _pause_api.scheduler_reanudar()
+                    _cached_pausa.clear()
+                    _cached_scheduler.clear()
+                    st.rerun()
+                except Exception as _e:
+                    st.error(f"Error: {_e}")
+        elif _sb_pausa is not None:
+            if st.button("⏸  Pausar automatización", key="sb_pause_auto", use_container_width=True):
+                try:
+                    import api_client as _pause_api
+                    _pause_api.scheduler_pausar()
+                    _cached_pausa.clear()
+                    _cached_scheduler.clear()
+                    st.rerun()
+                except Exception as _e:
+                    st.error(f"Error: {_e}")
+
+        if _sb_sched is None:
+            st.markdown("""
+            <div class="sb-sched">
+              <div class="sb-sched-head">
+                <span class="sb-sched-title">🕐 Schedule</span>
+              </div>
+              <div style="font-size:.7rem;color:var(--text4)">Sin conexión</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            _sc_tareas = _sb_sched.get("tareas", [])
+            _sc_habilitadas = _sb_sched.get("habilitadas", 0)
+            _sc_proxima = _sb_sched.get("proxima_ejecucion")
+            _sc_proxima_nombre = _sb_sched.get("proxima_tarea", "")
+
+            _sc_next_html = ""
+            if _sc_proxima:
+                _sc_prox_hora = _sc_proxima[11:16] if len(_sc_proxima) >= 16 else _sc_proxima
+                _sc_next_html = (
+                    f'<div class="sb-sched-next">'
+                    f'<span class="sb-sched-next-icon">⏰</span>'
+                    f'<div class="sb-sched-next-info">'
+                    f'<div class="sb-sched-next-label">Próxima ejecución</div>'
+                    f'<div class="sb-sched-next-time">{_sc_prox_hora} — {_html_escape(_sc_proxima_nombre or "?")}</div>'
+                    f'</div></div>'
                 )
 
-        if not _sq_items_html:
-            _sq_items_html = '<div class="q-empty">Sin proyectos todavía</div>'
+            _sc_tasks_html = ""
+            for _sct in _sc_tareas:
+                _sct_hab = _sct.get("habilitado", False)
+                _sct_dot_color = "#1DB954" if _sct_hab else "#FF0000"
+                _sct_name = _html_escape(_sct.get("nombre", "?"))
+                _sct_freq = _html_escape(_sct.get("hora_legible", _sct.get("frecuencia", "?")))
+                _sct_last = _sct.get("ultima_ejecucion")
+                _sct_last_str = _sct_last[11:16] if _sct_last and len(_sct_last) >= 16 else "nunca"
+                _sct_status = _sct.get("ultimo_estado", "")
+                _sct_status_icon = "✓" if _sct_status == "success" else ("✗" if _sct_status == "error" else "—")
 
-        st.markdown(f"""
-        <div class="sb-queue">
-          <div class="sb-queue-head">
-            <span class="sb-queue-title">📋 Cola</span>
-            <span class="sb-queue-buf {_sq_buf_cls}">{_sq_buf_actual}/{_sq_buf_max}</span>
-          </div>
-          {_sq_items_html}
-        </div>""", unsafe_allow_html=True)
+                _sc_tasks_html += (
+                    f'<div class="sb-task">'
+                    f'<span class="sb-task-dot" style="background:{_sct_dot_color}"></span>'
+                    f'<div class="sb-task-info">'
+                    f'<div class="sb-task-name">{_sct_name}</div>'
+                    f'<div class="sb-task-meta">{_sct_freq} · último: {_sct_last_str} {_sct_status_icon}</div>'
+                    f'</div></div>'
+                )
 
-    # ── Eventos recientes (siempre visible) ──
-    st.divider()
-    _sb_eventos = _cached_eventos_recientes()
-
-    _EVENT_ICONS = {
-        "pipeline_started": "🚀", "pipeline_completed": "✅", "pipeline_failed": "❌",
-        "pipeline_phase": "📋", "agent_completed": "⚙️", "agent_failed": "💥",
-        "system_startup": "🔌", "health_check": "💓",
-    }
-    _EVENT_LABELS = {
-        "pipeline_started": "Pipeline iniciado",
-        "pipeline_completed": "Pipeline completado",
-        "pipeline_failed": "Pipeline falló",
-        "pipeline_phase": "Fase",
-        "agent_completed": "Agente OK",
-        "agent_failed": "Agente falló",
-        "system_startup": "Sistema iniciado",
-        "health_check": "Health check",
-    }
-
-    if _sb_eventos is None:
-        st.markdown("""
-        <div class="sb-events">
-          <div class="sb-events-head">
-            <span class="sb-events-title">📜 Eventos</span>
-          </div>
-          <div style="font-size:.7rem;color:var(--text4)">Sin conexión</div>
-        </div>""", unsafe_allow_html=True)
-    elif not _sb_eventos:
-        st.markdown("""
-        <div class="sb-events">
-          <div class="sb-events-head">
-            <span class="sb-events-title">📜 Eventos</span>
-            <span class="sb-events-count">0</span>
-          </div>
-          <div class="q-empty">Sin eventos registrados</div>
-        </div>""", unsafe_allow_html=True)
-    else:
-        _sbe_html = ""
-        for _ev in _sb_eventos[:10]:
-            _ev_type = _ev.get("event_type", "?")
-            _ev_status = _ev.get("status", "?")
-            _ev_ts = _ev.get("timestamp", "")
-            _ev_source = _ev.get("source", "")
-            _ev_pid = _ev.get("proyecto_id", "")
-            _ev_data = _ev.get("data") or {}
-            _ev_dur = _ev.get("duration_seg")
-
-            _ev_icon = _EVENT_ICONS.get(_ev_type, "📌")
-            _ev_cls = "ev-error" if _ev_status == "error" else "ev-success"
-
-            _ev_label = _EVENT_LABELS.get(_ev_type, _ev_type)
-            if _ev_type == "pipeline_phase" and isinstance(_ev_data, dict):
-                _ev_label = f"Fase: {_ev_data.get('fase', '?')}"
-            elif _ev_type == "agent_completed":
-                _ev_label = f"{_ev_source} OK"
-            elif _ev_type == "agent_failed":
-                _ev_label = f"{_ev_source} falló"
-
-            _ev_time_short = _ev_ts[11:16] if len(_ev_ts) >= 16 else _ev_ts
-            _ev_dur_str = f" · {_ev_dur:.1f}s" if _ev_dur else ""
-            _ev_pid_str = f" · {_html_escape(_ev_pid[:12])}" if _ev_pid else ""
-
-            _sbe_html += (
-                f'<div class="sb-ev {_ev_cls}">'
-                f'<div class="sb-ev-icon">{_ev_icon}</div>'
-                f'<div class="sb-ev-body">'
-                f'<div class="sb-ev-msg">{_html_escape(_ev_label)}</div>'
-                f'<div class="sb-ev-time">{_ev_time_short}{_ev_dur_str}{_ev_pid_str}</div>'
-                f'</div></div>'
-            )
-
-        st.markdown(f"""
-        <div class="sb-events">
-          <div class="sb-events-head">
-            <span class="sb-events-title">📜 Eventos</span>
-            <span class="sb-events-count">{len(_sb_eventos)}</span>
-          </div>
-          {_sbe_html}
-        </div>""", unsafe_allow_html=True)
-
-    # ── Scheduler (tareas programadas) ──
-    st.divider()
-    _sb_sched = _cached_scheduler()
-    _sb_pausa = _cached_pausa()
-
-    # Banner de pausa global
-    _sb_esta_pausado = _sb_pausa is not None and _sb_pausa.get("pausado", False)
-    if _sb_esta_pausado:
-        _sb_pausa_en = _sb_pausa.get("pausado_en", "")
-        _sb_pausa_razon = _sb_pausa.get("razon", "")
-        _sb_pausa_time = _sb_pausa_en[11:16] if _sb_pausa_en and len(_sb_pausa_en) >= 16 else ""
-        _sb_pausa_sub = f"Desde {_sb_pausa_time}" + (f" — {_html_escape(_sb_pausa_razon)}" if _sb_pausa_razon else "")
-        st.markdown(f"""
-        <div class="pause-banner">
-          <span class="pause-banner-icon">⏸️</span>
-          <div class="pause-banner-text">
-            <div class="pause-banner-title">AUTOMATIZACIÓN PAUSADA</div>
-            <div class="pause-banner-sub">{_sb_pausa_sub}</div>
-          </div>
-        </div>""", unsafe_allow_html=True)
-        if st.button("▶  Reanudar automatización", key="sb_resume_auto", use_container_width=True):
-            try:
-                import api_client as _pause_api
-                _pause_api.scheduler_reanudar()
-                _cached_pausa.clear()
-                _cached_scheduler.clear()
-                st.rerun()
-            except Exception as _e:
-                st.error(f"Error: {_e}")
-    elif _sb_pausa is not None:
-        if st.button("⏸  Pausar automatización", key="sb_pause_auto", use_container_width=True):
-            try:
-                import api_client as _pause_api
-                _pause_api.scheduler_pausar()
-                _cached_pausa.clear()
-                _cached_scheduler.clear()
-                st.rerun()
-            except Exception as _e:
-                st.error(f"Error: {_e}")
-
-    if _sb_sched is None:
-        st.markdown("""
-        <div class="sb-sched">
-          <div class="sb-sched-head">
-            <span class="sb-sched-title">🕐 Schedule</span>
-          </div>
-          <div style="font-size:.7rem;color:var(--text4)">Sin conexión</div>
-        </div>""", unsafe_allow_html=True)
-    else:
-        _sc_tareas = _sb_sched.get("tareas", [])
-        _sc_habilitadas = _sb_sched.get("habilitadas", 0)
-        _sc_proxima = _sb_sched.get("proxima_ejecucion")
-        _sc_proxima_nombre = _sb_sched.get("proxima_tarea", "")
-
-        _sc_next_html = ""
-        if _sc_proxima:
-            _sc_prox_hora = _sc_proxima[11:16] if len(_sc_proxima) >= 16 else _sc_proxima
-            _sc_next_html = (
-                f'<div class="sb-sched-next">'
-                f'<span class="sb-sched-next-icon">⏰</span>'
-                f'<div class="sb-sched-next-info">'
-                f'<div class="sb-sched-next-label">Próxima ejecución</div>'
-                f'<div class="sb-sched-next-time">{_sc_prox_hora} — {_html_escape(_sc_proxima_nombre or "?")}</div>'
-                f'</div></div>'
-            )
-
-        _sc_tasks_html = ""
-        for _sct in _sc_tareas:
-            _sct_hab = _sct.get("habilitado", False)
-            _sct_dot_color = "#1DB954" if _sct_hab else "#FF0000"
-            _sct_name = _html_escape(_sct.get("nombre", "?"))
-            _sct_freq = _html_escape(_sct.get("hora_legible", _sct.get("frecuencia", "?")))
-            _sct_last = _sct.get("ultima_ejecucion")
-            _sct_last_str = _sct_last[11:16] if _sct_last and len(_sct_last) >= 16 else "nunca"
-            _sct_status = _sct.get("ultimo_estado", "")
-            _sct_status_icon = "✓" if _sct_status == "success" else ("✗" if _sct_status == "error" else "—")
-
-            _sc_tasks_html += (
-                f'<div class="sb-task">'
-                f'<span class="sb-task-dot" style="background:{_sct_dot_color}"></span>'
-                f'<div class="sb-task-info">'
-                f'<div class="sb-task-name">{_sct_name}</div>'
-                f'<div class="sb-task-meta">{_sct_freq} · último: {_sct_last_str} {_sct_status_icon}</div>'
-                f'</div></div>'
-            )
-
-        st.markdown(f"""
-        <div class="sb-sched">
-          <div class="sb-sched-head">
-            <span class="sb-sched-title">🕐 Schedule</span>
-            <span class="sb-sched-count">{_sc_habilitadas} activas</span>
-          </div>
-          {_sc_next_html}
-          {_sc_tasks_html}
-        </div>""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="sb-sched">
+              <div class="sb-sched-head">
+                <span class="sb-sched-title">🕐 Schedule</span>
+                <span class="sb-sched-count">{_sc_habilitadas} activas</span>
+              </div>
+              {_sc_next_html}
+              {_sc_tasks_html}
+            </div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════
 # MAIN CONTENT
@@ -1401,7 +1464,9 @@ with st.sidebar:
 
 # ── Header ────────────────────────────────────────────────────
 keys_ok = bool(GROQ_KEY and KAGGLE_KEY and KAGGLE_USER)
-_hdr_health = _cached_health_servicios()
+if s.pop('_health_check_pendiente', False):
+    s['_last_health'] = _cached_health_servicios()
+_hdr_health = s.get('_last_health')
 
 if _hdr_health:
     _hdr_score = _hdr_health.get("score", 0)
@@ -1445,6 +1510,275 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ── API check (antes de vistas) ──────────────────────────────
+try:
+    import api_client
+    API_DISPONIBLE = api_client.health()
+except Exception:
+    API_DISPONIBLE = False
+
+# ══════════════════════════════════════════════════════════════
+# VIEW: HOME — Selector de canales
+# ══════════════════════════════════════════════════════════════
+if s['vista_actual'] not in ('home', 'channel_dashboard', 'workspace'):
+    s['vista_actual'] = 'home'
+
+if s['vista_actual'] == 'home':
+    st.markdown('<div style="padding:28px 32px 0 80px">', unsafe_allow_html=True)
+    st.markdown('<div class="home-title">Tus Canales</div>', unsafe_allow_html=True)
+    st.markdown('<div class="home-sub">Selecciona un canal para ver su inteligencia y crear videos, o conecta uno nuevo.</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if not API_DISPONIBLE:
+        st.warning("Los agentes no están conectados. Levanta los servicios con `python run_dev.py`.")
+    else:
+        try:
+            canales_home = api_client.listar_canales()
+        except Exception:
+            canales_home = []
+
+        n_canales = len(canales_home)
+        cols_per_row = 3
+        total_slots = n_canales + 1
+
+        for row_start in range(0, total_slots, cols_per_row):
+            cols = st.columns(cols_per_row, gap="medium")
+            for col_idx in range(cols_per_row):
+                item_idx = row_start + col_idx
+                if item_idx >= total_slots:
+                    break
+                with cols[col_idx]:
+                    if item_idx < n_canales:
+                        c = canales_home[item_idx]
+                        c_nombre = c.get("nombre", "Sin nombre")
+                        c_subs = c.get("suscriptores")
+                        c_subs_txt = f"{c_subs:,} subs" if c_subs else "— subs"
+                        c_nicho = c.get("nicho", "")
+                        c_thumb = c.get("miniatura_url", "")
+                        c_id = c.get("canal_id", "")
+
+                        if c_thumb:
+                            thumb_html = f'<img class="ch-card-thumb" src="{c_thumb}" />'
+                        else:
+                            letra = c_nombre[0].upper() if c_nombre else "?"
+                            thumb_html = f'<div class="ch-card-thumb-placeholder">{letra}</div>'
+
+                        nicho_html = f'<div class="ch-card-niche">{c_nicho}</div>' if c_nicho else ''
+
+                        st.markdown(f"""<div class="ch-card">
+                          {thumb_html}
+                          <div class="ch-card-name">{c_nombre}</div>
+                          <div class="ch-card-stats">{c_subs_txt}</div>
+                          {nicho_html}
+                        </div>""", unsafe_allow_html=True)
+                        if st.button("Abrir canal", key=f"open_ch_{c_id}", use_container_width=True):
+                            _navegar_a('channel_dashboard', c_id, c_nombre)
+                            st.rerun()
+                    else:
+                        st.markdown("""<div class="ch-card-add">
+                          <div class="ch-card-add-icon">+</div>
+                          <div class="ch-card-add-text">Agregar canal</div>
+                        </div>""", unsafe_allow_html=True)
+                        canal_input_home = st.text_input(
+                            "URL, @handle o Channel ID",
+                            placeholder="ej: @MiCanal",
+                            key="canal_input_home",
+                            label_visibility="collapsed",
+                        )
+                        if st.button("🔗  Conectar y escanear", key="btn_conectar_home", use_container_width=True):
+                            if canal_input_home.strip():
+                                with st.spinner("Escaneando canal... (30-60 segundos)"):
+                                    try:
+                                        resultado = api_client.conectar_canal(canal_input_home.strip())
+                                        canal_id_nuevo = resultado.get("canal_id", "")
+                                        st.success(f"✅  Canal conectado: **{resultado.get('nombre', canal_id_nuevo)}**")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌  Error: {str(e)}")
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════
+# VIEW: CHANNEL DASHBOARD — Inteligencia del canal
+# ══════════════════════════════════════════════════════════════
+if s['vista_actual'] == 'channel_dashboard':
+    if not s.get('canal_activo_id'):
+        _navegar_a('home')
+        st.rerun()
+
+    st.markdown(f"""<div class="breadcrumb">
+      <span class="bc-link">🏠 Home</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-current">{s.get('canal_activo_nombre', '')}</span>
+    </div>""", unsafe_allow_html=True)
+
+    col_back, col_workspace = st.columns([1, 1])
+    with col_back:
+        if st.button("← Volver al Home", key="btn_back_home", use_container_width=True):
+            _navegar_a('home')
+            st.rerun()
+    with col_workspace:
+        if st.button("🎬  Entrar al Workspace →", key="btn_enter_workspace", use_container_width=True):
+            _navegar_a('workspace', s['canal_activo_id'], s.get('canal_activo_nombre'))
+            st.rerun()
+
+    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+
+    if not API_DISPONIBLE:
+        st.warning("Los agentes no están conectados.")
+    else:
+        canal_sel = s['canal_activo_id']
+
+        col_refresh_d, _ = st.columns([1, 3])
+        with col_refresh_d:
+            if st.button("🔄  Refrescar datos", key="btn_refresh_dashboard", use_container_width=True):
+                with st.spinner("Refrescando..."):
+                    try:
+                        api_client.refrescar_canal(canal_sel)
+                        st.success("✅  Datos actualizados")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+
+        try:
+            canal_data = api_client.estado_canal(canal_sel)
+        except Exception as e:
+            canal_data = None
+            st.error(f"Error al cargar canal: {str(e)}")
+
+        if canal_data:
+            st.markdown('<div class="section-label" style="margin-top:8px">Dashboard</div>', unsafe_allow_html=True)
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Suscriptores", f"{canal_data.get('suscriptores', 0):,}")
+            m2.metric("Videos", f"{canal_data.get('video_count', 0):,}")
+            m3.metric("Vistas totales", f"{canal_data.get('vistas_totales', 0):,}")
+            perfil = canal_data.get("perfil", {})
+            m4.metric("Nicho", perfil.get("nicho_principal", "Sin analizar"))
+
+            if perfil.get("nicho_principal"):
+                with st.expander("🧠  Perfil analizado por IA", expanded=True):
+                    col_p1, col_p2 = st.columns(2)
+                    with col_p1:
+                        st.markdown(f"**Nicho:** {perfil.get('nicho_principal', '-')}")
+                        st.markdown(f"**Sub-nichos:** {', '.join(perfil.get('sub_nichos', []))}")
+                        st.markdown(f"**Tono:** {perfil.get('tono', '-')}")
+                        st.markdown(f"**Audiencia:** {perfil.get('audiencia_objetivo', '-')}")
+                        st.markdown(f"**Frecuencia:** {perfil.get('frecuencia_publicacion', '-')}")
+                    with col_p2:
+                        st.markdown(f"**Keywords:** {', '.join(perfil.get('keywords_clave', []))}")
+                        st.markdown(f"**Estilo visual:** {perfil.get('estilo_visual', '-')}")
+                        st.markdown(f"**Formatos exitosos:** {', '.join(perfil.get('formatos_exitosos', []))}")
+                        if perfil.get("patrones_titulo_exitosos"):
+                            st.markdown("**Patrones de título:**")
+                            for p in perfil["patrones_titulo_exitosos"]:
+                                st.markdown(f"  - {p}")
+
+            top_videos = canal_data.get("top_videos", [])
+            if top_videos:
+                with st.expander(f"🏆  Top {len(top_videos)} videos por vistas"):
+                    for i, v in enumerate(top_videos, 1):
+                        vistas = f"{v.get('vistas', 0):,}"
+                        likes = f"{v.get('likes', 0):,}"
+                        st.markdown(f"**{i}.** {v.get('titulo', '-')} — {vistas} vistas · {likes} likes")
+
+            competidores = canal_data.get("competidores", [])
+            with st.expander(f"⚔️  Competidores ({len(competidores)})", expanded=False):
+                if competidores:
+                    for comp in competidores:
+                        subs = f"{comp.get('suscriptores', 0):,}" if comp.get('suscriptores') else '?'
+                        st.markdown(f"**{comp.get('nombre', '?')}** — {subs} subs")
+                        tops = comp.get("top_videos", [])
+                        if tops:
+                            for tv in tops[:3]:
+                                st.markdown(f"  - {tv.get('titulo', '-')} ({tv.get('vistas', 0):,} vistas)")
+
+                col_comp1, col_comp2 = st.columns([3, 1])
+                with col_comp1:
+                    comp_input = st.text_input("Agregar competidor (@handle o URL)", key="comp_input_dash")
+                with col_comp2:
+                    st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
+                    if st.button("➕  Agregar", key="btn_add_comp_dash", use_container_width=True):
+                        if comp_input.strip():
+                            with st.spinner("Escaneando competidor..."):
+                                try:
+                                    result = api_client.agregar_competidor(canal_sel, comp_input.strip())
+                                    st.success(f"✅  Competidor agregado: {result.get('nombre', '')}")
+                                except Exception as e:
+                                    st.error(f"Error: {str(e)}")
+
+            tendencias = canal_data.get("tendencias_nicho", [])
+            brechas = canal_data.get("brechas_contenido", [])
+            if tendencias or brechas:
+                with st.expander("📈  Tendencias y brechas de contenido", expanded=False):
+                    if tendencias:
+                        st.markdown("**Tendencias del nicho:**")
+                        for t in tendencias:
+                            st.markdown(f"  - {t}")
+                    if brechas:
+                        st.markdown("**Brechas de contenido (oportunidades):**")
+                        for b in brechas:
+                            st.markdown(f"  - {b}")
+
+            ideas = canal_data.get("ideas_sugeridas", [])
+            with st.expander(f"💡  Ideas de video sugeridas ({len(ideas)})", expanded=bool(ideas)):
+                col_ideas_r, _ = st.columns([1, 3])
+                with col_ideas_r:
+                    if st.button("🔄  Re-generar ideas", key="btn_refresh_ideas_dash", use_container_width=True):
+                        with st.spinner("Generando ideas..."):
+                            try:
+                                ideas = api_client.refrescar_ideas(canal_sel)
+                                st.success("✅  Ideas actualizadas")
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
+
+                if ideas:
+                    for i, idea in enumerate(ideas, 1):
+                        score = idea.get("potencial_viral", 0)
+                        st.markdown(f"""**{i}. {idea.get('titulo_sugerido', '-')}**
+  - Potencial viral: **{score}/10** · Formato: {idea.get('formato_recomendado', '-')} · ~{idea.get('duracion_sugerida_min', '?')} min
+  - {idea.get('razon', '')}""")
+                        if st.button(f"🚀  Usar esta idea", key=f"btn_idea_dash_{i}"):
+                            s["nicho"] = perfil.get("nicho_principal", "")
+                            s["titulo_elegido"] = idea.get("titulo_sugerido", "")
+                            _navegar_a('workspace', canal_sel, s.get('canal_activo_nombre'))
+                            st.rerun()
+                else:
+                    st.info("Conecta un canal y espera el análisis para ver ideas de video.")
+
+            try:
+                quota = api_client.quota_hoy()
+                usadas = quota.get("unidades_usadas", 0)
+                limite = quota.get("limite", 10000)
+                pct = round(usadas / limite * 100, 1) if limite else 0
+                st.markdown(f'<div style="font-size:.75rem;color:var(--text3);margin-top:12px">📊 Quota YouTube API: {usadas:,} / {limite:,} unidades ({pct}%)</div>', unsafe_allow_html=True)
+            except Exception:
+                pass
+
+    st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+    if st.button("🎬  Crear video para este canal →", key="btn_workspace_bottom", use_container_width=True):
+        _navegar_a('workspace', s['canal_activo_id'], s.get('canal_activo_nombre'))
+        st.rerun()
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════
+# VIEW: WORKSPACE — Producción de video
+# ══════════════════════════════════════════════════════════════
+if not s.get('canal_activo_id'):
+    _navegar_a('home')
+    st.rerun()
+
+st.markdown(f"""<div class="breadcrumb">
+  <span class="bc-link">🏠 Home</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-link">{s.get('canal_activo_nombre', '')}</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-current">Workspace</span>
+</div>""", unsafe_allow_html=True)
+
+col_back_w, _ = st.columns([1, 5])
+with col_back_w:
+    if st.button("← Volver al Canal", key="btn_back_channel", use_container_width=True):
+        _navegar_a('channel_dashboard', s['canal_activo_id'], s.get('canal_activo_nombre'))
+        st.rerun()
+
 # ── Pipeline bar ──────────────────────────────────────────────
 pip_steps = [
     ("1","Guión",    bool(s['guion_aprobado'])),
@@ -1470,13 +1804,6 @@ nombre_proyecto = c_np.text_input(
 s['nombre_proyecto'] = nombre_proyecto
 pdir = Path(f"proyectos/{nombre_proyecto}")
 pdir.mkdir(parents=True, exist_ok=True)
-
-# ── API check ────────────────────────────────────────────────
-try:
-    import api_client
-    API_DISPONIBLE = api_client.health()
-except Exception:
-    API_DISPONIBLE = False
 
 if _hdr_health and API_DISPONIBLE:
     _pb_puede = _hdr_health.get("puede_pipeline", False)
@@ -1561,12 +1888,12 @@ if API_DISPONIBLE:
 st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
 
 # ── Tabs ─────────────────────────────────────────────────────
-tab0, tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Canal", "📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar", "📡 Monitor"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar", "📡 Monitor"])
 
 # ══════════════════════════════════════════════════════════════
-# TAB 0 — CANAL (Channel Intelligence)
+# TAB 0 — CANAL (Channel Intelligence) → MOVIDO A CHANNEL DASHBOARD
 # ══════════════════════════════════════════════════════════════
-with tab0:
+if False:  # tab0 content moved to channel_dashboard view above
     st.markdown('<div class="step-title">Channel Intelligence</div>', unsafe_allow_html=True)
     st.markdown('<div class="step-sub">Conecta tu canal de YouTube para analizar tu nicho, competidores y generar ideas de video basadas en datos reales.</div>', unsafe_allow_html=True)
 
@@ -1862,30 +2189,13 @@ with tab1:
     st.markdown('<div class="step-title">Guión — Modo Pro</div>', unsafe_allow_html=True)
     st.markdown('<div class="step-sub">Sistema de 3 fases: análisis del nicho con videos virales → ingeniería de títulos → guión con estructura viral probada.</div>', unsafe_allow_html=True)
 
-    # ── Selector de canal (si hay canales conectados) ──
-    if API_DISPONIBLE:
-        try:
-            canales_guion = api_client.listar_canales()
-        except Exception:
-            canales_guion = []
-        if canales_guion:
-            opciones_g = {"": "— Sin canal (modo libre) —"}
-            opciones_g.update({c["canal_id"]: f"📊 {c['nombre']} ({c.get('nicho', 'sin nicho')})" for c in canales_guion})
-            canal_guion = st.selectbox(
-                "Canal", options=list(opciones_g.keys()),
-                format_func=lambda x: opciones_g.get(x, x),
-                index=list(opciones_g.keys()).index(s.get("canal_id_pipeline", "")) if s.get("canal_id_pipeline", "") in opciones_g else 0,
-                key="canal_guion_sel",
-            )
-            if canal_guion:
-                s["canal_id_pipeline"] = canal_guion
-                try:
-                    canal_info = api_client.estado_canal(canal_guion)
-                    nicho_canal = canal_info.get("perfil", {}).get("nicho_principal", "")
-                    if nicho_canal and not s.get("nicho"):
-                        s["nicho"] = nicho_canal
-                except Exception:
-                    pass
+    # Canal activo mostrado como badge
+    if s.get('canal_activo_nombre'):
+        st.markdown(f"""<div style="background:var(--blue-dim);border:1px solid rgba(62,166,255,.2);
+border-radius:8px;padding:8px 14px;margin-bottom:12px;display:inline-flex;align-items:center;gap:8px">
+<span style="font-size:.75rem;color:var(--blue)">📊 Canal:</span>
+<span style="font-size:.85rem;font-weight:700;color:var(--text)">{s['canal_activo_nombre']}</span>
+</div>""", unsafe_allow_html=True)
 
     # Barra de fases
     fase_actual = 1

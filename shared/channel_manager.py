@@ -45,7 +45,14 @@ class ChannelManager:
         json_path = self._json_path(canal_id)
         if json_path.exists():
             return self.leer(canal_id)
-        estado = EstadoCanal(canal_id=canal_id, nombre=nombre)
+        orden = self._proximo_orden()
+        gpu_provider = self._asignar_gpu_provider(orden)
+        estado = EstadoCanal(
+            canal_id=canal_id,
+            nombre=nombre,
+            orden=orden,
+            gpu_provider=gpu_provider,
+        )
         self._escribir(estado)
         return estado
 
@@ -103,10 +110,50 @@ class ChannelManager:
                     "video_count": data.get("video_count"),
                     "escaneado_en": data.get("escaneado_en"),
                     "nicho": data.get("perfil", {}).get("nicho_principal", ""),
+                    "orden": data.get("orden"),
+                    "gpu_provider": data.get("gpu_provider"),
+                    "miniatura_url": data.get("miniatura_url"),
+                    "vistas_totales": data.get("vistas_totales"),
                 })
             except (json.JSONDecodeError, Exception):
                 continue
         return canales
+
+    def _proximo_orden(self) -> int:
+        max_orden = 0
+        for path in self.channels_dir.glob("*.json"):
+            if path.name.startswith("_") or ".bak." in path.name or ".tmp." in path.name:
+                continue
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                orden = data.get("orden", 0)
+                if orden > max_orden:
+                    max_orden = orden
+            except (json.JSONDecodeError, Exception):
+                continue
+        return max_orden + 1
+
+    def _asignar_gpu_provider(self, orden: int) -> str:
+        from .gpu_provider import proveedores_disponibles
+
+        disponibles = proveedores_disponibles()
+
+        if disponibles.get("kaggle") and not disponibles.get("modal") and not disponibles.get("beam"):
+            return "kaggle"
+
+        if disponibles.get("modal") and disponibles.get("beam"):
+            return "modal" if orden % 2 == 1 else "beam"
+
+        if disponibles.get("modal"):
+            return "modal"
+
+        if disponibles.get("beam"):
+            return "beam"
+
+        if disponibles.get("kaggle"):
+            return "kaggle"
+
+        return "kaggle"
 
     def canal_necesita_refresco(self, canal_id: str, max_horas: int = 24) -> bool:
         try:

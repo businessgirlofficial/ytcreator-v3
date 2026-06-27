@@ -240,6 +240,8 @@ class PromediosCanal(BaseModel):
 class EstadoCanal(BaseModel):
     canal_id: str
     nombre: str
+    orden: Optional[int] = None
+    gpu_provider: Optional[str] = None
     descripcion: Optional[str] = None
     url: Optional[str] = None
     suscriptores: Optional[int] = None
