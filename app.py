@@ -1667,6 +1667,7 @@ if s['vista_actual'] == 'channel_dashboard':
                     col_p1, col_p2 = st.columns(2)
                     with col_p1:
                         st.markdown(f"**Nicho:** {perfil.get('nicho_principal', '-')}")
+                        st.markdown(f"**Subnicho:** {perfil.get('subnicho_principal', '-')}")
                         st.markdown(f"**Sub-nichos:** {', '.join(perfil.get('sub_nichos', []))}")
                         st.markdown(f"**Tono:** {perfil.get('tono', '-')}")
                         st.markdown(f"**Audiencia:** {perfil.get('audiencia_objetivo', '-')}")
@@ -1693,7 +1694,9 @@ if s['vista_actual'] == 'channel_dashboard':
                 if competidores:
                     for comp in competidores:
                         subs = f"{comp.get('suscriptores', 0):,}" if comp.get('suscriptores') else '?'
-                        st.markdown(f"**{comp.get('nombre', '?')}** — {subs} subs")
+                        vcount = comp.get('video_count')
+                        vcount_txt = f", {vcount} videos" if vcount else ""
+                        st.markdown(f"**{comp.get('nombre', '?')}** — {subs} subs{vcount_txt}")
                         tops = comp.get("top_videos", [])
                         if tops:
                             for tv in tops[:3]:
@@ -1986,6 +1989,7 @@ if False:  # tab0 content moved to channel_dashboard view above
                             col_p1, col_p2 = st.columns(2)
                             with col_p1:
                                 st.markdown(f"**Nicho:** {perfil.get('nicho_principal', '-')}")
+                                st.markdown(f"**Subnicho:** {perfil.get('subnicho_principal', '-')}")
                                 st.markdown(f"**Sub-nichos:** {', '.join(perfil.get('sub_nichos', []))}")
                                 st.markdown(f"**Tono:** {perfil.get('tono', '-')}")
                                 st.markdown(f"**Audiencia:** {perfil.get('audiencia_objetivo', '-')}")
@@ -2121,7 +2125,9 @@ if False:  # tab0 content moved to channel_dashboard view above
                         if competidores:
                             for comp in competidores:
                                 subs = f"{comp.get('suscriptores', 0):,}" if comp.get('suscriptores') else '?'
-                                st.markdown(f"**{comp.get('nombre', '?')}** — {subs} subs")
+                                vcount = comp.get('video_count')
+                                vcount_txt = f", {vcount} videos" if vcount else ""
+                                st.markdown(f"**{comp.get('nombre', '?')}** — {subs} subs{vcount_txt}")
                                 tops = comp.get("top_videos", [])
                                 if tops:
                                     for tv in tops[:3]:

@@ -194,6 +194,7 @@ class CompetidorInfo(BaseModel):
     nombre: str
     suscriptores: Optional[int] = None
     video_count: Optional[int] = None
+    creado_youtube: Optional[datetime] = None
     ultimo_escaneo: Optional[datetime] = None
     videos_recientes: list[VideoRendimiento] = Field(default_factory=list)
     top_videos: list[VideoRendimiento] = Field(default_factory=list)
@@ -201,6 +202,7 @@ class CompetidorInfo(BaseModel):
 
 class PerfilCanal(BaseModel):
     nicho_principal: str = ""
+    subnicho_principal: str = ""
     sub_nichos: list[str] = Field(default_factory=list)
     keywords_clave: list[str] = Field(default_factory=list)
     tono: Optional[str] = None
@@ -269,6 +271,7 @@ class EstadoCanal(BaseModel):
     tendencias_nicho: list[str] = Field(default_factory=list)
     brechas_contenido: list[str] = Field(default_factory=list)
     ideas_sugeridas: list[dict] = Field(default_factory=list)
+    ideas_historial: list[dict] = Field(default_factory=list)
 
     promedios_canal: PromediosCanal = Field(default_factory=PromediosCanal)
     performance_historial: list[dict] = Field(default_factory=list)

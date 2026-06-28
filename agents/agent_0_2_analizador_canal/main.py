@@ -37,6 +37,7 @@ un canal (estadisticas, titulos de videos, descripcion) y extraes un perfil estr
 SIEMPRE respondes en JSON valido con este formato exacto:
 {
   "nicho_principal": "el nicho central del canal en 2-4 palabras",
+  "subnicho_principal": "el subnicho MAS ESPECIFICO del canal (ej: NO 'espiritualidad' sino 'meditaciones guiadas para dormir', NO 'fitness' sino 'rutinas HIIT para mujeres en casa'). Debe describir el angulo concreto que diferencia este canal y apunta a un grupo especifico de personas",
   "sub_nichos": ["subnicho 1", "subnicho 2"],
   "keywords_clave": ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"],
   "tono": "descripcion del tono del canal (ej: educativo serio, entretenimiento rapido, conversacional cercano)",
@@ -46,6 +47,12 @@ SIEMPRE respondes en JSON valido con este formato exacto:
   "patrones_titulo_exitosos": ["patron 1 concreto (ej: 'numero + palabra de shock')", "patron 2"],
   "frecuencia_recomendada": "frecuencia de publicacion recomendada basada en los datos"
 }
+
+IMPORTANTE sobre el subnicho_principal:
+- El nicho es la categoria amplia (ej: espiritualidad, fitness, finanzas).
+- El subnicho_principal es el ENFOQUE ESPECIFICO que hace unico al canal.
+- Debe ser lo suficientemente concreto para buscar competidores directos.
+- Piensa: ¿a que grupo MUY especifico de personas le habla este canal?
 
 Basa tu analisis SOLO en los datos proporcionados. Se concreto y accionable."""
 
@@ -137,6 +144,7 @@ Analiza este canal y genera su perfil estrategico."""
 
     perfil_data = {
         "nicho_principal": resultado.get("nicho_principal", ""),
+        "subnicho_principal": resultado.get("subnicho_principal", ""),
         "sub_nichos": resultado.get("sub_nichos", []),
         "keywords_clave": resultado.get("keywords_clave", []),
         "tono": resultado.get("tono"),

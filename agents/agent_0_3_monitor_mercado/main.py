@@ -44,6 +44,7 @@ app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Monitorea competencia y 
 channels = ChannelManager()
 
 MAX_COMPETIDORES = 5
+MAX_CANDIDATOS_DISCOVERY = 20
 REFRESCO_COMPETIDORES_HORAS = 48
 
 SYSTEM_PROMPT = """Eres un analista de mercado de YouTube especializado en detectar
@@ -61,6 +62,17 @@ SIEMPRE respondes en JSON valido con este formato exacto:
 Se concreto. Basa todo en los DATOS proporcionados, no en consejos genericos."""
 
 
+def _parsear_fecha(valor) -> datetime | None:
+    if not valor:
+        return None
+    if isinstance(valor, datetime):
+        return valor
+    try:
+        return datetime.fromisoformat(str(valor).replace("Z", "+00:00")).replace(tzinfo=None)
+    except (ValueError, TypeError):
+        return None
+
+
 def _escanear_competidor(channel_id: str) -> CompetidorInfo:
     canal_data = obtener_canal(channel_id)
     comp = CompetidorInfo(
@@ -68,6 +80,7 @@ def _escanear_competidor(channel_id: str) -> CompetidorInfo:
         nombre=canal_data["nombre"],
         suscriptores=canal_data.get("suscriptores"),
         video_count=canal_data.get("video_count"),
+        creado_youtube=_parsear_fecha(canal_data.get("creado_youtube")),
         ultimo_escaneo=datetime.utcnow(),
     )
 
@@ -95,10 +108,75 @@ def _escanear_competidor(channel_id: str) -> CompetidorInfo:
     return comp
 
 
-def _discovery_automatico(nicho: str, keywords: list[str], canal_propio_id: str) -> list[dict]:
-    query = f"{nicho} youtube {' '.join(keywords[:3])}"
-    resultados = buscar_canales_relacionados(query, max_resultados=MAX_COMPETIDORES + 2)
-    return [r for r in resultados if r["channel_id"] != canal_propio_id][:MAX_COMPETIDORES]
+def _cumple_criterios_ganador(comp: CompetidorInfo) -> int:
+    """
+    Evalua cuantos criterios de 'canal ganador' cumple (0-4).
+    Criterios del curso Tu Imperio YouTube:
+      - Menos de 90 videos
+      - Menos de 100,000 suscriptores
+      - Menos de 90 dias de creado
+      - Vistas promedio entre 10,000 y 100,000
+    """
+    score = 0
+    if comp.video_count is not None and comp.video_count < 90:
+        score += 1
+    if comp.suscriptores is not None and comp.suscriptores < 100_000:
+        score += 1
+    if comp.creado_youtube is not None:
+        dias = (datetime.utcnow() - comp.creado_youtube).days
+        if dias < 90:
+            score += 1
+    if comp.videos_recientes:
+        vistas = [v.vistas for v in comp.videos_recientes if v.vistas > 0]
+        if vistas:
+            promedio = sum(vistas) / len(vistas)
+            if 10_000 <= promedio <= 100_000:
+                score += 1
+    return score
+
+
+def _discovery_automatico(
+    nicho: str,
+    subnicho: str,
+    keywords: list[str],
+    canal_propio_id: str,
+) -> list[CompetidorInfo]:
+    queries = []
+    if subnicho:
+        queries.append(f"{subnicho} youtube")
+    queries.append(f"{nicho} youtube {' '.join(keywords[:3])}")
+    if subnicho and keywords:
+        queries.append(f"{subnicho} {keywords[0]} youtube")
+
+    candidatos_ids: set[str] = set()
+    candidatos_raw: list[dict] = []
+
+    for query in queries:
+        try:
+            resultados = buscar_canales_relacionados(query, max_resultados=10)
+        except Exception:
+            continue
+        for r in resultados:
+            cid = r["channel_id"]
+            if cid != canal_propio_id and cid not in candidatos_ids:
+                candidatos_ids.add(cid)
+                candidatos_raw.append(r)
+        if len(candidatos_raw) >= MAX_CANDIDATOS_DISCOVERY:
+            break
+
+    candidatos_escaneados: list[CompetidorInfo] = []
+    for raw in candidatos_raw[:MAX_CANDIDATOS_DISCOVERY]:
+        try:
+            comp = _escanear_competidor(raw["channel_id"])
+            candidatos_escaneados.append(comp)
+        except Exception:
+            pass
+
+    candidatos_escaneados.sort(
+        key=lambda c: _cumple_criterios_ganador(c), reverse=True,
+    )
+
+    return candidatos_escaneados[:MAX_COMPETIDORES]
 
 
 def _busqueda_web_tendencias(nicho: str) -> str:
@@ -127,16 +205,15 @@ def logica(request: AgenteRequest) -> dict:
     if necesita_discovery and perfil.nicho_principal:
         descubiertos = _discovery_automatico(
             perfil.nicho_principal,
+            perfil.subnicho_principal,
             perfil.keywords_clave,
             canal_id,
         )
-        for desc in descubiertos:
-            ya_existe = any(c.channel_id == desc["channel_id"] for c in competidores_actuales)
-            if not ya_existe and len(competidores_actuales) < MAX_COMPETIDORES:
-                competidores_actuales.append(CompetidorInfo(
-                    channel_id=desc["channel_id"],
-                    nombre=desc["nombre"],
-                ))
+        ids_existentes = {c.channel_id for c in competidores_actuales}
+        for comp in descubiertos:
+            if comp.channel_id not in ids_existentes and len(competidores_actuales) < MAX_COMPETIDORES:
+                competidores_actuales.append(comp)
+                ids_existentes.add(comp.channel_id)
 
     competidores_actualizados = []
     for comp in competidores_actuales:
@@ -154,18 +231,26 @@ def logica(request: AgenteRequest) -> dict:
     canal_titulos = [v.titulo for v in estado.videos_recientes[:15]]
     comp_resumen = []
     for comp in competidores_actualizados:
+        score = _cumple_criterios_ganador(comp)
         top_titles = [v.titulo for v in comp.top_videos[:5]]
         recent_titles = [v.titulo for v in comp.videos_recientes[:10]]
+        dias_creado = ""
+        if comp.creado_youtube:
+            dias_creado = f", {(datetime.utcnow() - comp.creado_youtube).days} dias de antiguedad"
         comp_resumen.append(
-            f"Competidor: {comp.nombre} ({comp.suscriptores or '?'} subs)\n"
+            f"Competidor: {comp.nombre} ({comp.suscriptores or '?'} subs, "
+            f"{comp.video_count or '?'} videos{dias_creado}) "
+            f"[Score canal ganador: {score}/4]\n"
             f"  Top videos: {', '.join(top_titles) if top_titles else 'N/A'}\n"
             f"  Recientes: {', '.join(recent_titles) if recent_titles else 'N/A'}"
         )
 
-    tendencias_web = _busqueda_web_tendencias(perfil.nicho_principal or canal_id)
+    busqueda_nicho = perfil.subnicho_principal or perfil.nicho_principal or canal_id
+    tendencias_web = _busqueda_web_tendencias(busqueda_nicho)
 
     user_prompt = f"""Canal analizado: {estado.nombre}
 Nicho: {perfil.nicho_principal or 'sin determinar'}
+Subnicho: {perfil.subnicho_principal or 'sin determinar'}
 Keywords: {', '.join(perfil.keywords_clave) if perfil.keywords_clave else 'N/A'}
 
 Titulos recientes del canal:

@@ -54,7 +54,10 @@ SIEMPRE respondes en JSON valido con este formato exacto:
 Genera entre 5 y 10 ideas, ordenadas por potencial_viral (mayor a menor).
 El potencial_viral es un score de 1.0 a 10.0.
 Basa todo en los DATOS proporcionados. Las ideas deben explotar brechas
-de contenido y tendencias detectadas."""
+de contenido y tendencias detectadas.
+
+IMPORTANTE: Si se te proporcionan ideas anteriores, NO las repitas.
+Genera ideas NUEVAS y diferentes que complementen las anteriores."""
 
 
 def logica(request: AgenteRequest) -> dict:
@@ -98,9 +101,16 @@ def logica(request: AgenteRequest) -> dict:
             f"Videos analizados: {promedios.total_videos_analizados}"
         )
 
+    ideas_previas = estado.ideas_historial[-15:] if estado.ideas_historial else []
+    ideas_previas_texto = ""
+    if ideas_previas:
+        titulos_previos = [i.get("titulo_sugerido", "?") for i in ideas_previas]
+        ideas_previas_texto = "\n".join(f"- {t}" for t in titulos_previos)
+
     user_prompt = f"""Canal: {estado.nombre}
 Nicho: {perfil.nicho_principal or 'sin determinar'}
-Sub-nichos: {', '.join(perfil.sub_nichos) if perfil.sub_nichos else 'N/A'}
+Subnicho principal: {perfil.subnicho_principal or 'sin determinar'}
+Sub-nichos secundarios: {', '.join(perfil.sub_nichos) if perfil.sub_nichos else 'N/A'}
 Tono: {perfil.tono or 'sin determinar'}
 Audiencia: {perfil.audiencia_objetivo or 'sin determinar'}
 Formatos que funcionan: {', '.join(perfil.formatos_exitosos) if perfil.formatos_exitosos else 'N/A'}
@@ -131,9 +141,13 @@ Tendencias del nicho:
 Brechas de contenido (temas no cubiertos por el canal):
 {chr(10).join(f'- {b}' for b in estado.brechas_contenido) if estado.brechas_contenido else '(sin brechas detectadas)'}
 
+Ideas YA generadas anteriormente (NO repetir estas):
+{ideas_previas_texto if ideas_previas_texto else '(ninguna - primera generacion)'}
+
 Genera ideas de video rankeadas por potencial viral, aprovechando las
 brechas y tendencias. PRIORIZA patrones que ya funcionaron y EVITA
-los que tuvieron bajo rendimiento. Adapta al tono y formatos que funcionan."""
+los que tuvieron bajo rendimiento. Adapta al tono y formatos que funcionan.
+ENFOCATE en el subnicho principal del canal para maximizar relevancia."""
 
     user_prompt = inyectar_knowledge(user_prompt, "depto_0_inteligencia")
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
@@ -141,14 +155,24 @@ los que tuvieron bajo rendimiento. Adapta al tono y formatos que funcionan."""
     ideas = resultado.get("ideas", [])
     ideas_ordenadas = sorted(ideas, key=lambda i: i.get("potencial_viral", 0), reverse=True)
 
+    for idea in ideas_ordenadas:
+        idea["generado_en"] = datetime.utcnow().isoformat()
+
+    historial_existente = estado.ideas_historial or []
+    historial_actualizado = historial_existente + ideas_ordenadas
+    MAX_HISTORIAL = 50
+    historial_actualizado = historial_actualizado[-MAX_HISTORIAL:]
+
     channels.actualizar(
         canal_id,
         ideas_sugeridas=ideas_ordenadas,
+        ideas_historial=historial_actualizado,
     )
 
     return {
         "canal_id": canal_id,
         "ideas_generadas": len(ideas_ordenadas),
+        "ideas_en_historial": len(historial_actualizado),
         "top_idea": ideas_ordenadas[0].get("titulo_sugerido") if ideas_ordenadas else None,
         "formulas_titulo": resultado.get("formulas_titulo", []),
         "estilo_miniatura": resultado.get("estilo_miniatura"),
