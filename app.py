@@ -2205,6 +2205,19 @@ with tab1:
     st.markdown('<div class="step-title">Guión — Modo Pro</div>', unsafe_allow_html=True)
     st.markdown('<div class="step-sub">Sistema de 3 fases: análisis del nicho con videos virales → ingeniería de títulos → guión con estructura viral probada.</div>', unsafe_allow_html=True)
 
+    # Cargar perfil del canal activo para pre-llenar subnicho
+    _perfil_canal = {}
+    if s.get('canal_activo_id') and API_DISPONIBLE:
+        try:
+            _canal_data_guion = api_client.estado_canal(s['canal_activo_id'])
+            _perfil_canal = _canal_data_guion.get("perfil", {}) if _canal_data_guion else {}
+        except Exception:
+            _perfil_canal = {}
+    _subnicho_default = _perfil_canal.get("subnicho_principal", "") or _perfil_canal.get("nicho_principal", "")
+    _nicho_principal = _perfil_canal.get("nicho_principal", "")
+    if not s.get("nicho") and _subnicho_default:
+        s["nicho"] = _subnicho_default
+
     # Canal activo mostrado como badge
     if s.get('canal_activo_nombre'):
         st.markdown(f"""<div style="background:var(--blue-dim);border:1px solid rgba(62,166,255,.2);
@@ -2219,7 +2232,7 @@ border-radius:8px;padding:8px 14px;margin-bottom:12px;display:inline-flex;align-
     if s.get("titulo_elegido"):  fase_actual = 3
     if s.get("guion_aprobado"):  fase_actual = 4
     fases_html = ""
-    for i,(num,nombre) in enumerate([("1","Analizar nicho"),("2","Elegir título"),("3","Generar guión")],1):
+    for i,(num,nombre) in enumerate([("1","Analizar subnicho"),("2","Elegir título"),("3","Generar guión")],1):
         cls = "done" if fase_actual > i else ("active" if fase_actual == i else "")
         ic  = "✓" if fase_actual > i else num
         fases_html += f'<div class="ps {cls}"><span class="psn">{ic}</span>{nombre}</div>'
@@ -2227,28 +2240,32 @@ border-radius:8px;padding:8px 14px;margin-bottom:12px;display:inline-flex;align-
     st.markdown(f'<div class="pip" style="margin:0 -32px 24px;padding:0 32px">{fases_html}</div>', unsafe_allow_html=True)
 
     # ══ FASE 1 ════════════════════════════════════════════════
-    with st.expander("📊  Fase 1 — Analizar nicho", expanded=(fase_actual==1)):
-        st.markdown('<div class="section-label">Define tu nicho</div>', unsafe_allow_html=True)
+    with st.expander("📊  Fase 1 — Analizar subnicho", expanded=(fase_actual==1)):
+        st.markdown('<div class="section-label">Define tu subnicho</div>', unsafe_allow_html=True)
         col_n1,col_n2 = st.columns([2,1],gap="large")
         with col_n1:
-            nicho_input = st.text_input("Nicho del canal",
+            st.text_input("Nicho del canal",
+                value=_nicho_principal or s.get("nicho",""),
+                disabled=True,
+                key="nicho_display")
+            nicho_input = st.text_input("Subnicho del canal",
                 value=s.get("nicho",""),
-                placeholder="ej: historias de exploradores, auto-mejora masculina, misterios del universo...",
+                placeholder="ej: astrología y energía cósmica, meditación guiada, despertar espiritual...",
                 key="nicho_inp")
             idioma_canal = st.selectbox("Idioma del canal",["Español","Inglés","Portugués"])
         with col_n2:
             st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
-            buscar_virales = st.checkbox("🔍 Analizar videos virales del nicho",value=True,
-                help="Groq analiza patrones de videos exitosos en este nicho para adaptar los frameworks")
+            buscar_virales = st.checkbox("🔍 Analizar videos virales del subnicho",value=True,
+                help="Groq analiza patrones de videos exitosos en este subnicho para adaptar los frameworks")
         st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
 
-        if st.button("📊  Analizar nicho y detectar frameworks",use_container_width=True):
+        if st.button("📊  Analizar subnicho y detectar frameworks",use_container_width=True):
             if not GROQ_KEY and not API_DISPONIBLE: st.error("❌  GROQ_API_KEY no encontrada en `.env`")
-            elif not nicho_input.strip(): st.error("❌  Ingresa el nicho del canal")
+            elif not nicho_input.strip(): st.error("❌  Ingresa el subnicho del canal")
             else:
                 s["nicho"] = nicho_input
                 s["idioma_canal"] = idioma_canal
-                with st.spinner("🔍  Analizando nicho y patrones virales..."):
+                with st.spinner("🔍  Analizando subnicho y patrones virales..."):
                     try:
                         if API_DISPONIBLE:
                             proy_id = f"proy_{s['nombre_proyecto']}"
@@ -2257,41 +2274,86 @@ border-radius:8px;padding:8px 14px;margin-bottom:12px;display:inline-flex;align-
                             except Exception:
                                 pass
                             output = api_client.analizar_nicho(proy_id, nicho_input)
+                            patrones_agente = output.get("patrones_virales", [])
+                            _nicho_ctx = f' (dentro del nicho de {_nicho_principal})' if _nicho_principal else ''
+                            patrones_txt = "\n".join(f"- {p}" for p in patrones_agente) if patrones_agente else ""
+                            from groq import Groq
+                            c_api = Groq(api_key=GROQ_KEY)
+                            prompt_complemento = f"""Eres estratega experto en YouTube viral especializado en el SUBNICHO: "{nicho_input}"{_nicho_ctx}.
+Idioma del canal: {idioma_canal}.
+
+Se investigaron videos virales de este subnicho y se detectaron estos PATRONES VIRALES reales:
+{patrones_txt}
+
+Tu tarea: analiza esos patrones virales, extrae las emociones y estructuras que los hacen funcionar,
+y genera los siguientes elementos estratégicos para crear contenido viral en este subnicho:
+
+1. TRIGGERS EMOCIONALES (5): Activadores psicológicos que provocan clic en YouTube y engagement durante el video.
+   Extrae las emociones dominantes de los patrones virales detectados arriba.
+   Cada trigger debe incluir un ejemplo concreto de cómo aplicarlo en un título de YouTube de este subnicho.
+
+2. PALABRAS POWER (8): Palabras específicas que aumentan el CTR en títulos de YouTube de este subnicho.
+   Deben ser palabras que la audiencia de "{nicho_input}" reconoce y que generan curiosidad o urgencia.
+   No uses palabras genéricas — cada palabra debe ser relevante para este subnicho particular.
+
+3. FRAMEWORKS DE TÍTULO (8): Estructuras probadas para crear títulos virales en este subnicho.
+   La plantilla debe usar ___ como placeholder para el tema específico.
+   El ejemplo debe ser un título realista de YouTube que podría tener +100K vistas en este subnicho.
+   Basa cada framework en los patrones virales detectados arriba.
+
+Responde SOLO en JSON válido sin markdown:
+{{"triggers_emocionales":[{{"emocion":"nombre del trigger","descripcion":"por qué activa el clic en este subnicho","intensidad":"alta/media","ejemplo_titulo":"título de YouTube usando este trigger"}}],
+"palabras_power":["palabra1","palabra2","palabra3","palabra4","palabra5","palabra6","palabra7","palabra8"],
+"frameworks_titulo":[{{"nombre":"nombre del framework","plantilla":"estructura con ___","ejemplo":"título realista de YouTube con +100K vistas","por_que_funciona":"mecanismo psicológico que activa","trigger":"emoción principal que explota"}}]}}"""
+                            resp_c = c_api.chat.completions.create(
+                                model="llama-3.3-70b-versatile",
+                                messages=[{"role":"user","content":prompt_complemento}],
+                                temperature=0.4,max_tokens=3000)
+                            raw_c = resp_c.choices[0].message.content.strip()
+                            if "```" in raw_c:
+                                for p in raw_c.split("```"):
+                                    p=p.strip()
+                                    if p.startswith("{"): raw_c=p; break
+                                    elif p.startswith("json"): raw_c=p[4:].strip(); break
+                            complemento = json.loads(raw_c)
                             analisis = {
-                                "nicho": nicho_input,
+                                "subnicho": nicho_input,
+                                "nicho": _nicho_principal or nicho_input,
                                 "idioma": idioma_canal,
-                                "analisis": {"descripcion": "", "tipo_audiencia": "",
-                                             "mejor_formato": "", "duracion_ideal": ""},
-                                "triggers_emocionales": [],
-                                "palabras_power": [],
-                                "frameworks_titulo": [],
-                                "patrones_virales": output.get("patrones_virales", []),
+                                "analisis": {},
+                                "triggers_emocionales": complemento.get("triggers_emocionales", []),
+                                "palabras_power": complemento.get("palabras_power", []),
+                                "frameworks_titulo": complemento.get("frameworks_titulo", []),
+                                "patrones_virales": patrones_agente,
                             }
                             s["analisis_nicho"]  = analisis
                             s["nicho_analizado"] = True
-                            st.success(f"✅  Nicho analizado via agentes — {len(output.get('patrones_virales',[]))} patrones detectados")
+                            st.success(f"✅  Subnicho analizado — {len(patrones_agente)} patrones + {len(complemento.get('triggers_emocionales',[]))} triggers + {len(complemento.get('frameworks_titulo',[]))} frameworks")
                             st.rerun()
                         else:
                             from groq import Groq
                             c = Groq(api_key=GROQ_KEY)
+                            _nicho_ctx = f' (dentro del nicho de {_nicho_principal})' if _nicho_principal else ''
                             buscar_txt = f"""
-Analiza los videos más virales del nicho "{nicho_input}" en YouTube.
+Analiza los videos más virales del subnicho "{nicho_input}"{_nicho_ctx} en YouTube.
 Considera: títulos que generan más clics, emociones dominantes,
 formatos que funcionan mejor, palabras power más repetidas.
-Usa ese análisis para adaptar los frameworks.""" if buscar_virales else ""
+Usa ese análisis para adaptar los frameworks al subnicho específico.""" if buscar_virales else ""
 
                             prompt_a = f"""Eres estratega experto en canales de YouTube virales.
-Analiza el nicho: "{nicho_input}" para canal en {idioma_canal}.
+Analiza el SUBNICHO específico: "{nicho_input}"{_nicho_ctx} para canal en {idioma_canal}.
+IMPORTANTE: No analices el nicho general, enfócate SOLO en el subnicho "{nicho_input}" para encontrar
+patrones, frameworks y triggers que funcionen específicamente para esta audiencia particular.
 {buscar_txt}
 Responde SOLO en JSON válido sin markdown:
-{{"nicho":"{nicho_input}","idioma":"{idioma_canal}",
-"analisis":{{"descripcion":"descripción del nicho en 2 líneas","tipo_audiencia":"espectador típico",
-"mejor_formato":"formato más efectivo","duracion_ideal":"duración óptima"}},
-"triggers_emocionales":[{{"emocion":"nombre","descripcion":"por qué funciona","intensidad":"alta/media"}}],
+{{"subnicho":"{nicho_input}","nicho":"{_nicho_principal or nicho_input}","idioma":"{idioma_canal}",
+"analisis":{{"descripcion":"descripción del subnicho en 2 líneas","tipo_audiencia":"espectador típico de este subnicho",
+"mejor_formato":"formato más efectivo para este subnicho","duracion_ideal":"duración óptima"}},
+"triggers_emocionales":[{{"emocion":"nombre","descripcion":"por qué funciona en este subnicho","intensidad":"alta/media"}}],
 "palabras_power":["p1","p2","p3","p4","p5","p6","p7","p8"],
-"frameworks_titulo":[{{"nombre":"nombre fw","plantilla":"plantilla con ___","ejemplo":"ejemplo concreto en este nicho","por_que_funciona":"explicación psicológica","trigger":"emoción"}}],
+"frameworks_titulo":[{{"nombre":"nombre fw","plantilla":"plantilla con ___","ejemplo":"ejemplo concreto en este subnicho","por_que_funciona":"explicación psicológica","trigger":"emoción"}}],
 "patrones_virales":["patrón 1","patrón 2","patrón 3","patrón 4","patrón 5"]}}
-Genera 5 triggers, 8 palabras power, 8 frameworks y 5 patrones específicos para "{nicho_input}"."""
+Genera 5 triggers, 8 palabras power, 8 frameworks y 5 patrones específicos para el subnicho "{nicho_input}"."""
 
                             resp = c.chat.completions.create(
                                 model="llama-3.3-70b-versatile",
@@ -2306,28 +2368,25 @@ Genera 5 triggers, 8 palabras power, 8 frameworks y 5 patrones específicos para
                             analisis = json.loads(raw)
                             s["analisis_nicho"]  = analisis
                             s["nicho_analizado"] = True
-                            st.success(f"✅  Nicho analizado — {len(analisis['frameworks_titulo'])} frameworks detectados")
+                            st.success(f"✅  Subnicho analizado — {len(analisis['frameworks_titulo'])} frameworks detectados")
                             st.rerun()
                     except Exception as e:
                         st.error(f"❌  {str(e)}")
 
     if s.get("nicho_analizado") and s.get("analisis_nicho"):
         an = s["analisis_nicho"]
-        with st.expander("📋  Ver análisis del nicho",expanded=False):
-            c1,c2 = st.columns(2)
-            with c1:
-                st.markdown(f"**🎯 Nicho:** {an.get('nicho','')}")
-                st.markdown(f"**👥 Audiencia:** {an['analisis'].get('tipo_audiencia','')}")
-                st.markdown(f"**📹 Formato ideal:** {an['analisis'].get('mejor_formato','')}")
-                st.markdown(f"**⏱️ Duración:** {an['analisis'].get('duracion_ideal','')}")
-                st.markdown("**⚡ Triggers emocionales:**")
-                for t in an.get("triggers_emocionales",[]):
-                    st.markdown(f"  • **{t['emocion']}** ({t['intensidad']}) — {t['descripcion']}")
-            with c2:
-                st.markdown("**💥 Palabras power:**")
-                st.markdown("  "+"  ·  ".join(f"`{p}`" for p in an.get("palabras_power",[])))
-                st.markdown("**🔍 Patrones virales:**")
-                for pat in an.get("patrones_virales",[]): st.markdown(f"  • {pat}")
+        with st.expander("📋  Ver análisis del subnicho",expanded=False):
+            st.markdown(f"**🎯 Subnicho:** {an.get('subnicho', an.get('nicho',''))}")
+            st.markdown("---")
+            st.markdown("**⚡ Triggers emocionales:**")
+            for t in an.get("triggers_emocionales",[]):
+                st.markdown(f"  • **{t['emocion']}** ({t['intensidad']}) — {t['descripcion']}")
+            st.markdown("---")
+            st.markdown("**💥 Palabras power:**")
+            st.markdown("  "+"  ·  ".join(f"`{p}`" for p in an.get("palabras_power",[])))
+            st.markdown("---")
+            st.markdown("**🔍 Patrones virales:**")
+            for pat in an.get("patrones_virales",[]): st.markdown(f"  • {pat}")
 
     # ══ FASE 2 ════════════════════════════════════════════════
     if s.get("nicho_analizado"):
@@ -2339,13 +2398,58 @@ Genera 5 triggers, 8 palabras power, 8 frameworks y 5 patrones específicos para
 
             col_t1,col_t2 = st.columns([2,1],gap="large")
             with col_t1:
+                # Generar sugerencias de temas si no existen
+                if not s.get("temas_sugeridos") and an.get("patrones_virales"):
+                    try:
+                        from groq import Groq
+                        _c_temas = Groq(api_key=GROQ_KEY)
+                        _subnicho_t = an.get("subnicho", an.get("nicho", ""))
+                        _patrones_t = "\n".join(f"- {p}" for p in an.get("patrones_virales", []))
+                        _triggers_t = "\n".join(f"- {t['emocion']}: {t['descripcion']}" for t in an.get("triggers_emocionales", []))
+                        _prompt_temas = f"""Eres creador de contenido experto en el subnicho de YouTube: "{_subnicho_t}".
+
+Se detectaron estos PATRONES VIRALES en el subnicho:
+{_patrones_t}
+
+Y estos TRIGGERS EMOCIONALES que funcionan:
+{_triggers_t}
+
+Genera exactamente 5 temas específicos para videos de YouTube en este subnicho.
+Cada tema debe ser concreto y accionable (no genérico), que pueda convertirse en un video viral.
+Los temas deben explotar los patrones y triggers detectados.
+Cada tema debe ser corto (máximo 8 palabras) para que funcione como botón de selección.
+
+Responde SOLO en JSON válido sin markdown:
+{{"temas":["tema 1","tema 2","tema 3","tema 4","tema 5"]}}"""
+                        _resp_temas = _c_temas.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role":"user","content":_prompt_temas}],
+                            temperature=0.7,max_tokens=500)
+                        _raw_temas = _resp_temas.choices[0].message.content.strip()
+                        if "```" in _raw_temas:
+                            for _pt in _raw_temas.split("```"):
+                                _pt=_pt.strip()
+                                if _pt.startswith("{"): _raw_temas=_pt; break
+                                elif _pt.startswith("json"): _raw_temas=_pt[4:].strip(); break
+                        s["temas_sugeridos"] = json.loads(_raw_temas).get("temas", [])[:5]
+                    except Exception:
+                        s["temas_sugeridos"] = []
+
+                # Mostrar botones de sugerencias en vertical
+                if s.get("temas_sugeridos"):
+                    for _i_t, _tema_sug in enumerate(s["temas_sugeridos"]):
+                        if st.button(f"💡 {_tema_sug}", key=f"btn_tema_{_i_t}"):
+                            s["tema_video"] = _tema_sug
+                            s["tema_inp"] = _tema_sug
+                            st.rerun()
+
                 tema_video = st.text_input("Tema específico del video",
                     value=s.get("tema_video",""),
                     placeholder="ej: señales de que alguien te admira en secreto, hábitos que destruyen tu energía...",
                     key="tema_inp")
                 n_titulos = st.slider("Títulos a generar",5,15,10)
             with col_t2:
-                st.markdown('<div class="section-label" style="margin-top:28px">Frameworks del nicho</div>', unsafe_allow_html=True)
+                st.markdown('<div class="section-label" style="margin-top:28px">Frameworks del subnicho</div>', unsafe_allow_html=True)
                 for fw in frameworks[:4]: st.caption(f"• {fw['nombre']}: `{fw['plantilla']}`")
             st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
 
@@ -2353,39 +2457,110 @@ Genera 5 triggers, 8 palabras power, 8 frameworks y 5 patrones específicos para
                 if not tema_video.strip(): st.error("❌  Ingresa el tema del video")
                 else:
                     s["tema_video"] = tema_video
-                    with st.spinner(f"🎯  Generando {n_titulos} títulos..."):
+                    with st.spinner(f"🎯  Claude está generando {n_titulos} títulos virales..."):
                         try:
-                            from groq import Groq
-                            c = Groq(api_key=GROQ_KEY)
+                            from shared.claude_client import generar_json_claude
+                            from shared.knowledge_loader import cargar_knowledge
                             fw_str  = json.dumps(frameworks,ensure_ascii=False,indent=2)
                             tr_str  = json.dumps(an.get("triggers_emocionales",[]),ensure_ascii=False)
                             pw_str  = ", ".join(an.get("palabras_power",[]))
+                            pat_str = "\n".join(f"- {p}" for p in an.get("patrones_virales",[]))
 
-                            prompt_t = f"""Experto en títulos virales YouTube.
-Nicho: "{s["nicho"]}" | Idioma: {s.get("idioma_canal","Español")} | Tema: "{tema_video}"
-FRAMEWORKS: {fw_str}
-TRIGGERS: {tr_str}
-PALABRAS POWER: {pw_str}
-Genera {n_titulos} títulos virales para "{tema_video}" en nicho "{s["nicho"]}".
-REGLAS: 1)Usar framework del nicho 2)Incluir palabra power cuando natural
-3)Curiosity gap obligatorio 4)Máx 60 chars 5)En {s.get("idioma_canal","Español")}
-SOLO JSON sin markdown:
-{{"titulos":[{{"titulo":"título completo","framework_usado":"nombre fw","trigger":"emoción",
-"por_que_funciona":"explicación 1 línea","potencial_viral":"alto/medio","ctr_estimado":"% CTR"}}]}}"""
+                            # Títulos de competencia y patrones exitosos del canal
+                            _titulos_competencia = ""
+                            _patrones_titulo_canal = ""
+                            if _canal_data_guion:
+                                competidores = _canal_data_guion.get("competidores", [])
+                                _comp_lines = []
+                                for _comp in competidores[:5]:
+                                    _comp_nombre = _comp.get("nombre", "")
+                                    for _tv in _comp.get("top_videos", [])[:3]:
+                                        _tv_titulo = _tv.get("titulo", "")
+                                        _tv_vistas = _tv.get("vistas", 0)
+                                        if _tv_titulo:
+                                            _comp_lines.append(f"- \"{_tv_titulo}\" ({_tv_vistas:,} vistas) — {_comp_nombre}")
+                                if _comp_lines:
+                                    _titulos_competencia = "\n".join(_comp_lines)
+                                _pat_canal = _perfil_canal.get("patrones_titulo_exitosos", [])
+                                if _pat_canal:
+                                    _patrones_titulo_canal = "\n".join(f"- {p}" for p in _pat_canal)
 
-                            resp = c.chat.completions.create(
-                                model="llama-3.3-70b-versatile",
-                                messages=[{"role":"user","content":prompt_t}],
-                                temperature=0.7,max_tokens=2000)
-                            raw = resp.choices[0].message.content.strip()
-                            if "```" in raw:
-                                for p in raw.split("```"):
-                                    p=p.strip()
-                                    if p.startswith("{"): raw=p; break
-                                    elif p.startswith("json"): raw=p[4:].strip(); break
-                            resultado = json.loads(raw)
-                            s["titulos_generados"] = resultado["titulos"]
-                            st.success(f"✅  {len(resultado['titulos'])} títulos generados")
+                            # Knowledge del curso de YouTube
+                            _knowledge_estrategia = cargar_knowledge("depto_1_estrategia")
+                            _knowledge_titulos = ""
+                            if _knowledge_estrategia:
+                                import re as _re
+                                _match = _re.search(r'## COPYWRITING - TÍTULOS.*?(?=\n## |\Z)', _knowledge_estrategia, _re.DOTALL)
+                                if _match:
+                                    _knowledge_titulos = _match.group(0)
+
+                            # Fecha actual
+                            from datetime import datetime as _dt
+                            _meses = {1:"enero",2:"febrero",3:"marzo",4:"abril",5:"mayo",6:"junio",
+                                      7:"julio",8:"agosto",9:"septiembre",10:"octubre",11:"noviembre",12:"diciembre"}
+                            _now = _dt.now()
+                            _fecha_actual = f"{_now.day} de {_meses[_now.month]} de {_now.year}"
+
+                            _system_titulos = f"""Eres el mejor copywriter de títulos de YouTube en español, especializado en el subnicho de "{s["nicho"]}".
+Tu única misión: crear títulos que generen CLICS MASIVOS. Cada título debe provocar que el espectador
+NECESITE hacer clic para resolver la curiosidad que le genera.
+
+FECHA ACTUAL: {_fecha_actual}. Cualquier referencia temporal debe ser actual o futura, NUNCA pasada.
+
+Responde SOLO en JSON válido sin markdown."""
+
+                            _user_titulos = f"""SUBNICHO: "{s["nicho"]}"
+IDIOMA: {s.get("idioma_canal","Español")}
+TEMA DEL VIDEO: "{tema_video}"
+
+PATRONES VIRALES detectados en este subnicho:
+{pat_str}
+
+FRAMEWORKS DE TÍTULO probados:
+{fw_str}
+
+TRIGGERS EMOCIONALES que funcionan:
+{tr_str}
+
+PALABRAS POWER del subnicho: {pw_str}
+{"" if not _titulos_competencia else f"""
+TÍTULOS EXITOSOS DE LA COMPETENCIA (REFERENCIA de estilo — supéralos):
+{_titulos_competencia}
+"""}{"" if not _patrones_titulo_canal else f"""
+PATRONES DE TÍTULO QUE YA FUNCIONAN EN ESTE CANAL:
+{_patrones_titulo_canal}
+"""}{"" if not _knowledge_titulos else f"""
+CONOCIMIENTO DE CURSOS ESPECIALIZADOS EN YOUTUBE VIRAL:
+{_knowledge_titulos}
+"""}
+EJEMPLOS DE TÍTULOS VIRALES REALES EN YOUTUBE (estudia el estilo y supéralos):
+- "Si ves el 11:11 constantemente, el universo te está enviando ESTE mensaje" → curiosity gap + identificación personal
+- "Las 5 señales de que tu despertar espiritual ya comenzó (la #3 te sorprenderá)" → listicle + curiosidad específica
+- "El Portal 888: lo que NADIE te dice sobre esta fecha cósmica" → exclusividad + evento temporal
+- "Tu signo revela qué energía cósmica te domina en julio 2026" → personalización + temporalidad
+- "Haz esto durante 7 días y tu energía cósmica cambiará para siempre" → promesa concreta + urgencia
+- "¿Por qué sientes que algo GRANDE está a punto de pasar? La respuesta te dejará sin palabras" → validación emocional + misterio
+
+Genera {n_titulos} títulos virales para el tema "{tema_video}".
+
+REGLAS OBLIGATORIAS:
+1) ESPECÍFICO, nunca genérico. Incluye cifras, fechas actuales, eventos concretos del subnicho
+2) Curiosity gap FUERTE: el espectador debe sentir que se pierde algo importante si no hace clic
+3) Entre 40 y 70 caracteres idealmente
+4) En {s.get("idioma_canal","Español")}
+5) Que suenen como títulos REALES de YouTube viral (estudia los ejemplos arriba)
+6) Varía los frameworks — no repitas la misma estructura
+7) Fechas y meses ACTUALES o FUTUROS (estamos en {_fecha_actual})
+8) Aplica las reglas del curso: activar curiosidad inmediata, no revelar todo, destacar beneficio/sorpresa/conflicto
+9) PROHIBIDO: títulos que suenen a libro de autoayuda, blog, o coaching genérico
+
+JSON de respuesta:
+{{"titulos":[{{"titulo":"título viral completo","framework_usado":"nombre fw","trigger":"emoción principal",
+"por_que_funciona":"por qué genera clic","potencial_viral":"alto/medio","ctr_estimado":"% CTR"}}]}}"""
+
+                            resultado = generar_json_claude(_system_titulos, _user_titulos)
+                            s["titulos_generados"] = resultado.get("titulos", [])
+                            st.success(f"✅  {len(resultado.get('titulos',[]))} títulos generados con Claude")
                             st.rerun()
                         except Exception as e: st.error(f"❌  {str(e)}")
 

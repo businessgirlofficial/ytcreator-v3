@@ -46,10 +46,14 @@ SIEMPRE respondes en JSON valido con este formato exacto:
   "mood": "una palabra o frase corta para el mood musical (ej: tenso, inspirador, urgente, calmado)"
 }
 
-Identifica entre 4 y 6 patrones virales. Cada patron debe describir
-una ESTRUCTURA o GANCHO concreto (por ejemplo: "abrir con una cifra
-de perdida economica en los primeros 5 segundos"), nunca consejos
-genericos como "se mas creativo" o "usa buenas miniaturas"."""
+Identifica entre 7 y 10 patrones virales. Cada patron debe ser ESPECIFICO y ACCIONABLE:
+- Menciona elementos concretos: cifras, fechas, eventos, referencias culturales del nicho
+- Describe la ESTRUCTURA exacta del gancho (ej: "abrir con una cifra de perdida economica en los primeros 5 segundos")
+- Incluye ejemplos reales cuando sea posible (ej: "usar titulos tipo 'El Portal 888: lo que nadie te dice'")
+- Describe tecnicas de engagement especificas (ej: "incluir un llamado a la accion en el minuto 5 invitando a explorar mas")
+
+NUNCA des consejos genericos como "se mas creativo", "usa buenas miniaturas", "publica contenido de calidad".
+Cada patron debe ser tan concreto que alguien pueda aplicarlo directamente en su proximo video."""
 
 
 def _construir_contexto_busqueda(nicho: str) -> str:
