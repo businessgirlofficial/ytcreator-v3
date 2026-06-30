@@ -632,105 +632,6 @@ hr{border-color:var(--border)!important;margin:18px 0!important}
 .breadcrumb a:hover,.breadcrumb .bc-link:hover{color:var(--text)}
 .breadcrumb .bc-sep{color:var(--border3)}
 .breadcrumb .bc-current{color:var(--text);font-weight:600}
-
-/* ── Cronograma ── */
-.cron-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.cron-title{font-size:1.1rem;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px}
-.cron-meta{font-size:.72rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
-.cron-progress-wrap{margin-bottom:20px}
-.cron-progress-info{display:flex;justify-content:space-between;font-size:.72rem;
-  color:var(--text3);margin-bottom:6px;font-family:'JetBrains Mono',monospace}
-.cron-progress-bar{background:var(--dark5);border-radius:4px;height:8px;overflow:hidden}
-.cron-progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--red),#FF4444);transition:width .4s}
-
-.cron-week-label{font-size:.68rem;font-weight:700;color:var(--text3);
-  text-transform:uppercase;letter-spacing:1px;padding:10px 0 6px;
-  font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--border);margin-bottom:8px}
-
-.cron-entry{
-  background:var(--dark2);border:1px solid var(--border);border-radius:10px;
-  padding:12px 14px;margin-bottom:6px;transition:all .15s;
-  border-left:3px solid var(--border);
-}
-.cron-entry:hover{border-color:var(--border3);transform:translateX(2px)}
-.cron-entry.t-trending{border-left-color:#FF0000}
-.cron-entry.t-brecha{border-left-color:#3EA6FF}
-.cron-entry.t-evergreen{border-left-color:#1DB954}
-.cron-entry.t-follow_up{border-left-color:#FF9500}
-.cron-entry.t-serie{border-left-color:#A855F7}
-.cron-entry.t-viral_reaccion{border-left-color:#FF6B9D}
-
-.cron-entry-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.cron-entry-date{font-size:.68rem;font-weight:700;color:var(--text3);
-  font-family:'JetBrains Mono',monospace;min-width:90px}
-.cron-entry-title{font-size:.84rem;font-weight:700;color:var(--text);flex:1;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cron-entry-score{font-size:.7rem;font-weight:800;color:var(--orange);
-  font-family:'JetBrains Mono',monospace}
-
-.cron-entry-detail{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
-.cron-tag{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:8px;
-  font-family:'JetBrains Mono',monospace;letter-spacing:.3px}
-.ct-trending{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,0,0,.2)}
-.ct-brecha{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(62,166,255,.2)}
-.ct-evergreen{background:var(--green-dim);color:var(--green);border:1px solid rgba(29,185,84,.2)}
-.ct-follow_up{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
-.ct-serie{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(168,85,247,.2)}
-.ct-viral_reaccion{background:rgba(255,107,157,.08);color:#FF6B9D;border:1px solid rgba(255,107,157,.2)}
-
-.cron-status{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:8px;
-  font-family:'JetBrains Mono',monospace}
-.cs-pendiente{background:var(--dark5);color:var(--text4);border:1px solid var(--border)}
-.cs-en_revision{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
-.cs-aprobado{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(62,166,255,.2)}
-.cs-en_produccion{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,149,0,.2)}
-.cs-publicado{background:var(--green-dim);color:var(--green);border:1px solid rgba(29,185,84,.2)}
-.cs-pospuesto{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(168,85,247,.2)}
-.cs-cancelado{background:var(--red-dim);color:var(--text4);border:1px solid rgba(255,0,0,.15)}
-
-.cron-legend{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 8px;
-  padding:8px 0;border-top:1px solid var(--border)}
-.cron-legend-item{display:flex;align-items:center;gap:4px;font-size:.62rem;
-  color:var(--text3);font-family:'JetBrains Mono',monospace}
-.cron-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
-.cld-trending{background:#FF0000}.cld-brecha{background:#3EA6FF}
-.cld-evergreen{background:#1DB954}.cld-follow_up{background:#FF9500}
-.cld-serie{background:#A855F7}.cld-viral_reaccion{background:#FF6B9D}
-
-.cron-comp-tl{background:var(--dark2);border:1px solid var(--border);border-radius:10px;
-  padding:14px 16px;margin-top:12px}
-.cron-comp-title{font-size:.72rem;font-weight:700;color:var(--text3);
-  text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;
-  margin-bottom:10px}
-.cron-comp-row{display:flex;align-items:center;gap:8px;padding:4px 0;
-  font-size:.72rem;font-family:'JetBrains Mono',monospace}
-.cron-comp-name{color:var(--text2);min-width:120px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
-.cron-comp-dots{display:flex;gap:2px;flex:1}
-.cron-comp-dot{width:14px;height:14px;border-radius:3px;display:flex;
-  align-items:center;justify-content:center;font-size:.5rem;font-weight:700}
-.ccd-empty{background:var(--dark4);color:transparent}
-.ccd-pub{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,0,0,.2)}
-.ccd-us{background:var(--green-dim);color:var(--green);border:1px solid rgba(29,185,84,.2)}
-
-.cron-empty{
-  text-align:center;padding:40px 20px;
-  background:var(--dark2);border:2px dashed var(--border2);border-radius:14px;
-}
-.cron-empty-icon{font-size:2.5rem;margin-bottom:8px}
-.cron-empty-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:4px}
-.cron-empty-sub{font-size:.8rem;color:var(--text3);margin-bottom:16px}
-
-/* ── Skeleton loading ── */
-@keyframes sk-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
-.sk{background:linear-gradient(90deg,var(--dark4) 25%,var(--dark5) 50%,var(--dark4) 75%);
-  background-size:800px 100%;animation:sk-shimmer 1.6s ease-in-out infinite;border-radius:4px}
-.sk-line{height:9px;margin-bottom:7px}
-.sk-line.lg{height:13px;margin-bottom:9px}
-.sk-line.sm{height:7px;margin-bottom:5px}
-.sk-circle{border-radius:50%}
-.sk-row{display:flex;align-items:center;gap:8px;padding:4px 0}
-.sk-bar{height:5px;border-radius:3px;margin:10px 0 8px}
 </style>
 """, unsafe_allow_html=True)
 
@@ -752,31 +653,7 @@ for k,v in {
 s=st.session_state
 
 
-_KEYS_WORKFLOW_POR_CANAL = [
-    'nicho', 'nicho_analizado', 'analisis_nicho',
-    'titulos_generados', 'titulo_elegido', 'titulo_framework', 'titulo_trigger',
-    'tema_video', 'guion_texto_completo', 'guion_aprobado',
-    'audio_generado', 'musica_lista', 'subs_generados', 'kaggle_completado',
-    'video_final', 'kaggle_running', 'kaggle_logs',
-    '_canal_data_cache',
-]
-
-
 def _navegar_a(vista, canal_id=None, canal_nombre=None):
-    # Se compara contra '_canal_workflow_actual' (no contra 'canal_activo_id')
-    # porque ir a Home pone canal_activo_id en None, y eso causaría un reset
-    # falso al volver al MISMO canal desde Home.
-    if canal_id is not None and canal_id != s.get('_canal_workflow_actual'):
-        for k in _KEYS_WORKFLOW_POR_CANAL:
-            if k in ('kaggle_logs',):
-                s[k] = []
-            elif k in ('audio_generado', 'musica_lista', 'subs_generados', 'kaggle_completado', 'kaggle_running', 'nicho_analizado'):
-                s[k] = False
-            elif k in ('nicho', 'titulo_elegido', 'titulo_framework', 'titulo_trigger', 'tema_video'):
-                s[k] = ''
-            else:
-                s[k] = None
-        s['_canal_workflow_actual'] = canal_id
     s['vista_actual'] = vista
     s['_health_check_pendiente'] = True
     if canal_id is not None:
@@ -787,18 +664,6 @@ def _navegar_a(vista, canal_id=None, canal_nombre=None):
     if vista == 'home':
         s['canal_activo_id'] = None
         s['canal_activo_nombre'] = None
-
-
-def _obtener_canal_data(canal_id, forzar=False):
-    """estado_canal() cacheado en session_state por canal_id, para no
-    repetir la misma llamada al pasar de Channel Dashboard a Workspace."""
-    cache = s.get('_canal_data_cache')
-    if not forzar and cache and cache.get('canal_id') == canal_id:
-        return cache.get('data')
-    import api_client as _ac
-    data = _ac.estado_canal(canal_id)
-    s['_canal_data_cache'] = {'canal_id': canal_id, 'data': data}
-    return data
 
 
 @st.cache_data(ttl=30)
@@ -883,497 +748,6 @@ def _cached_keywords_stats():
         return _hc.keywords_stats()
     except Exception:
         return None
-
-
-@st.fragment(run_every="30s")
-def _sidebar_api_section():
-    """Sección API del sidebar: health, cola, eventos y scheduler.
-    Se actualiza cada 30 s de forma independiente sin bloquear el contenido principal."""
-    # ── Health de servicios ──
-    st.divider()
-    _sb_health = _cached_health_servicios()
-
-    if _sb_health is None:
-        st.markdown("""
-        <div class="sb-health">
-          <div class="sb-health-head">
-            <span class="sb-health-title">📡 Servicios</span>
-            <span class="sk sk-line lg" style="width:42px;margin:0;display:inline-block"></span>
-          </div>
-          <div class="sk sk-bar"></div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-            <span class="sk sk-line sm" style="width:60px;margin:0"></span>
-            <span class="sk sk-line sm" style="width:40px;margin:0"></span>
-          </div>
-          <div class="sb-deptos" style="gap:6px">
-            <div class="sk-row"><div class="sk" style="width:52px;height:6px;border-radius:10px"></div><span class="sk sk-line sm" style="flex:1;margin:0"></span><span class="sk" style="width:22px;height:7px;border-radius:3px"></span></div>
-            <div class="sk-row"><div class="sk" style="width:52px;height:6px;border-radius:10px"></div><span class="sk sk-line sm" style="flex:1;margin:0"></span><span class="sk" style="width:22px;height:7px;border-radius:3px"></span></div>
-            <div class="sk-row"><div class="sk" style="width:52px;height:6px;border-radius:10px"></div><span class="sk sk-line sm" style="flex:1;margin:0"></span><span class="sk" style="width:22px;height:7px;border-radius:3px"></span></div>
-            <div class="sk-row"><div class="sk" style="width:52px;height:6px;border-radius:10px"></div><span class="sk sk-line sm" style="flex:1;margin:0"></span><span class="sk" style="width:22px;height:7px;border-radius:3px"></span></div>
-          </div>
-          <div class="sk-row" style="margin-top:8px">
-            <span class="sk sk-circle" style="width:7px;height:7px;flex-shrink:0"></span>
-            <span class="sk sk-line sm" style="width:90px;margin:0"></span>
-          </div>
-        </div>""", unsafe_allow_html=True)
-    else:
-        _sb_score = _sb_health.get("score", 0)
-        _sb_nivel = _sb_health.get("nivel", "critico")
-        _sb_vivos = _sb_health.get("vivos", 0)
-        _sb_total = _sb_health.get("total", 0)
-        _sb_puede = _sb_health.get("puede_pipeline", False)
-        _sb_mem = _sb_health.get("memoria_total_mb")
-        _sb_criticos = _sb_health.get("criticos_caidos", [])
-        _sb_desglose = _sb_health.get("desglose_departamentos", {})
-        _sb_servicios = _sb_health.get("servicios", {})
-
-        _sb_score_cls = "sb-h-ok" if _sb_nivel == "saludable" else ("sb-h-warn" if _sb_nivel == "degradado" else "sb-h-crit")
-        _sb_bar_color = "var(--green)" if _sb_nivel == "saludable" else ("var(--orange)" if _sb_nivel == "degradado" else "var(--red)")
-        _sb_bar_pct = min(_sb_score, 100)
-
-        _SB_DEPTOS = [
-            ("depto_0_inteligencia", "Intel"),
-            ("depto_1_estrategia", "Estrat"),
-            ("depto_2_guion", "Guión"),
-            ("depto_3_visual", "Visual"),
-            ("depto_4_audio", "Audio"),
-            ("depto_5_cierre", "Cierre"),
-            ("orquestador", "Orq"),
-        ]
-
-        _SB_DEPTO_AGENTS = {
-            "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
-            "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
-            "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
-            "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],
-            "depto_4_audio": ["4.1_locucion", "4.2_musica", "4.3_subtitulos", "sub_orq_audio"],
-            "depto_5_cierre": ["5.1_editor", "5.2_seo", "5.3_compliance", "5.4_policy_monitor", "5.5_publicador", "sub_orq_cierre"],
-            "orquestador": ["orquestador_central"],
-        }
-
-        _sb_deptos_html = ""
-        for _sbdk, _sbdl in _SB_DEPTOS:
-            _sbd_info = _sb_desglose.get(_sbdk, {"vivos": 0, "total": 0})
-            _sbd_v = _sbd_info["vivos"]
-            _sbd_t = _sbd_info["total"]
-
-            _dots_html = ""
-            for _sba in _SB_DEPTO_AGENTS.get(_sbdk, []):
-                _sba_st = _sb_servicios.get(_sba, {}).get("estado", "caido")
-                _sba_c = "#1DB954" if _sba_st == "ok" else ("#FF9500" if _sba_st == "error" else "#FF0000")
-                _dots_html += f'<span class="sb-depto-dot" style="background:{_sba_c}" title="{_html_escape(_sba)}"></span>'
-
-            _sb_deptos_html += (
-                f'<div class="sb-depto-row">'
-                f'<div class="sb-depto-dots">{_dots_html}</div>'
-                f'<span class="sb-depto-label">{_sbdl}</span>'
-                f'<span class="sb-depto-count">{_sbd_v}/{_sbd_t}</span>'
-                f'</div>'
-            )
-
-        _sb_pipe_icon = '<span class="dot on"></span>' if _sb_puede else '<span class="dot off"></span>'
-        _sb_pipe_text = "Pipeline listo" if _sb_puede else "Pipeline bloqueado"
-        _sb_pipe_color = "var(--green)" if _sb_puede else "var(--red)"
-
-        _sb_crit_html = ""
-        if _sb_criticos:
-            _sb_crit_names = ", ".join(_html_escape(c) for c in _sb_criticos[:3])
-            _sb_crit_extra = f" +{len(_sb_criticos)-3}" if len(_sb_criticos) > 3 else ""
-            _sb_crit_html = (
-                f'<div style="font-size:.65rem;color:var(--red);margin-top:6px;'
-                f'font-family:\'JetBrains Mono\',monospace">'
-                f'⚠ {_sb_crit_names}{_sb_crit_extra}</div>'
-            )
-
-        _sb_mem_html = f'<span style="font-size:.65rem;color:var(--text3);font-family:\'JetBrains Mono\',monospace">{_sb_mem} MB</span>' if _sb_mem else ""
-
-        st.markdown(f"""
-        <div class="sb-health">
-          <div class="sb-health-head">
-            <span class="sb-health-title">📡 Servicios</span>
-            <span class="sb-health-score {_sb_score_cls}">{_sb_score}%</span>
-          </div>
-          <div class="sb-health-bar">
-            <div class="sb-health-fill" style="width:{_sb_bar_pct}%;background:{_sb_bar_color}"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:.68rem;color:var(--text3);font-family:'JetBrains Mono',monospace">{_sb_vivos}/{_sb_total} vivos</span>
-            {_sb_mem_html}
-          </div>
-          <div class="sb-deptos">
-            {_sb_deptos_html}
-          </div>
-          <div class="sb-pipeline-ready">
-            {_sb_pipe_icon}
-            <span style="color:{_sb_pipe_color}">{_sb_pipe_text}</span>
-          </div>
-          {_sb_crit_html}
-        </div>""", unsafe_allow_html=True)
-
-    if _sb_health is not None:
-        _col_ref, _col_ar = st.columns([1, 1])
-        with _col_ref:
-            if st.button("🔄  Refrescar", key="sb_refresh_health", use_container_width=True):
-                _cached_health_servicios.clear()
-                _cached_pipeline_cola.clear()
-                _cached_eventos_recientes.clear()
-                _cached_scheduler.clear()
-                _cached_pausa.clear()
-                # La interacción del botón ya dispara el rerun del fragment automáticamente
-        with _col_ar:
-            _ar_sel = st.selectbox(
-                "Auto-refresh",
-                options=list(_REFRESH_INTERVALS.keys()),
-                index=list(_REFRESH_INTERVALS.keys()).index(st.session_state["autorefresh_interval"]),
-                key="sb_autorefresh_sel",
-                label_visibility="collapsed",
-            )
-            if _ar_sel != st.session_state["autorefresh_interval"]:
-                st.session_state["autorefresh_interval"] = _ar_sel
-                # El cambio del selectbox dispara el rerun del fragment automáticamente
-
-    # ── Cola de publicación ──
-    st.divider()
-    _sb_cola = _cached_pipeline_cola()
-
-    if _sb_cola is None:
-        st.markdown("""
-        <div class="sb-queue">
-          <div class="sb-queue-head">
-            <span class="sb-queue-title">📋 Cola</span>
-            <span class="sk sk-line sm" style="width:32px;margin:0;display:inline-block"></span>
-          </div>
-          <div class="sb-q-item" style="opacity:.7">
-            <div class="sk sk-circle" style="width:20px;height:20px;flex-shrink:0"></div>
-            <div class="sb-q-info">
-              <div class="sk sk-line" style="width:80%;margin-bottom:4px"></div>
-              <div class="sk sk-line sm" style="width:50%;margin:0"></div>
-            </div>
-            <span class="sk" style="width:28px;height:16px;border-radius:8px"></span>
-          </div>
-          <div class="sb-q-item" style="opacity:.5">
-            <div class="sk sk-circle" style="width:20px;height:20px;flex-shrink:0"></div>
-            <div class="sb-q-info">
-              <div class="sk sk-line" style="width:65%;margin-bottom:4px"></div>
-              <div class="sk sk-line sm" style="width:40%;margin:0"></div>
-            </div>
-            <span class="sk" style="width:28px;height:16px;border-radius:8px"></span>
-          </div>
-          <div class="sb-q-item" style="opacity:.3">
-            <div class="sk sk-circle" style="width:20px;height:20px;flex-shrink:0"></div>
-            <div class="sb-q-info">
-              <div class="sk sk-line" style="width:72%;margin-bottom:4px"></div>
-              <div class="sk sk-line sm" style="width:45%;margin:0"></div>
-            </div>
-            <span class="sk" style="width:28px;height:16px;border-radius:8px"></span>
-          </div>
-        </div>""", unsafe_allow_html=True)
-    else:
-        _sq_buf = _sb_cola.get("buffer", {})
-        _sq_buf_actual = _sq_buf.get("actual", 0)
-        _sq_buf_max = _sq_buf.get("max", 3)
-        _sq_en_proc = _sb_cola.get("en_proceso", [])
-        _sq_listos = _sb_cola.get("listos_para_publicar", [])
-        _sq_pubs = _sb_cola.get("publicados", [])
-        _sq_errs = _sb_cola.get("con_error", [])
-
-        _sq_buf_cls = "sb-q-full" if _sq_buf_actual >= _sq_buf_max else "sb-q-ok"
-
-        _sq_items_html = ""
-
-        if _sq_en_proc:
-            _sq_items_html += '<div class="q-section-label">▶ En proceso</div>'
-            for _sqp in _sq_en_proc[:3]:
-                _sqp_titulo = _html_escape(_sqp.get("titulo", _sqp.get("proyecto_id", "?")))
-                if len(_sqp_titulo) > 28:
-                    _sqp_titulo = _sqp_titulo[:28] + "…"
-                _sqp_fase = _sqp.get("fase_actual", "?")
-                _sqp_pct = _sqp.get("progreso_pct", 0)
-                _sq_items_html += (
-                    f'<div class="sb-q-item q-item-process">'
-                    f'<div class="sb-q-icon">⏳</div>'
-                    f'<div class="sb-q-info">'
-                    f'<div class="sb-q-title">{_sqp_titulo}</div>'
-                    f'<div class="sb-q-meta">{_sqp_fase} · {_sqp_pct}%</div>'
-                    f'</div>'
-                    f'<span class="sb-q-badge">{_sqp_pct}%</span>'
-                    f'</div>'
-                )
-
-        if _sq_listos:
-            _sq_items_html += '<div class="q-section-label">✓ Listos para publicar</div>'
-            for _sql in _sq_listos:
-                _sql_titulo = _html_escape(_sql.get("titulo", _sql.get("proyecto_id", "?")))
-                if len(_sql_titulo) > 28:
-                    _sql_titulo = _sql_titulo[:28] + "…"
-                _sql_canal = _html_escape(_sql.get("canal", ""))
-                _sq_items_html += (
-                    f'<div class="sb-q-item q-item-ready">'
-                    f'<div class="sb-q-icon">✓</div>'
-                    f'<div class="sb-q-info">'
-                    f'<div class="sb-q-title">{_sql_titulo}</div>'
-                    f'<div class="sb-q-meta">{_sql_canal}</div>'
-                    f'</div>'
-                    f'<span class="sb-q-badge">LISTO</span>'
-                    f'</div>'
-                )
-
-        if _sq_errs:
-            _sq_items_html += '<div class="q-section-label">✗ Con error</div>'
-            for _sqe in _sq_errs[:2]:
-                _sqe_titulo = _html_escape(_sqe.get("titulo", _sqe.get("proyecto_id", "?")))
-                if len(_sqe_titulo) > 28:
-                    _sqe_titulo = _sqe_titulo[:28] + "…"
-                _sq_items_html += (
-                    f'<div class="sb-q-item q-item-err">'
-                    f'<div class="sb-q-icon">✗</div>'
-                    f'<div class="sb-q-info">'
-                    f'<div class="sb-q-title">{_sqe_titulo}</div>'
-                    f'<div class="sb-q-meta">error</div>'
-                    f'</div>'
-                    f'<span class="sb-q-badge">ERR</span>'
-                    f'</div>'
-                )
-
-        if _sq_pubs:
-            _sq_items_html += '<div class="q-section-label">📺 Publicados</div>'
-            for _sqpb in _sq_pubs[:3]:
-                _sqpb_titulo = _html_escape(_sqpb.get("titulo", _sqpb.get("proyecto_id", "?")))
-                if len(_sqpb_titulo) > 28:
-                    _sqpb_titulo = _sqpb_titulo[:28] + "…"
-                _sqpb_vid = _sqpb.get("youtube_video_id", "")
-                _sqpb_meta = _sqpb_vid if _sqpb_vid else "publicado"
-                _sq_items_html += (
-                    f'<div class="sb-q-item q-item-pub">'
-                    f'<div class="sb-q-icon">📺</div>'
-                    f'<div class="sb-q-info">'
-                    f'<div class="sb-q-title">{_sqpb_titulo}</div>'
-                    f'<div class="sb-q-meta">{_html_escape(_sqpb_meta)}</div>'
-                    f'</div>'
-                    f'<span class="sb-q-badge">PUB</span>'
-                    f'</div>'
-                )
-
-        if not _sq_items_html:
-            _sq_items_html = '<div class="q-empty">Sin proyectos todavía</div>'
-
-        st.markdown(f"""
-        <div class="sb-queue">
-          <div class="sb-queue-head">
-            <span class="sb-queue-title">📋 Cola</span>
-            <span class="sb-queue-buf {_sq_buf_cls}">{_sq_buf_actual}/{_sq_buf_max}</span>
-          </div>
-          {_sq_items_html}
-        </div>""", unsafe_allow_html=True)
-
-    # ── Eventos recientes ──
-    st.divider()
-    _sb_eventos = _cached_eventos_recientes()
-
-    _EVENT_ICONS = {
-        "pipeline_started": "🚀", "pipeline_completed": "✅", "pipeline_failed": "❌",
-        "pipeline_phase": "📋", "agent_completed": "⚙️", "agent_failed": "💥",
-        "system_startup": "🔌", "health_check": "💓",
-    }
-    _EVENT_LABELS = {
-        "pipeline_started": "Pipeline iniciado",
-        "pipeline_completed": "Pipeline completado",
-        "pipeline_failed": "Pipeline falló",
-        "pipeline_phase": "Fase",
-        "agent_completed": "Agente OK",
-        "agent_failed": "Agente falló",
-        "system_startup": "Sistema iniciado",
-        "health_check": "Health check",
-    }
-
-    if _sb_eventos is None:
-        _sk_ev_rows = ""
-        for _sk_op in [1.0, 0.7, 0.5, 0.35, 0.2]:
-            _sk_w1 = ["85%", "70%", "78%", "60%", "72%"][int(_sk_op*4) % 5]
-            _sk_w2 = ["55%", "45%", "62%", "38%", "50%"][int(_sk_op*4) % 5]
-            _sk_ev_rows += (
-                f'<div class="sb-ev" style="opacity:{_sk_op};border-left-color:var(--border3)">'
-                f'<div class="sk sk-circle" style="width:18px;height:18px;flex-shrink:0;margin-top:1px"></div>'
-                f'<div class="sb-ev-body">'
-                f'<div class="sk sk-line" style="width:{_sk_w1};margin-bottom:4px"></div>'
-                f'<div class="sk sk-line sm" style="width:{_sk_w2};margin:0"></div>'
-                f'</div></div>'
-            )
-        st.markdown(f"""
-        <div class="sb-events">
-          <div class="sb-events-head">
-            <span class="sb-events-title">📜 Eventos</span>
-            <span class="sk sk-line sm" style="width:20px;margin:0;display:inline-block"></span>
-          </div>
-          {_sk_ev_rows}
-        </div>""", unsafe_allow_html=True)
-    elif not _sb_eventos:
-        st.markdown("""
-        <div class="sb-events">
-          <div class="sb-events-head">
-            <span class="sb-events-title">📜 Eventos</span>
-            <span class="sb-events-count">0</span>
-          </div>
-          <div class="q-empty">Sin eventos registrados</div>
-        </div>""", unsafe_allow_html=True)
-    else:
-        _sbe_html = ""
-        for _ev in _sb_eventos[:10]:
-            _ev_type = _ev.get("event_type", "?")
-            _ev_status = _ev.get("status", "?")
-            _ev_ts = _ev.get("timestamp", "")
-            _ev_source = _ev.get("source", "")
-            _ev_pid = _ev.get("proyecto_id", "")
-            _ev_data = _ev.get("data") or {}
-            _ev_dur = _ev.get("duration_seg")
-
-            _ev_icon = _EVENT_ICONS.get(_ev_type, "📌")
-            _ev_cls = "ev-error" if _ev_status == "error" else "ev-success"
-
-            _ev_label = _EVENT_LABELS.get(_ev_type, _ev_type)
-            if _ev_type == "pipeline_phase" and isinstance(_ev_data, dict):
-                _ev_label = f"Fase: {_ev_data.get('fase', '?')}"
-            elif _ev_type == "agent_completed":
-                _ev_label = f"{_ev_source} OK"
-            elif _ev_type == "agent_failed":
-                _ev_label = f"{_ev_source} falló"
-
-            _ev_time_short = _ev_ts[11:16] if len(_ev_ts) >= 16 else _ev_ts
-            _ev_dur_str = f" · {_ev_dur:.1f}s" if _ev_dur else ""
-            _ev_pid_str = f" · {_html_escape(_ev_pid[:12])}" if _ev_pid else ""
-
-            _sbe_html += (
-                f'<div class="sb-ev {_ev_cls}">'
-                f'<div class="sb-ev-icon">{_ev_icon}</div>'
-                f'<div class="sb-ev-body">'
-                f'<div class="sb-ev-msg">{_html_escape(_ev_label)}</div>'
-                f'<div class="sb-ev-time">{_ev_time_short}{_ev_dur_str}{_ev_pid_str}</div>'
-                f'</div></div>'
-            )
-
-        st.markdown(f"""
-        <div class="sb-events">
-          <div class="sb-events-head">
-            <span class="sb-events-title">📜 Eventos</span>
-            <span class="sb-events-count">{len(_sb_eventos)}</span>
-          </div>
-          {_sbe_html}
-        </div>""", unsafe_allow_html=True)
-
-    # ── Scheduler y pausa ──
-    st.divider()
-    _sb_sched = _cached_scheduler()
-    _sb_pausa = _cached_pausa()
-
-    _sb_esta_pausado = _sb_pausa is not None and _sb_pausa.get("pausado", False)
-    if _sb_esta_pausado:
-        _sb_pausa_en = _sb_pausa.get("pausado_en", "")
-        _sb_pausa_razon = _sb_pausa.get("razon", "")
-        _sb_pausa_time = _sb_pausa_en[11:16] if _sb_pausa_en and len(_sb_pausa_en) >= 16 else ""
-        _sb_pausa_sub = f"Desde {_sb_pausa_time}" + (f" — {_html_escape(_sb_pausa_razon)}" if _sb_pausa_razon else "")
-        st.markdown(f"""
-        <div class="pause-banner">
-          <span class="pause-banner-icon">⏸️</span>
-          <div class="pause-banner-text">
-            <div class="pause-banner-title">AUTOMATIZACIÓN PAUSADA</div>
-            <div class="pause-banner-sub">{_sb_pausa_sub}</div>
-          </div>
-        </div>""", unsafe_allow_html=True)
-        if st.button("▶  Reanudar automatización", key="sb_resume_auto", use_container_width=True):
-            try:
-                import api_client as _pause_api
-                _pause_api.scheduler_reanudar()
-                _cached_pausa.clear()
-                _cached_scheduler.clear()
-                st.rerun()
-            except Exception as _e:
-                st.error(f"Error: {_e}")
-    elif _sb_pausa is not None:
-        if st.button("⏸  Pausar automatización", key="sb_pause_auto", use_container_width=True):
-            try:
-                import api_client as _pause_api
-                _pause_api.scheduler_pausar()
-                _cached_pausa.clear()
-                _cached_scheduler.clear()
-                st.rerun()
-            except Exception as _e:
-                st.error(f"Error: {_e}")
-
-    if _sb_sched is None:
-        _sk_task_rows = ""
-        for _sk_op in [1.0, 0.65, 0.35]:
-            _sk_tw = ["82%", "68%", "74%"][int(_sk_op*2) % 3]
-            _sk_mw = ["60%", "50%", "55%"][int(_sk_op*2) % 3]
-            _sk_task_rows += (
-                f'<div class="sb-task" style="opacity:{_sk_op}">'
-                f'<span class="sk sk-circle" style="width:7px;height:7px;flex-shrink:0"></span>'
-                f'<div class="sb-task-info">'
-                f'<div class="sk sk-line" style="width:{_sk_tw};margin-bottom:4px"></div>'
-                f'<div class="sk sk-line sm" style="width:{_sk_mw};margin:0"></div>'
-                f'</div></div>'
-            )
-        st.markdown(f"""
-        <div class="sb-sched">
-          <div class="sb-sched-head">
-            <span class="sb-sched-title">🕐 Schedule</span>
-            <span class="sk sk-line sm" style="width:50px;margin:0;display:inline-block"></span>
-          </div>
-          <div class="sb-sched-next" style="opacity:.6">
-            <span class="sb-sched-next-icon sk sk-circle" style="width:20px;height:20px;display:inline-block"></span>
-            <div class="sb-sched-next-info">
-              <div class="sk sk-line sm" style="width:90px;margin-bottom:5px"></div>
-              <div class="sk sk-line" style="width:120px;margin:0"></div>
-            </div>
-          </div>
-          {_sk_task_rows}
-        </div>""", unsafe_allow_html=True)
-    else:
-        _sc_tareas = _sb_sched.get("tareas", [])
-        _sc_habilitadas = _sb_sched.get("habilitadas", 0)
-        _sc_proxima = _sb_sched.get("proxima_ejecucion")
-        _sc_proxima_nombre = _sb_sched.get("proxima_tarea", "")
-
-        _sc_next_html = ""
-        if _sc_proxima:
-            _sc_prox_hora = _sc_proxima[11:16] if len(_sc_proxima) >= 16 else _sc_proxima
-            _sc_next_html = (
-                f'<div class="sb-sched-next">'
-                f'<span class="sb-sched-next-icon">⏰</span>'
-                f'<div class="sb-sched-next-info">'
-                f'<div class="sb-sched-next-label">Próxima ejecución</div>'
-                f'<div class="sb-sched-next-time">{_sc_prox_hora} — {_html_escape(_sc_proxima_nombre or "?")}</div>'
-                f'</div></div>'
-            )
-
-        _sc_tasks_html = ""
-        for _sct in _sc_tareas:
-            _sct_hab = _sct.get("habilitado", False)
-            _sct_dot_color = "#1DB954" if _sct_hab else "#FF0000"
-            _sct_name = _html_escape(_sct.get("nombre", "?"))
-            _sct_freq = _html_escape(_sct.get("hora_legible", _sct.get("frecuencia", "?")))
-            _sct_last = _sct.get("ultima_ejecucion")
-            _sct_last_str = _sct_last[11:16] if _sct_last and len(_sct_last) >= 16 else "nunca"
-            _sct_status = _sct.get("ultimo_estado", "")
-            _sct_status_icon = "✓" if _sct_status == "success" else ("✗" if _sct_status == "error" else "—")
-
-            _sc_tasks_html += (
-                f'<div class="sb-task">'
-                f'<span class="sb-task-dot" style="background:{_sct_dot_color}"></span>'
-                f'<div class="sb-task-info">'
-                f'<div class="sb-task-name">{_sct_name}</div>'
-                f'<div class="sb-task-meta">{_sct_freq} · último: {_sct_last_str} {_sct_status_icon}</div>'
-                f'</div></div>'
-            )
-
-        st.markdown(f"""
-        <div class="sb-sched">
-          <div class="sb-sched-head">
-            <span class="sb-sched-title">🕐 Schedule</span>
-            <span class="sb-sched-count">{_sc_habilitadas} activas</span>
-          </div>
-          {_sc_next_html}
-          {_sc_tasks_html}
-        </div>""", unsafe_allow_html=True)
 
 
 def _leer_logs(storage_dir: str, incluir_rotados: bool = False) -> list[str]:
@@ -1669,8 +1043,3055 @@ with st.sidebar:
             st.success("🎉 ¡Todo listo!")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # ── Sección API del sidebar (fragment independiente, auto-refresca cada 30 s) ──
-        _sidebar_api_section()
+        # ── Health de servicios (siempre visible) ──
+        st.divider()
+        _sb_health = _cached_health_servicios()
+
+        if _sb_health is None:
+            st.markdown("""
+            <div class="sb-health">
+              <div class="sb-health-head">
+                <span class="sb-health-title">📡 Servicios</span>
+                <span class="sb-health-score sb-h-off">OFF</span>
+              </div>
+              <div style="font-size:.7rem;color:var(--text4)">Agentes no conectados</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            _sb_score = _sb_health.get("score", 0)
+            _sb_nivel = _sb_health.get("nivel", "critico")
+            _sb_vivos = _sb_health.get("vivos", 0)
+            _sb_total = _sb_health.get("total", 0)
+            _sb_puede = _sb_health.get("puede_pipeline", False)
+            _sb_mem = _sb_health.get("memoria_total_mb")
+            _sb_criticos = _sb_health.get("criticos_caidos", [])
+            _sb_desglose = _sb_health.get("desglose_departamentos", {})
+            _sb_servicios = _sb_health.get("servicios", {})
+
+            _sb_score_cls = "sb-h-ok" if _sb_nivel == "saludable" else ("sb-h-warn" if _sb_nivel == "degradado" else "sb-h-crit")
+            _sb_bar_color = "var(--green)" if _sb_nivel == "saludable" else ("var(--orange)" if _sb_nivel == "degradado" else "var(--red)")
+            _sb_bar_pct = min(_sb_score, 100)
+
+            _SB_DEPTOS = [
+                ("depto_0_inteligencia", "Intel"),
+                ("depto_1_estrategia", "Estrat"),
+                ("depto_2_guion", "Guión"),
+                ("depto_3_visual", "Visual"),
+                ("depto_4_audio", "Audio"),
+                ("depto_5_cierre", "Cierre"),
+                ("orquestador", "Orq"),
+            ]
+
+            _sb_deptos_html = ""
+            for _sbdk, _sbdl in _SB_DEPTOS:
+                _sbd_info = _sb_desglose.get(_sbdk, {"vivos": 0, "total": 0})
+                _sbd_v = _sbd_info["vivos"]
+                _sbd_t = _sbd_info["total"]
+
+                _SB_DEPTO_AGENTS = {
+                    "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
+                    "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
+                    "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
+                    "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],
+                    "depto_4_audio": ["4.1_locucion", "4.2_musica", "4.3_subtitulos", "sub_orq_audio"],
+                    "depto_5_cierre": ["5.1_editor", "5.2_seo", "5.3_compliance", "5.4_policy_monitor", "5.5_publicador", "sub_orq_cierre"],
+                    "orquestador": ["orquestador_central"],
+                }
+
+                _dots_html = ""
+                for _sba in _SB_DEPTO_AGENTS.get(_sbdk, []):
+                    _sba_st = _sb_servicios.get(_sba, {}).get("estado", "caido")
+                    _sba_c = "#1DB954" if _sba_st == "ok" else ("#FF9500" if _sba_st == "error" else "#FF0000")
+                    _dots_html += f'<span class="sb-depto-dot" style="background:{_sba_c}" title="{_html_escape(_sba)}"></span>'
+
+                _sb_deptos_html += (
+                    f'<div class="sb-depto-row">'
+                    f'<div class="sb-depto-dots">{_dots_html}</div>'
+                    f'<span class="sb-depto-label">{_sbdl}</span>'
+                    f'<span class="sb-depto-count">{_sbd_v}/{_sbd_t}</span>'
+                    f'</div>'
+                )
+
+            _sb_pipe_icon = '<span class="dot on"></span>' if _sb_puede else '<span class="dot off"></span>'
+            _sb_pipe_text = "Pipeline listo" if _sb_puede else "Pipeline bloqueado"
+            _sb_pipe_color = "var(--green)" if _sb_puede else "var(--red)"
+
+            _sb_crit_html = ""
+            if _sb_criticos:
+                _sb_crit_names = ", ".join(_html_escape(c) for c in _sb_criticos[:3])
+                _sb_crit_extra = f" +{len(_sb_criticos)-3}" if len(_sb_criticos) > 3 else ""
+                _sb_crit_html = (
+                    f'<div style="font-size:.65rem;color:var(--red);margin-top:6px;'
+                    f'font-family:\'JetBrains Mono\',monospace">'
+                    f'⚠ {_sb_crit_names}{_sb_crit_extra}</div>'
+                )
+
+            _sb_mem_html = f'<span style="font-size:.65rem;color:var(--text3);font-family:\'JetBrains Mono\',monospace">{_sb_mem} MB</span>' if _sb_mem else ""
+
+            st.markdown(f"""
+            <div class="sb-health">
+              <div class="sb-health-head">
+                <span class="sb-health-title">📡 Servicios</span>
+                <span class="sb-health-score {_sb_score_cls}">{_sb_score}%</span>
+              </div>
+              <div class="sb-health-bar">
+                <div class="sb-health-fill" style="width:{_sb_bar_pct}%;background:{_sb_bar_color}"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span style="font-size:.68rem;color:var(--text3);font-family:'JetBrains Mono',monospace">{_sb_vivos}/{_sb_total} vivos</span>
+                {_sb_mem_html}
+              </div>
+              <div class="sb-deptos">
+                {_sb_deptos_html}
+              </div>
+              <div class="sb-pipeline-ready">
+                {_sb_pipe_icon}
+                <span style="color:{_sb_pipe_color}">{_sb_pipe_text}</span>
+              </div>
+              {_sb_crit_html}
+            </div>""", unsafe_allow_html=True)
+
+        if _sb_health is not None:
+            _col_ref, _col_ar = st.columns([1, 1])
+            with _col_ref:
+                if st.button("🔄  Refrescar", key="sb_refresh_health", use_container_width=True):
+                    _cached_health_servicios.clear()
+                    _cached_pipeline_cola.clear()
+                    st.rerun()
+            with _col_ar:
+                _ar_sel = st.selectbox(
+                    "Auto-refresh",
+                    options=list(_REFRESH_INTERVALS.keys()),
+                    index=list(_REFRESH_INTERVALS.keys()).index(st.session_state["autorefresh_interval"]),
+                    key="sb_autorefresh_sel",
+                    label_visibility="collapsed",
+                )
+                if _ar_sel != st.session_state["autorefresh_interval"]:
+                    st.session_state["autorefresh_interval"] = _ar_sel
+                    st.rerun()
+
+        # ── Cola de publicación (siempre visible) ──
+        st.divider()
+        _sb_cola = _cached_pipeline_cola()
+
+        if _sb_cola is None:
+            st.markdown("""
+            <div class="sb-queue">
+              <div class="sb-queue-head">
+                <span class="sb-queue-title">📋 Cola</span>
+                <span class="sb-queue-buf sb-h-off">—</span>
+              </div>
+              <div style="font-size:.7rem;color:var(--text4)">Sin conexión a agentes</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            _sq_buf = _sb_cola.get("buffer", {})
+            _sq_buf_actual = _sq_buf.get("actual", 0)
+            _sq_buf_max = _sq_buf.get("max", 3)
+            _sq_en_proc = _sb_cola.get("en_proceso", [])
+            _sq_listos = _sb_cola.get("listos_para_publicar", [])
+            _sq_pubs = _sb_cola.get("publicados", [])
+            _sq_errs = _sb_cola.get("con_error", [])
+
+            _sq_buf_cls = "sb-q-full" if _sq_buf_actual >= _sq_buf_max else "sb-q-ok"
+            _sq_total_items = len(_sq_en_proc) + len(_sq_listos) + len(_sq_pubs) + len(_sq_errs)
+
+            _sq_items_html = ""
+
+            if _sq_en_proc:
+                _sq_items_html += '<div class="q-section-label">▶ En proceso</div>'
+                for _sqp in _sq_en_proc[:3]:
+                    _sqp_titulo = _html_escape(_sqp.get("titulo", _sqp.get("proyecto_id", "?")))
+                    if len(_sqp_titulo) > 28:
+                        _sqp_titulo = _sqp_titulo[:28] + "…"
+                    _sqp_fase = _sqp.get("fase_actual", "?")
+                    _sqp_pct = _sqp.get("progreso_pct", 0)
+                    _sq_items_html += (
+                        f'<div class="sb-q-item q-item-process">'
+                        f'<div class="sb-q-icon">⏳</div>'
+                        f'<div class="sb-q-info">'
+                        f'<div class="sb-q-title">{_sqp_titulo}</div>'
+                        f'<div class="sb-q-meta">{_sqp_fase} · {_sqp_pct}%</div>'
+                        f'</div>'
+                        f'<span class="sb-q-badge">{_sqp_pct}%</span>'
+                        f'</div>'
+                    )
+
+            if _sq_listos:
+                _sq_items_html += '<div class="q-section-label">✓ Listos para publicar</div>'
+                for _sql in _sq_listos:
+                    _sql_titulo = _html_escape(_sql.get("titulo", _sql.get("proyecto_id", "?")))
+                    if len(_sql_titulo) > 28:
+                        _sql_titulo = _sql_titulo[:28] + "…"
+                    _sql_canal = _html_escape(_sql.get("canal", ""))
+                    _sq_items_html += (
+                        f'<div class="sb-q-item q-item-ready">'
+                        f'<div class="sb-q-icon">✓</div>'
+                        f'<div class="sb-q-info">'
+                        f'<div class="sb-q-title">{_sql_titulo}</div>'
+                        f'<div class="sb-q-meta">{_sql_canal}</div>'
+                        f'</div>'
+                        f'<span class="sb-q-badge">LISTO</span>'
+                        f'</div>'
+                    )
+
+            if _sq_errs:
+                _sq_items_html += '<div class="q-section-label">✗ Con error</div>'
+                for _sqe in _sq_errs[:2]:
+                    _sqe_titulo = _html_escape(_sqe.get("titulo", _sqe.get("proyecto_id", "?")))
+                    if len(_sqe_titulo) > 28:
+                        _sqe_titulo = _sqe_titulo[:28] + "…"
+                    _sq_items_html += (
+                        f'<div class="sb-q-item q-item-err">'
+                        f'<div class="sb-q-icon">✗</div>'
+                        f'<div class="sb-q-info">'
+                        f'<div class="sb-q-title">{_sqe_titulo}</div>'
+                        f'<div class="sb-q-meta">error</div>'
+                        f'</div>'
+                        f'<span class="sb-q-badge">ERR</span>'
+                        f'</div>'
+                    )
+
+            if _sq_pubs:
+                _sq_items_html += '<div class="q-section-label">📺 Publicados</div>'
+                for _sqpb in _sq_pubs[:3]:
+                    _sqpb_titulo = _html_escape(_sqpb.get("titulo", _sqpb.get("proyecto_id", "?")))
+                    if len(_sqpb_titulo) > 28:
+                        _sqpb_titulo = _sqpb_titulo[:28] + "…"
+                    _sqpb_vid = _sqpb.get("youtube_video_id", "")
+                    _sqpb_meta = _sqpb_vid if _sqpb_vid else "publicado"
+                    _sq_items_html += (
+                        f'<div class="sb-q-item q-item-pub">'
+                        f'<div class="sb-q-icon">📺</div>'
+                        f'<div class="sb-q-info">'
+                        f'<div class="sb-q-title">{_sqpb_titulo}</div>'
+                        f'<div class="sb-q-meta">{_html_escape(_sqpb_meta)}</div>'
+                        f'</div>'
+                        f'<span class="sb-q-badge">PUB</span>'
+                        f'</div>'
+                    )
+
+            if not _sq_items_html:
+                _sq_items_html = '<div class="q-empty">Sin proyectos todavía</div>'
+
+            st.markdown(f"""
+            <div class="sb-queue">
+              <div class="sb-queue-head">
+                <span class="sb-queue-title">📋 Cola</span>
+                <span class="sb-queue-buf {_sq_buf_cls}">{_sq_buf_actual}/{_sq_buf_max}</span>
+              </div>
+              {_sq_items_html}
+            </div>""", unsafe_allow_html=True)
+
+        # ── Eventos recientes (siempre visible) ──
+        st.divider()
+        _sb_eventos = _cached_eventos_recientes()
+
+        _EVENT_ICONS = {
+            "pipeline_started": "🚀", "pipeline_completed": "✅", "pipeline_failed": "❌",
+            "pipeline_phase": "📋", "agent_completed": "⚙️", "agent_failed": "💥",
+            "system_startup": "🔌", "health_check": "💓",
+        }
+        _EVENT_LABELS = {
+            "pipeline_started": "Pipeline iniciado",
+            "pipeline_completed": "Pipeline completado",
+            "pipeline_failed": "Pipeline falló",
+            "pipeline_phase": "Fase",
+            "agent_completed": "Agente OK",
+            "agent_failed": "Agente falló",
+            "system_startup": "Sistema iniciado",
+            "health_check": "Health check",
+        }
+
+        if _sb_eventos is None:
+            st.markdown("""
+            <div class="sb-events">
+              <div class="sb-events-head">
+                <span class="sb-events-title">📜 Eventos</span>
+              </div>
+              <div style="font-size:.7rem;color:var(--text4)">Sin conexión</div>
+            </div>""", unsafe_allow_html=True)
+        elif not _sb_eventos:
+            st.markdown("""
+            <div class="sb-events">
+              <div class="sb-events-head">
+                <span class="sb-events-title">📜 Eventos</span>
+                <span class="sb-events-count">0</span>
+              </div>
+              <div class="q-empty">Sin eventos registrados</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            _sbe_html = ""
+            for _ev in _sb_eventos[:10]:
+                _ev_type = _ev.get("event_type", "?")
+                _ev_status = _ev.get("status", "?")
+                _ev_ts = _ev.get("timestamp", "")
+                _ev_source = _ev.get("source", "")
+                _ev_pid = _ev.get("proyecto_id", "")
+                _ev_data = _ev.get("data") or {}
+                _ev_dur = _ev.get("duration_seg")
+
+                _ev_icon = _EVENT_ICONS.get(_ev_type, "📌")
+                _ev_cls = "ev-error" if _ev_status == "error" else "ev-success"
+
+                _ev_label = _EVENT_LABELS.get(_ev_type, _ev_type)
+                if _ev_type == "pipeline_phase" and isinstance(_ev_data, dict):
+                    _ev_label = f"Fase: {_ev_data.get('fase', '?')}"
+                elif _ev_type == "agent_completed":
+                    _ev_label = f"{_ev_source} OK"
+                elif _ev_type == "agent_failed":
+                    _ev_label = f"{_ev_source} falló"
+
+                _ev_time_short = _ev_ts[11:16] if len(_ev_ts) >= 16 else _ev_ts
+                _ev_dur_str = f" · {_ev_dur:.1f}s" if _ev_dur else ""
+                _ev_pid_str = f" · {_html_escape(_ev_pid[:12])}" if _ev_pid else ""
+
+                _sbe_html += (
+                    f'<div class="sb-ev {_ev_cls}">'
+                    f'<div class="sb-ev-icon">{_ev_icon}</div>'
+                    f'<div class="sb-ev-body">'
+                    f'<div class="sb-ev-msg">{_html_escape(_ev_label)}</div>'
+                    f'<div class="sb-ev-time">{_ev_time_short}{_ev_dur_str}{_ev_pid_str}</div>'
+                    f'</div></div>'
+                )
+
+            st.markdown(f"""
+            <div class="sb-events">
+              <div class="sb-events-head">
+                <span class="sb-events-title">📜 Eventos</span>
+                <span class="sb-events-count">{len(_sb_eventos)}</span>
+              </div>
+              {_sbe_html}
+            </div>""", unsafe_allow_html=True)
+
+        # ── Scheduler (tareas programadas) ──
+        st.divider()
+        _sb_sched = _cached_scheduler()
+        _sb_pausa = _cached_pausa()
+
+        # Banner de pausa global
+        _sb_esta_pausado = _sb_pausa is not None and _sb_pausa.get("pausado", False)
+        if _sb_esta_pausado:
+            _sb_pausa_en = _sb_pausa.get("pausado_en", "")
+            _sb_pausa_razon = _sb_pausa.get("razon", "")
+            _sb_pausa_time = _sb_pausa_en[11:16] if _sb_pausa_en and len(_sb_pausa_en) >= 16 else ""
+            _sb_pausa_sub = f"Desde {_sb_pausa_time}" + (f" — {_html_escape(_sb_pausa_razon)}" if _sb_pausa_razon else "")
+            st.markdown(f"""
+            <div class="pause-banner">
+              <span class="pause-banner-icon">⏸️</span>
+              <div class="pause-banner-text">
+                <div class="pause-banner-title">AUTOMATIZACIÓN PAUSADA</div>
+                <div class="pause-banner-sub">{_sb_pausa_sub}</div>
+              </div>
+            </div>""", unsafe_allow_html=True)
+            if st.button("▶  Reanudar automatización", key="sb_resume_auto", use_container_width=True):
+                try:
+                    import api_client as _pause_api
+                    _pause_api.scheduler_reanudar()
+                    _cached_pausa.clear()
+                    _cached_scheduler.clear()
+                    st.rerun()
+                except Exception as _e:
+                    st.error(f"Error: {_e}")
+        elif _sb_pausa is not None:
+            if st.button("⏸  Pausar automatización", key="sb_pause_auto", use_container_width=True):
+                try:
+                    import api_client as _pause_api
+                    _pause_api.scheduler_pausar()
+                    _cached_pausa.clear()
+                    _cached_scheduler.clear()
+                    st.rerun()
+                except Exception as _e:
+                    st.error(f"Error: {_e}")
+
+        if _sb_sched is None:
+            st.markdown("""
+            <div class="sb-sched">
+              <div class="sb-sched-head">
+                <span class="sb-sched-title">🕐 Schedule</span>
+              </div>
+              <div style="font-size:.7rem;color:var(--text4)">Sin conexión</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            _sc_tareas = _sb_sched.get("tareas", [])
+            _sc_habilitadas = _sb_sched.get("habilitadas", 0)
+            _sc_proxima = _sb_sched.get("proxima_ejecucion")
+            _sc_proxima_nombre = _sb_sched.get("proxima_tarea", "")
+
+            _sc_next_html = ""
+            if _sc_proxima:
+                _sc_prox_hora = _sc_proxima[11:16] if len(_sc_proxima) >= 16 else _sc_proxima
+                _sc_next_html = (
+                    f'<div class="sb-sched-next">'
+                    f'<span class="sb-sched-next-icon">⏰</span>'
+                    f'<div class="sb-sched-next-info">'
+                    f'<div class="sb-sched-next-label">Próxima ejecución</div>'
+                    f'<div class="sb-sched-next-time">{_sc_prox_hora} — {_html_escape(_sc_proxima_nombre or "?")}</div>'
+                    f'</div></div>'
+                )
+
+            _sc_tasks_html = ""
+            for _sct in _sc_tareas:
+                _sct_hab = _sct.get("habilitado", False)
+                _sct_dot_color = "#1DB954" if _sct_hab else "#FF0000"
+                _sct_name = _html_escape(_sct.get("nombre", "?"))
+                _sct_freq = _html_escape(_sct.get("hora_legible", _sct.get("frecuencia", "?")))
+                _sct_last = _sct.get("ultima_ejecucion")
+                _sct_last_str = _sct_last[11:16] if _sct_last and len(_sct_last) >= 16 else "nunca"
+                _sct_status = _sct.get("ultimo_estado", "")
+                _sct_status_icon = "✓" if _sct_status == "success" else ("✗" if _sct_status == "error" else "—")
+
+                _sc_tasks_html += (
+                    f'<div class="sb-task">'
+                    f'<span class="sb-task-dot" style="background:{_sct_dot_color}"></span>'
+                    f'<div class="sb-task-info">'
+                    f'<div class="sb-task-name">{_sct_name}</div>'
+                    f'<div class="sb-task-meta">{_sct_freq} · último: {_sct_last_str} {_sct_status_icon}</div>'
+                    f'</div></div>'
+                )
+
+            st.markdown(f"""
+            <div class="sb-sched">
+              <div class="sb-sched-head">
+                <span class="sb-sched-title">🕐 Schedule</span>
+                <span class="sb-sched-count">{_sc_habilitadas} activas</span>
+              </div>
+              {_sc_next_html}
+              {_sc_tasks_html}
+            </div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════
 # MAIN CONTENT
+# ══════════════════════════════════════════════════════════════
+
+# ── Header ────────────────────────────────────────────────────
+keys_ok = bool(GROQ_KEY and KAGGLE_KEY and KAGGLE_USER)
+if s.pop('_health_check_pendiente', False):
+    s['_last_health'] = _cached_health_servicios()
+_hdr_health = s.get('_last_health')
+
+if _hdr_health:
+    _hdr_score = _hdr_health.get("score", 0)
+    _hdr_vivos = _hdr_health.get("vivos", 0)
+    _hdr_total = _hdr_health.get("total", 0)
+    _hdr_mem = _hdr_health.get("memoria_total_mb")
+    _hdr_nivel = _hdr_health.get("nivel", "critico")
+    _hdr_dot = "on" if _hdr_nivel == "saludable" else "off"
+    _hdr_score_color = "#1DB954" if _hdr_nivel == "saludable" else ("#FF9500" if _hdr_nivel == "degradado" else "#FF0000")
+    _hdr_status_html = (
+        f'<div class="hdr-health">'
+        f'<div class="hdr-health-item"><span class="dot {_hdr_dot}"></span>'
+        f'<span class="hdr-health-num" style="color:{_hdr_score_color}">{_hdr_score}%</span> {_hdr_nivel}</div>'
+        f'<div class="hdr-health-item">{_hdr_vivos}/{_hdr_total} servicios</div>'
+        + (f'<div class="hdr-health-item">{_hdr_mem} MB</div>' if _hdr_mem else '')
+        + '</div>'
+    )
+elif keys_ok:
+    _hdr_status_html = (
+        '<div class="hdr-st">'
+        '<span class="dot on"></span>'
+        'sistema listo'
+        '</div>'
+    )
+else:
+    _hdr_status_html = (
+        '<div class="hdr-st">'
+        '<span class="dot off"></span>'
+        'configura .env con tus API keys'
+        '</div>'
+    )
+
+st.markdown(f"""
+<div class="hdr">
+  <div class="hdr-brand">
+    <span style="font-size:1.25rem">🎬</span>
+    <span class="hdr-logo">YT<em>Creator</em> Studio</span>
+    <span class="hdr-badge">v3</span>
+  </div>
+  {_hdr_status_html}
+</div>
+""", unsafe_allow_html=True)
+
+# ── API check (antes de vistas) ──────────────────────────────
+try:
+    import api_client
+    API_DISPONIBLE = api_client.health()
+except Exception:
+    API_DISPONIBLE = False
+
+# ══════════════════════════════════════════════════════════════
+# VIEW: HOME — Selector de canales
+# ══════════════════════════════════════════════════════════════
+if s['vista_actual'] not in ('home', 'channel_dashboard', 'workspace'):
+    s['vista_actual'] = 'home'
+
+if s['vista_actual'] == 'home':
+    st.markdown('<div style="padding:28px 32px 0 80px">', unsafe_allow_html=True)
+    st.markdown('<div class="home-title">Tus Canales</div>', unsafe_allow_html=True)
+    st.markdown('<div class="home-sub">Selecciona un canal para ver su inteligencia y crear videos, o conecta uno nuevo.</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if not API_DISPONIBLE:
+        st.warning("Los agentes no están conectados. Levanta los servicios con `python run_dev.py`.")
+    else:
+        try:
+            canales_home = api_client.listar_canales()
+        except Exception:
+            canales_home = []
+
+        for _ch in canales_home:
+            if not _ch.get("miniatura_url") and _ch.get("canal_id"):
+                try:
+                    _ch_full = api_client.estado_canal(_ch["canal_id"])
+                    _ch["miniatura_url"] = _ch_full.get("miniatura_url")
+                except Exception:
+                    pass
+
+        n_canales = len(canales_home)
+        cols_per_row = 3
+        total_slots = n_canales + 1
+
+        for row_start in range(0, total_slots, cols_per_row):
+            cols = st.columns(cols_per_row, gap="medium")
+            for col_idx in range(cols_per_row):
+                item_idx = row_start + col_idx
+                if item_idx >= total_slots:
+                    break
+                with cols[col_idx]:
+                    if item_idx < n_canales:
+                        c = canales_home[item_idx]
+                        c_nombre = c.get("nombre", "Sin nombre")
+                        c_subs = c.get("suscriptores")
+                        c_subs_txt = f"{c_subs:,} subs" if c_subs else "— subs"
+                        c_nicho = c.get("nicho", "")
+                        c_thumb = c.get("miniatura_url", "")
+                        c_id = c.get("canal_id", "")
+
+                        if c_thumb:
+                            thumb_html = f'<img class="ch-card-thumb" src="{c_thumb}" />'
+                        else:
+                            letra = c_nombre[0].upper() if c_nombre else "?"
+                            thumb_html = f'<div class="ch-card-thumb-placeholder">{letra}</div>'
+
+                        nicho_html = f'<div class="ch-card-niche">{c_nicho}</div>' if c_nicho else ''
+
+                        st.markdown(f"""<div class="ch-card">
+                          {thumb_html}
+                          <div class="ch-card-name">{c_nombre}</div>
+                          <div class="ch-card-stats">{c_subs_txt}</div>
+                          {nicho_html}
+                        </div>""", unsafe_allow_html=True)
+                        if st.button("Abrir canal", key=f"open_ch_{c_id}", use_container_width=True):
+                            _navegar_a('channel_dashboard', c_id, c_nombre)
+                            st.rerun()
+                    else:
+                        st.markdown("""<div class="ch-card-add">
+                          <div class="ch-card-add-icon">+</div>
+                          <div class="ch-card-add-text">Agregar canal</div>
+                        </div>""", unsafe_allow_html=True)
+                        canal_input_home = st.text_input(
+                            "URL, @handle o Channel ID",
+                            placeholder="ej: @MiCanal",
+                            key="canal_input_home",
+                            label_visibility="collapsed",
+                        )
+                        if st.button("🔗  Conectar y escanear", key="btn_conectar_home", use_container_width=True):
+                            if canal_input_home.strip():
+                                with st.spinner("Escaneando canal... (30-60 segundos)"):
+                                    try:
+                                        resultado = api_client.conectar_canal(canal_input_home.strip())
+                                        canal_id_nuevo = resultado.get("canal_id", "")
+                                        st.success(f"✅  Canal conectado: **{resultado.get('nombre', canal_id_nuevo)}**")
+                                        del s["canal_input_home"]
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌  Error: {str(e)}")
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════
+# VIEW: CHANNEL DASHBOARD — Inteligencia del canal
+# ══════════════════════════════════════════════════════════════
+if s['vista_actual'] == 'channel_dashboard':
+    if not s.get('canal_activo_id'):
+        _navegar_a('home')
+        st.rerun()
+
+    st.markdown(f"""<div class="breadcrumb">
+      <span class="bc-link">🏠 Home</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-current">{s.get('canal_activo_nombre', '')}</span>
+    </div>""", unsafe_allow_html=True)
+
+    col_back, col_workspace = st.columns([1, 1])
+    with col_back:
+        if st.button("← Volver al Home", key="btn_back_home", use_container_width=True):
+            _navegar_a('home')
+            st.rerun()
+    with col_workspace:
+        if st.button("🎬  Entrar al Workspace →", key="btn_enter_workspace", use_container_width=True):
+            _navegar_a('workspace', s['canal_activo_id'], s.get('canal_activo_nombre'))
+            st.rerun()
+
+    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+
+    if not API_DISPONIBLE:
+        st.warning("Los agentes no están conectados.")
+    else:
+        canal_sel = s['canal_activo_id']
+
+        col_refresh_d, _ = st.columns([1, 3])
+        with col_refresh_d:
+            if st.button("🔄  Refrescar datos", key="btn_refresh_dashboard", use_container_width=True):
+                with st.spinner("Refrescando..."):
+                    try:
+                        api_client.refrescar_canal(canal_sel)
+                        st.success("✅  Datos actualizados")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+
+        try:
+            canal_data = api_client.estado_canal(canal_sel)
+        except Exception as e:
+            canal_data = None
+            st.error(f"Error al cargar canal: {str(e)}")
+
+        if canal_data:
+            st.markdown('<div class="section-label" style="margin-top:8px">Dashboard</div>', unsafe_allow_html=True)
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Suscriptores", f"{canal_data.get('suscriptores', 0):,}")
+            m2.metric("Videos", f"{canal_data.get('video_count', 0):,}")
+            m3.metric("Vistas totales", f"{canal_data.get('vistas_totales', 0):,}")
+            perfil = canal_data.get("perfil", {})
+            m4.metric("Nicho", perfil.get("nicho_principal", "Sin analizar"))
+
+            if perfil.get("nicho_principal"):
+                with st.expander("🧠  Perfil analizado por IA", expanded=True):
+                    col_p1, col_p2 = st.columns(2)
+                    with col_p1:
+                        st.markdown(f"**Nicho:** {perfil.get('nicho_principal', '-')}")
+                        st.markdown(f"**Subnicho:** {perfil.get('subnicho_principal', '-')}")
+                        st.markdown(f"**Sub-nichos:** {', '.join(perfil.get('sub_nichos', []))}")
+                        st.markdown(f"**Tono:** {perfil.get('tono', '-')}")
+                        st.markdown(f"**Audiencia:** {perfil.get('audiencia_objetivo', '-')}")
+                        st.markdown(f"**Frecuencia:** {perfil.get('frecuencia_publicacion', '-')}")
+                    with col_p2:
+                        st.markdown(f"**Keywords:** {', '.join(perfil.get('keywords_clave', []))}")
+                        st.markdown(f"**Estilo visual:** {perfil.get('estilo_visual', '-')}")
+                        st.markdown(f"**Formatos exitosos:** {', '.join(perfil.get('formatos_exitosos', []))}")
+                        if perfil.get("patrones_titulo_exitosos"):
+                            st.markdown("**Patrones de título:**")
+                            for p in perfil["patrones_titulo_exitosos"]:
+                                st.markdown(f"  - {p}")
+
+            top_videos = canal_data.get("top_videos", [])
+            if top_videos:
+                with st.expander(f"🏆  Top {len(top_videos)} videos por vistas"):
+                    for i, v in enumerate(top_videos, 1):
+                        vistas = f"{v.get('vistas', 0):,}"
+                        likes = f"{v.get('likes', 0):,}"
+                        st.markdown(f"**{i}.** {v.get('titulo', '-')} — {vistas} vistas · {likes} likes")
+
+            competidores = canal_data.get("competidores", [])
+            with st.expander(f"⚔️  Competidores ({len(competidores)})", expanded=False):
+                if competidores:
+                    for comp in competidores:
+                        subs = f"{comp.get('suscriptores', 0):,}" if comp.get('suscriptores') else '?'
+                        vcount = comp.get('video_count')
+                        vcount_txt = f", {vcount} videos" if vcount else ""
+                        st.markdown(f"**{comp.get('nombre', '?')}** — {subs} subs{vcount_txt}")
+                        tops = comp.get("top_videos", [])
+                        if tops:
+                            for tv in tops[:3]:
+                                st.markdown(f"  - {tv.get('titulo', '-')} ({tv.get('vistas', 0):,} vistas)")
+
+                col_comp1, col_comp2 = st.columns([3, 1])
+                with col_comp1:
+                    comp_input = st.text_input("Agregar competidor (@handle o URL)", key="comp_input_dash")
+                with col_comp2:
+                    st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
+                    if st.button("➕  Agregar", key="btn_add_comp_dash", use_container_width=True):
+                        if comp_input.strip():
+                            with st.spinner("Escaneando competidor..."):
+                                try:
+                                    result = api_client.agregar_competidor(canal_sel, comp_input.strip())
+                                    st.success(f"✅  Competidor agregado: {result.get('nombre', '')}")
+                                except Exception as e:
+                                    st.error(f"Error: {str(e)}")
+
+            tendencias = canal_data.get("tendencias_nicho", [])
+            brechas = canal_data.get("brechas_contenido", [])
+            if tendencias or brechas:
+                with st.expander("📈  Tendencias y brechas de contenido", expanded=False):
+                    if tendencias:
+                        st.markdown("**Tendencias del nicho:**")
+                        for t in tendencias:
+                            st.markdown(f"  - {t}")
+                    if brechas:
+                        st.markdown("**Brechas de contenido (oportunidades):**")
+                        for b in brechas:
+                            st.markdown(f"  - {b}")
+
+            ideas = canal_data.get("ideas_sugeridas", [])
+            with st.expander(f"💡  Ideas de video sugeridas ({len(ideas)})", expanded=bool(ideas)):
+                col_ideas_r, _ = st.columns([1, 3])
+                with col_ideas_r:
+                    if st.button("🔄  Re-generar ideas", key="btn_refresh_ideas_dash", use_container_width=True):
+                        with st.spinner("Generando ideas..."):
+                            try:
+                                ideas = api_client.refrescar_ideas(canal_sel)
+                                st.success("✅  Ideas actualizadas")
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
+
+                if ideas:
+                    for i, idea in enumerate(ideas, 1):
+                        score = idea.get("potencial_viral", 0)
+                        st.markdown(f"""**{i}. {idea.get('titulo_sugerido', '-')}**
+  - Potencial viral: **{score}/10** · Formato: {idea.get('formato_recomendado', '-')} · ~{idea.get('duracion_sugerida_min', '?')} min
+  - {idea.get('razon', '')}""")
+                        if st.button(f"🚀  Usar esta idea", key=f"btn_idea_dash_{i}"):
+                            s["nicho"] = perfil.get("nicho_principal", "")
+                            s["titulo_elegido"] = idea.get("titulo_sugerido", "")
+                            _navegar_a('workspace', canal_sel, s.get('canal_activo_nombre'))
+                            st.rerun()
+                else:
+                    st.info("Conecta un canal y espera el análisis para ver ideas de video.")
+
+            try:
+                quota = api_client.quota_hoy()
+                usadas = quota.get("unidades_usadas", 0)
+                limite = quota.get("limite", 10000)
+                pct = round(usadas / limite * 100, 1) if limite else 0
+                st.markdown(f'<div style="font-size:.75rem;color:var(--text3);margin-top:12px">📊 Quota YouTube API: {usadas:,} / {limite:,} unidades ({pct}%)</div>', unsafe_allow_html=True)
+            except Exception:
+                pass
+
+    st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+    if st.button("🎬  Crear video para este canal →", key="btn_workspace_bottom", use_container_width=True):
+        _navegar_a('workspace', s['canal_activo_id'], s.get('canal_activo_nombre'))
+        st.rerun()
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════
+# VIEW: WORKSPACE — Producción de video
+# ══════════════════════════════════════════════════════════════
+if not s.get('canal_activo_id'):
+    _navegar_a('home')
+    st.rerun()
+
+st.markdown(f"""<div class="breadcrumb">
+  <span class="bc-link">🏠 Home</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-link">{s.get('canal_activo_nombre', '')}</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-current">Workspace</span>
+</div>""", unsafe_allow_html=True)
+
+col_back_w, _ = st.columns([1, 3])
+with col_back_w:
+    if st.button("← Volver al Canal", key="btn_back_channel", use_container_width=True):
+        _navegar_a('channel_dashboard', s['canal_activo_id'], s.get('canal_activo_nombre'))
+        st.rerun()
+
+# ── Pipeline bar ──────────────────────────────────────────────
+pip_steps = [
+    ("1","Guión",    bool(s['guion_aprobado'])),
+    ("2","Audio",    s['audio_generado']),
+    ("3","Kaggle",   s['kaggle_completado']),
+    ("4","Subtítulos",s['subs_generados']),
+    ("5","Ensamblar",bool(s['video_final'])),
+]
+fp = next((i for i,(_,_,d) in enumerate(pip_steps) if not d), 4)
+hp = ""
+for i,(num,name,done) in enumerate(pip_steps):
+    cls = "done" if done else ("active" if i==fp else "")
+    ic  = "✓" if done else num
+    hp += f'<div class="ps {cls}"><span class="psn">{ic}</span>{name}</div>'
+    if i < 4: hp += '<span class="pa">›</span>'
+st.markdown(f'<div class="pip">{hp}</div>', unsafe_allow_html=True)
+
+# ── Project bar ───────────────────────────────────────────────
+c_np, c_sp = st.columns([3, 5])
+nombre_proyecto = c_np.text_input(
+    "📁 Nombre del proyecto", value=s['nombre_proyecto'],
+    key="np_k", label_visibility="visible")
+s['nombre_proyecto'] = nombre_proyecto
+_canal_id_activo = s.get('canal_activo_id') or 'sin_canal'
+pdir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}")
+pdir.mkdir(parents=True, exist_ok=True)
+
+if _hdr_health and API_DISPONIBLE:
+    _pb_puede = _hdr_health.get("puede_pipeline", False)
+    _pb_criticos = len(_hdr_health.get("criticos_caidos", []))
+    _pb_pipe_txt = "pipeline listo" if _pb_puede else f"pipeline bloqueado ({_pb_criticos} críticos caídos)"
+    _pb_pipe_dot = "on" if _pb_puede else "off"
+    c_sp.markdown(f"""<div style="display:flex;align-items:center;gap:12px;height:100%;padding-top:28px">
+    <div style="display:flex;align-items:center;gap:5px">
+      <span class="dot on"></span>
+      <span style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace">agentes conectados</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px">
+      <span class="dot {_pb_pipe_dot}"></span>
+      <span style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace">{_pb_pipe_txt}</span>
+    </div>
+    </div>""", unsafe_allow_html=True)
+else:
+    c_sp.markdown(f"""<div style="display:flex;align-items:center;gap:6px;height:100%;padding-top:28px">
+    <span class="dot {'on' if API_DISPONIBLE else 'off'}"></span>
+    <span style="font-size:.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace">
+    {'agentes conectados' if API_DISPONIBLE else 'modo local (agentes no disponibles)'}</span>
+    </div>""", unsafe_allow_html=True)
+
+# ── Modo Automático ──────────────────────────────────────────
+if API_DISPONIBLE:
+    with st.expander("⚡ Modo Automático — Pipeline completo con un click", expanded=False):
+        st.markdown("""<div class="card primary" style="margin-bottom:12px">
+        <div class="card-title">⚡ Lanzar pipeline completo</div>
+        <div class="card-sub">Ejecuta todo el pipeline automáticamente: análisis de nicho → guión → audio → visual → subtítulos → ensamblado.
+        El mismo pipeline que usa n8n para generar videos mientras duermes.</div>
+        </div>""", unsafe_allow_html=True)
+
+        col_auto1, col_auto2 = st.columns(2, gap="large")
+        with col_auto1:
+            auto_nicho = st.text_input("Nicho", value=s.get("nicho", ""),
+                placeholder="ej: finanzas personales, psicología...", key="auto_nicho")
+        with col_auto2:
+            auto_canal = st.text_input("Canal", value=s.get("nombre_proyecto", "MiCanal"),
+                key="auto_canal")
+
+        if st.button("🚀  Lanzar pipeline automático", use_container_width=True, key="btn_auto"):
+            if not auto_nicho.strip():
+                st.error("❌  Ingresa el nicho")
+            else:
+                s["nicho"] = auto_nicho
+                try:
+                    import api_client
+                    webhook_payload = {
+                        "nicho": auto_nicho,
+                        "canal": auto_canal or "MiCanal",
+                    }
+                    if s.get("canal_id_pipeline"):
+                        webhook_payload["canal_id"] = s["canal_id_pipeline"]
+                    result = api_client.webhook_trigger(**webhook_payload)
+                    st.success(f"✅  Pipeline lanzado — Proyecto: **{result.get('proyecto_id')}**")
+                    st.info("El pipeline corre en background. Recibirás una notificación en Telegram cuando termine.")
+
+                    if result.get("proyecto_id"):
+                        s["auto_proyecto_id"] = result["proyecto_id"]
+                except Exception as e:
+                    st.error(f"❌  Error al lanzar pipeline: {str(e)}")
+
+        if s.get("auto_proyecto_id"):
+            st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+            if st.button("🔄  Ver estado del pipeline", use_container_width=True, key="btn_auto_status"):
+                try:
+                    import api_client
+                    estado = api_client.pipeline_estado(s["auto_proyecto_id"])
+                    fase = estado.get("fase_actual", "?")
+                    st.markdown(f"""<div class="card">
+                    <div class="card-title">📊 Proyecto: {s['auto_proyecto_id']}</div>
+                    <div class="card-sub">
+                    Fase actual: <strong>{fase}</strong><br>
+                    Guión aprobado: {'✅' if estado.get('guion_aprobado') else '⏳'} ·
+                    Visual listo: {'✅' if estado.get('visual_listo') else '⏳'} ·
+                    Audio listo: {'✅' if estado.get('audio_listo') else '⏳'}<br>
+                    Video final: {'✅ Listo!' if estado.get('video_final') else '⏳ En progreso...'}
+                    </div></div>""", unsafe_allow_html=True)
+                except Exception as e:
+                    st.warning(f"No se pudo obtener estado: {str(e)}")
+
+st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
+
+# ── Tabs ─────────────────────────────────────────────────────
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📝 Guión", "🎙️ Audio", "🚀 Kaggle", "💬 Subtítulos", "🎞️ Ensamblar", "📡 Monitor"])
+
+# ══════════════════════════════════════════════════════════════
+# TAB 0 — CANAL (Channel Intelligence) → MOVIDO A CHANNEL DASHBOARD
+# ══════════════════════════════════════════════════════════════
+if False:  # tab0 content moved to channel_dashboard view above
+    st.markdown('<div class="step-title">Channel Intelligence</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Conecta tu canal de YouTube para analizar tu nicho, competidores y generar ideas de video basadas en datos reales.</div>', unsafe_allow_html=True)
+
+    if not API_DISPONIBLE:
+        st.warning("Los agentes no están conectados. Levanta los servicios con `python run_dev.py` para usar Channel Intelligence.")
+    else:
+        import api_client
+
+        # ── Conectar canal ──
+        with st.expander("🔗  Conectar canal de YouTube", expanded=not s.get("canales_conectados")):
+            col_c1, col_c2 = st.columns([3, 1], gap="large")
+            with col_c1:
+                canal_input = st.text_input(
+                    "URL del canal, @handle o Channel ID",
+                    placeholder="ej: @MiCanal, https://youtube.com/@MiCanal, UCxxxxxxxx",
+                    key="canal_input_ci",
+                )
+            with col_c2:
+                st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
+                btn_conectar = st.button("🔗  Conectar y escanear", use_container_width=True, key="btn_conectar_canal")
+
+            if btn_conectar and canal_input.strip():
+                with st.spinner("Escaneando canal... (esto puede tomar 30-60 segundos)"):
+                    try:
+                        resultado = api_client.conectar_canal(canal_input.strip())
+                        canal_id = resultado.get("canal_id", "")
+                        st.success(f"✅  Canal conectado: **{resultado.get('nombre', canal_id)}**")
+                        s["canal_seleccionado"] = canal_id
+                        s["canales_conectados"] = True
+                    except Exception as e:
+                        st.error(f"❌  Error al conectar canal: {str(e)}")
+
+        # ── Lista de canales conectados ──
+        try:
+            canales = api_client.listar_canales()
+        except Exception:
+            canales = []
+
+        if canales:
+            st.markdown('<div class="section-label" style="margin-top:16px">Canales conectados</div>', unsafe_allow_html=True)
+            opciones_canal = {c["canal_id"]: f"{c['nombre']} ({c.get('suscriptores', '?')} subs)" for c in canales}
+            canal_sel = st.selectbox(
+                "Seleccionar canal",
+                options=list(opciones_canal.keys()),
+                format_func=lambda x: opciones_canal.get(x, x),
+                key="canal_selector",
+            )
+            s["canal_seleccionado"] = canal_sel
+
+            if canal_sel:
+                col_refresh, col_delete = st.columns([1, 1])
+                with col_refresh:
+                    if st.button("🔄  Refrescar datos", key="btn_refresh_canal", use_container_width=True):
+                        with st.spinner("Refrescando..."):
+                            try:
+                                api_client.refrescar_canal(canal_sel)
+                                st.success("✅  Datos actualizados")
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
+
+                try:
+                    canal_data = api_client.estado_canal(canal_sel)
+                except Exception as e:
+                    canal_data = None
+                    st.error(f"Error al cargar canal: {str(e)}")
+
+                if canal_data:
+                    # ── Dashboard del canal ──
+                    st.markdown('<div class="section-label" style="margin-top:16px">Dashboard</div>', unsafe_allow_html=True)
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Suscriptores", f"{canal_data.get('suscriptores', 0):,}")
+                    m2.metric("Videos", f"{canal_data.get('video_count', 0):,}")
+                    m3.metric("Vistas totales", f"{canal_data.get('vistas_totales', 0):,}")
+                    perfil = canal_data.get("perfil", {})
+                    m4.metric("Nicho", perfil.get("nicho_principal", "Sin analizar"))
+
+                    # ── Perfil IA ──
+                    if perfil.get("nicho_principal"):
+                        with st.expander("🧠  Perfil analizado por IA", expanded=True):
+                            col_p1, col_p2 = st.columns(2)
+                            with col_p1:
+                                st.markdown(f"**Nicho:** {perfil.get('nicho_principal', '-')}")
+                                st.markdown(f"**Subnicho:** {perfil.get('subnicho_principal', '-')}")
+                                st.markdown(f"**Sub-nichos:** {', '.join(perfil.get('sub_nichos', []))}")
+                                st.markdown(f"**Tono:** {perfil.get('tono', '-')}")
+                                st.markdown(f"**Audiencia:** {perfil.get('audiencia_objetivo', '-')}")
+                                st.markdown(f"**Frecuencia:** {perfil.get('frecuencia_publicacion', '-')}")
+                            with col_p2:
+                                st.markdown(f"**Keywords:** {', '.join(perfil.get('keywords_clave', []))}")
+                                st.markdown(f"**Estilo visual:** {perfil.get('estilo_visual', '-')}")
+                                st.markdown(f"**Formatos exitosos:** {', '.join(perfil.get('formatos_exitosos', []))}")
+                                if perfil.get("patrones_titulo_exitosos"):
+                                    st.markdown("**Patrones de título:**")
+                                    for p in perfil["patrones_titulo_exitosos"]:
+                                        st.markdown(f"  - {p}")
+
+                    # ── Identidad Visual ──
+                    id_visual = canal_data.get("identidad_visual", {})
+                    with st.expander(
+                        "🎨  Identidad Visual del Canal"
+                        + (" ✅" if id_visual.get("configurado") else " — Sin configurar"),
+                        expanded=not id_visual.get("configurado"),
+                    ):
+                        from shared.visual_styles import CATALOGO_ESTILOS, CATEGORIAS
+
+                        if id_visual.get("configurado"):
+                            st.success(f"Estilo activo: **{id_visual.get('estilo_slug')}**")
+                            if id_visual.get("personaje_principal"):
+                                st.markdown(f"**Personaje:** {id_visual.get('personaje_nombre', '')} — {id_visual['personaje_principal']}")
+                            if id_visual.get("paleta_colores"):
+                                st.markdown(f"**Paleta:** {id_visual['paleta_colores']}")
+                            if id_visual.get("fondo_base"):
+                                st.markdown(f"**Fondo base:** {id_visual['fondo_base']}")
+                            if id_visual.get("elementos_recurrentes"):
+                                st.markdown(f"**Elementos:** {', '.join(id_visual['elementos_recurrentes'])}")
+
+                        st.markdown('<div class="section-label" style="margin-top:12px">Configurar identidad</div>', unsafe_allow_html=True)
+
+                        iv_cat = st.selectbox(
+                            "Categoria", [c["nombre"] for c in CATEGORIAS],
+                            key="iv_cat_sel",
+                        )
+                        iv_cat_slug = next((c["slug"] for c in CATEGORIAS if c["nombre"] == iv_cat), None)
+                        iv_estilos = [e for e in CATALOGO_ESTILOS if e["categoria"] == iv_cat_slug]
+                        iv_opciones = [f"{e['slug']} — {e['nombre']} ({e['caso_uso']})" for e in iv_estilos]
+                        iv_opciones.append("custom — Personalizado (tu propio estilo)")
+                        iv_estilo = st.selectbox("Estilo visual", iv_opciones, key="iv_estilo_sel")
+                        iv_slug = iv_estilo.split(" — ")[0]
+
+                        if iv_slug == "custom":
+                            iv_custom_tpl = st.text_area(
+                                "Prompt template (debe contener {prompt})",
+                                placeholder="cinematic photo {prompt} . your style keywords here",
+                                key="iv_custom_tpl",
+                            )
+                            iv_custom_neg = st.text_input(
+                                "Negative prompt",
+                                placeholder="ugly, deformed, blurry...",
+                                key="iv_custom_neg",
+                            )
+
+                        col_iv1, col_iv2 = st.columns(2, gap="large")
+                        with col_iv1:
+                            iv_personaje = st.text_area(
+                                "Personaje principal (EN INGLES, opcional)",
+                                value=id_visual.get("personaje_principal", ""),
+                                placeholder="a young woman with short blue hair, round glasses, wearing a black hoodie",
+                                key="iv_personaje",
+                                height=80,
+                            )
+                            iv_nombre = st.text_input(
+                                "Nombre del personaje",
+                                value=id_visual.get("personaje_nombre", ""),
+                                key="iv_nombre",
+                            )
+                            iv_elementos = st.text_input(
+                                "Elementos recurrentes (separados por coma)",
+                                value=", ".join(id_visual.get("elementos_recurrentes", [])),
+                                placeholder="glowing crystal, floating screens",
+                                key="iv_elementos",
+                            )
+                        with col_iv2:
+                            iv_paleta = st.text_input(
+                                "Paleta de colores",
+                                value=id_visual.get("paleta_colores", ""),
+                                placeholder="deep purple, electric blue, warm gold",
+                                key="iv_paleta",
+                            )
+                            iv_fondo = st.text_area(
+                                "Fondo/entorno base (EN INGLES, opcional)",
+                                value=id_visual.get("fondo_base", ""),
+                                placeholder="modern dark studio with ambient neon lighting",
+                                key="iv_fondo",
+                                height=80,
+                            )
+                            iv_ilum = st.text_input(
+                                "Iluminacion",
+                                value=id_visual.get("iluminacion", ""),
+                                placeholder="dramatic side lighting with rim light",
+                                key="iv_ilum",
+                            )
+
+                        if st.button("💾  Guardar identidad visual", key="btn_save_iv", use_container_width=True):
+                            try:
+                                payload_iv = {
+                                    "estilo_slug": iv_slug,
+                                    "personaje_principal": iv_personaje.strip() or None,
+                                    "personaje_nombre": iv_nombre.strip() or None,
+                                    "elementos_recurrentes": [e.strip() for e in iv_elementos.split(",") if e.strip()] if iv_elementos else [],
+                                    "paleta_colores": iv_paleta.strip() or None,
+                                    "fondo_base": iv_fondo.strip() or None,
+                                    "iluminacion": iv_ilum.strip() or None,
+                                }
+                                if iv_slug == "custom":
+                                    payload_iv["prompt_template"] = iv_custom_tpl
+                                    payload_iv["negative_prompt"] = iv_custom_neg
+
+                                api_client.set_identidad_visual(canal_sel, payload_iv)
+                                st.success("✅  Identidad visual guardada")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error: {str(e)}")
+
+                    # ── Top Videos ──
+                    top_videos = canal_data.get("top_videos", [])
+                    if top_videos:
+                        with st.expander(f"🏆  Top {len(top_videos)} videos por vistas"):
+                            for i, v in enumerate(top_videos, 1):
+                                vistas = f"{v.get('vistas', 0):,}"
+                                likes = f"{v.get('likes', 0):,}"
+                                st.markdown(f"**{i}.** {v.get('titulo', '-')} — {vistas} vistas · {likes} likes")
+
+                    # ── Competidores ──
+                    competidores = canal_data.get("competidores", [])
+                    with st.expander(f"⚔️  Competidores ({len(competidores)})", expanded=False):
+                        if competidores:
+                            for comp in competidores:
+                                subs = f"{comp.get('suscriptores', 0):,}" if comp.get('suscriptores') else '?'
+                                vcount = comp.get('video_count')
+                                vcount_txt = f", {vcount} videos" if vcount else ""
+                                st.markdown(f"**{comp.get('nombre', '?')}** — {subs} subs{vcount_txt}")
+                                tops = comp.get("top_videos", [])
+                                if tops:
+                                    for tv in tops[:3]:
+                                        st.markdown(f"  - {tv.get('titulo', '-')} ({tv.get('vistas', 0):,} vistas)")
+
+                        col_comp1, col_comp2 = st.columns([3, 1])
+                        with col_comp1:
+                            comp_input = st.text_input("Agregar competidor (@handle o URL)", key="comp_input_ci")
+                        with col_comp2:
+                            st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
+                            if st.button("➕  Agregar", key="btn_add_comp", use_container_width=True):
+                                if comp_input.strip():
+                                    with st.spinner("Escaneando competidor..."):
+                                        try:
+                                            result = api_client.agregar_competidor(canal_sel, comp_input.strip())
+                                            st.success(f"✅  Competidor agregado: {result.get('nombre', '')}")
+                                        except Exception as e:
+                                            st.error(f"Error: {str(e)}")
+
+                    # ── Tendencias y Brechas ──
+                    tendencias = canal_data.get("tendencias_nicho", [])
+                    brechas = canal_data.get("brechas_contenido", [])
+                    if tendencias or brechas:
+                        with st.expander("📈  Tendencias y brechas de contenido", expanded=False):
+                            if tendencias:
+                                st.markdown("**Tendencias del nicho:**")
+                                for t in tendencias:
+                                    st.markdown(f"  - {t}")
+                            if brechas:
+                                st.markdown("**Brechas de contenido (oportunidades):**")
+                                for b in brechas:
+                                    st.markdown(f"  - {b}")
+
+                    # ── Ideas de Video ──
+                    ideas = canal_data.get("ideas_sugeridas", [])
+                    with st.expander(f"💡  Ideas de video sugeridas ({len(ideas)})", expanded=bool(ideas)):
+                        col_ideas_r, _ = st.columns([1, 3])
+                        with col_ideas_r:
+                            if st.button("🔄  Re-generar ideas", key="btn_refresh_ideas", use_container_width=True):
+                                with st.spinner("Generando ideas..."):
+                                    try:
+                                        ideas = api_client.refrescar_ideas(canal_sel)
+                                        st.success("✅  Ideas actualizadas")
+                                    except Exception as e:
+                                        st.error(f"Error: {str(e)}")
+
+                        if ideas:
+                            for i, idea in enumerate(ideas, 1):
+                                score = idea.get("potencial_viral", 0)
+                                st.markdown(f"""**{i}. {idea.get('titulo_sugerido', '-')}**
+  - Potencial viral: **{score}/10** · Formato: {idea.get('formato_recomendado', '-')} · ~{idea.get('duracion_sugerida_min', '?')} min
+  - {idea.get('razon', '')}""")
+                                if st.button(f"🚀  Usar esta idea", key=f"btn_idea_{i}"):
+                                    s["nicho"] = perfil.get("nicho_principal", "")
+                                    s["titulo_elegido"] = idea.get("titulo_sugerido", "")
+                                    s["canal_id_pipeline"] = canal_sel
+                                    st.success(f"✅  Idea cargada. Ve al tab Guión para crear el video.")
+                        else:
+                            st.info("Conecta un canal y espera el análisis para ver ideas de video.")
+
+                    # ── Quota ──
+                    try:
+                        quota = api_client.quota_hoy()
+                        usadas = quota.get("unidades_usadas", 0)
+                        limite = quota.get("limite", 10000)
+                        pct = round(usadas / limite * 100, 1) if limite else 0
+                        st.markdown(f'<div style="font-size:.75rem;color:var(--text3);margin-top:12px">📊 Quota YouTube API: {usadas:,} / {limite:,} unidades ({pct}%)</div>', unsafe_allow_html=True)
+                    except Exception:
+                        pass
+
+# ══════════════════════════════════════════════════════════════
+# TAB 1 — GUIÓN (Modo Pro — Sistema de 3 Fases)
+# ══════════════════════════════════════════════════════════════
+with tab1:
+    st.markdown('<div class="step-title">Guión — Modo Pro</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Sistema de 3 fases: análisis del nicho con videos virales → ingeniería de títulos → guión con estructura viral probada.</div>', unsafe_allow_html=True)
+
+    # Cargar perfil del canal activo para pre-llenar subnicho
+    _perfil_canal = {}
+    if s.get('canal_activo_id') and API_DISPONIBLE:
+        try:
+            _canal_data_guion = api_client.estado_canal(s['canal_activo_id'])
+            _perfil_canal = _canal_data_guion.get("perfil", {}) if _canal_data_guion else {}
+        except Exception:
+            _perfil_canal = {}
+    _subnicho_default = _perfil_canal.get("subnicho_principal", "") or _perfil_canal.get("nicho_principal", "")
+    _nicho_principal = _perfil_canal.get("nicho_principal", "")
+    if not s.get("nicho") and _subnicho_default:
+        s["nicho"] = _subnicho_default
+
+    # Canal activo mostrado como badge
+    if s.get('canal_activo_nombre'):
+        st.markdown(f"""<div style="background:var(--blue-dim);border:1px solid rgba(62,166,255,.2);
+border-radius:8px;padding:8px 14px;margin-bottom:12px;display:inline-flex;align-items:center;gap:8px">
+<span style="font-size:.75rem;color:var(--blue)">📊 Canal:</span>
+<span style="font-size:.85rem;font-weight:700;color:var(--text)">{s['canal_activo_nombre']}</span>
+</div>""", unsafe_allow_html=True)
+
+    # Barra de fases
+    fase_actual = 1
+    if s.get("nicho_analizado"): fase_actual = 2
+    if s.get("titulo_elegido"):  fase_actual = 3
+    if s.get("guion_aprobado"):  fase_actual = 4
+    fases_html = ""
+    for i,(num,nombre) in enumerate([("1","Analizar subnicho"),("2","Elegir título"),("3","Generar guión")],1):
+        cls = "done" if fase_actual > i else ("active" if fase_actual == i else "")
+        ic  = "✓" if fase_actual > i else num
+        fases_html += f'<div class="ps {cls}"><span class="psn">{ic}</span>{nombre}</div>'
+        if i < 3: fases_html += '<span class="pa">›</span>'
+    st.markdown(f'<div class="pip" style="margin:0 -32px 24px;padding:0 32px">{fases_html}</div>', unsafe_allow_html=True)
+
+    # ══ FASE 1 ════════════════════════════════════════════════
+    with st.expander("📊  Fase 1 — Analizar subnicho", expanded=(fase_actual==1)):
+        st.markdown('<div class="section-label">Define tu subnicho</div>', unsafe_allow_html=True)
+        col_n1,col_n2 = st.columns([2,1],gap="large")
+        with col_n1:
+            st.text_input("Nicho del canal",
+                value=_nicho_principal or s.get("nicho",""),
+                disabled=True,
+                key="nicho_display")
+            nicho_input = st.text_input("Subnicho del canal",
+                value=s.get("nicho",""),
+                placeholder="ej: astrología y energía cósmica, meditación guiada, despertar espiritual...",
+                key="nicho_inp")
+            idioma_canal = st.selectbox("Idioma del canal",["Español","Inglés","Portugués"])
+        with col_n2:
+            st.markdown('<div style="height:28px"></div>', unsafe_allow_html=True)
+            buscar_virales = st.checkbox("🔍 Analizar videos virales del subnicho",value=True,
+                help="Groq analiza patrones de videos exitosos en este subnicho para adaptar los frameworks")
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        if st.button("📊  Analizar subnicho y detectar frameworks",use_container_width=True):
+            if not GROQ_KEY and not API_DISPONIBLE: st.error("❌  GROQ_API_KEY no encontrada en `.env`")
+            elif not nicho_input.strip(): st.error("❌  Ingresa el subnicho del canal")
+            else:
+                s["nicho"] = nicho_input
+                s["idioma_canal"] = idioma_canal
+                with st.spinner("🔍  Analizando subnicho y patrones virales..."):
+                    try:
+                        if API_DISPONIBLE:
+                            proy_id = f"proy_{s['nombre_proyecto']}"
+                            try:
+                                api_client.crear_proyecto(proy_id, s['nombre_proyecto'])
+                            except Exception:
+                                pass
+                            output = api_client.analizar_nicho(proy_id, nicho_input)
+                            patrones_agente = output.get("patrones_virales", [])
+                            _nicho_ctx = f' (dentro del nicho de {_nicho_principal})' if _nicho_principal else ''
+                            patrones_txt = "\n".join(f"- {p}" for p in patrones_agente) if patrones_agente else ""
+                            from groq import Groq
+                            c_api = Groq(api_key=GROQ_KEY)
+                            prompt_complemento = f"""Eres estratega experto en YouTube viral especializado en el SUBNICHO: "{nicho_input}"{_nicho_ctx}.
+Idioma del canal: {idioma_canal}.
+
+Se investigaron videos virales de este subnicho y se detectaron estos PATRONES VIRALES reales:
+{patrones_txt}
+
+Tu tarea: analiza esos patrones virales, extrae las emociones y estructuras que los hacen funcionar,
+y genera los siguientes elementos estratégicos para crear contenido viral en este subnicho:
+
+1. TRIGGERS EMOCIONALES (5): Activadores psicológicos que provocan clic en YouTube y engagement durante el video.
+   Extrae las emociones dominantes de los patrones virales detectados arriba.
+   Cada trigger debe incluir un ejemplo concreto de cómo aplicarlo en un título de YouTube de este subnicho.
+
+2. PALABRAS POWER (8): Palabras específicas que aumentan el CTR en títulos de YouTube de este subnicho.
+   Deben ser palabras que la audiencia de "{nicho_input}" reconoce y que generan curiosidad o urgencia.
+   No uses palabras genéricas — cada palabra debe ser relevante para este subnicho particular.
+
+3. FRAMEWORKS DE TÍTULO (8): Estructuras probadas para crear títulos virales en este subnicho.
+   La plantilla debe usar ___ como placeholder para el tema específico.
+   El ejemplo debe ser un título realista de YouTube que podría tener +100K vistas en este subnicho.
+   Basa cada framework en los patrones virales detectados arriba.
+
+Responde SOLO en JSON válido sin markdown:
+{{"triggers_emocionales":[{{"emocion":"nombre del trigger","descripcion":"por qué activa el clic en este subnicho","intensidad":"alta/media","ejemplo_titulo":"título de YouTube usando este trigger"}}],
+"palabras_power":["palabra1","palabra2","palabra3","palabra4","palabra5","palabra6","palabra7","palabra8"],
+"frameworks_titulo":[{{"nombre":"nombre del framework","plantilla":"estructura con ___","ejemplo":"título realista de YouTube con +100K vistas","por_que_funciona":"mecanismo psicológico que activa","trigger":"emoción principal que explota"}}]}}"""
+                            resp_c = c_api.chat.completions.create(
+                                model="llama-3.3-70b-versatile",
+                                messages=[{"role":"user","content":prompt_complemento}],
+                                temperature=0.4,max_tokens=3000)
+                            raw_c = resp_c.choices[0].message.content.strip()
+                            if "```" in raw_c:
+                                for p in raw_c.split("```"):
+                                    p=p.strip()
+                                    if p.startswith("{"): raw_c=p; break
+                                    elif p.startswith("json"): raw_c=p[4:].strip(); break
+                            complemento = json.loads(raw_c)
+                            analisis = {
+                                "subnicho": nicho_input,
+                                "nicho": _nicho_principal or nicho_input,
+                                "idioma": idioma_canal,
+                                "analisis": {},
+                                "triggers_emocionales": complemento.get("triggers_emocionales", []),
+                                "palabras_power": complemento.get("palabras_power", []),
+                                "frameworks_titulo": complemento.get("frameworks_titulo", []),
+                                "patrones_virales": patrones_agente,
+                            }
+                            s["analisis_nicho"]  = analisis
+                            s["nicho_analizado"] = True
+                            st.success(f"✅  Subnicho analizado — {len(patrones_agente)} patrones + {len(complemento.get('triggers_emocionales',[]))} triggers + {len(complemento.get('frameworks_titulo',[]))} frameworks")
+                            st.rerun()
+                        else:
+                            from groq import Groq
+                            c = Groq(api_key=GROQ_KEY)
+                            _nicho_ctx = f' (dentro del nicho de {_nicho_principal})' if _nicho_principal else ''
+                            buscar_txt = f"""
+Analiza los videos más virales del subnicho "{nicho_input}"{_nicho_ctx} en YouTube.
+Considera: títulos que generan más clics, emociones dominantes,
+formatos que funcionan mejor, palabras power más repetidas.
+Usa ese análisis para adaptar los frameworks al subnicho específico.""" if buscar_virales else ""
+
+                            prompt_a = f"""Eres estratega experto en canales de YouTube virales.
+Analiza el SUBNICHO específico: "{nicho_input}"{_nicho_ctx} para canal en {idioma_canal}.
+IMPORTANTE: No analices el nicho general, enfócate SOLO en el subnicho "{nicho_input}" para encontrar
+patrones, frameworks y triggers que funcionen específicamente para esta audiencia particular.
+{buscar_txt}
+Responde SOLO en JSON válido sin markdown:
+{{"subnicho":"{nicho_input}","nicho":"{_nicho_principal or nicho_input}","idioma":"{idioma_canal}",
+"analisis":{{"descripcion":"descripción del subnicho en 2 líneas","tipo_audiencia":"espectador típico de este subnicho",
+"mejor_formato":"formato más efectivo para este subnicho","duracion_ideal":"duración óptima"}},
+"triggers_emocionales":[{{"emocion":"nombre","descripcion":"por qué funciona en este subnicho","intensidad":"alta/media"}}],
+"palabras_power":["p1","p2","p3","p4","p5","p6","p7","p8"],
+"frameworks_titulo":[{{"nombre":"nombre fw","plantilla":"plantilla con ___","ejemplo":"ejemplo concreto en este subnicho","por_que_funciona":"explicación psicológica","trigger":"emoción"}}],
+"patrones_virales":["patrón 1","patrón 2","patrón 3","patrón 4","patrón 5"]}}
+Genera 5 triggers, 8 palabras power, 8 frameworks y 5 patrones específicos para el subnicho "{nicho_input}"."""
+
+                            resp = c.chat.completions.create(
+                                model="llama-3.3-70b-versatile",
+                                messages=[{"role":"user","content":prompt_a}],
+                                temperature=0.4,max_tokens=3000)
+                            raw = resp.choices[0].message.content.strip()
+                            if "```" in raw:
+                                for p in raw.split("```"):
+                                    p=p.strip()
+                                    if p.startswith("{"): raw=p; break
+                                    elif p.startswith("json"): raw=p[4:].strip(); break
+                            analisis = json.loads(raw)
+                            s["analisis_nicho"]  = analisis
+                            s["nicho_analizado"] = True
+                            st.success(f"✅  Subnicho analizado — {len(analisis['frameworks_titulo'])} frameworks detectados")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌  {str(e)}")
+
+    if s.get("nicho_analizado") and s.get("analisis_nicho"):
+        an = s["analisis_nicho"]
+        with st.expander("📋  Ver análisis del subnicho",expanded=False):
+            st.markdown(f"**🎯 Subnicho:** {an.get('subnicho', an.get('nicho',''))}")
+            st.markdown("---")
+            st.markdown("**⚡ Triggers emocionales:**")
+            for t in an.get("triggers_emocionales",[]):
+                st.markdown(f"  • **{t['emocion']}** ({t['intensidad']}) — {t['descripcion']}")
+            st.markdown("---")
+            st.markdown("**💥 Palabras power:**")
+            st.markdown("  "+"  ·  ".join(f"`{p}`" for p in an.get("palabras_power",[])))
+            st.markdown("---")
+            st.markdown("**🔍 Patrones virales:**")
+            for pat in an.get("patrones_virales",[]): st.markdown(f"  • {pat}")
+
+    # ══ FASE 2 ════════════════════════════════════════════════
+    if s.get("nicho_analizado"):
+        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+        with st.expander("🎯  Fase 2 — Ingeniería de títulos",expanded=(fase_actual==2)):
+            st.markdown('<div class="section-label">Genera y elige tu título</div>', unsafe_allow_html=True)
+            an = s.get("analisis_nicho",{})
+            frameworks = an.get("frameworks_titulo",[])
+
+            col_t1,col_t2 = st.columns([2,1],gap="large")
+            with col_t1:
+                # Generar sugerencias de temas si no existen
+                if not s.get("temas_sugeridos") and an.get("patrones_virales"):
+                    try:
+                        from groq import Groq
+                        _c_temas = Groq(api_key=GROQ_KEY)
+                        _subnicho_t = an.get("subnicho", an.get("nicho", ""))
+                        _patrones_t = "\n".join(f"- {p}" for p in an.get("patrones_virales", []))
+                        _triggers_t = "\n".join(f"- {t['emocion']}: {t['descripcion']}" for t in an.get("triggers_emocionales", []))
+                        _prompt_temas = f"""Eres creador de contenido experto en el subnicho de YouTube: "{_subnicho_t}".
+
+Se detectaron estos PATRONES VIRALES en el subnicho:
+{_patrones_t}
+
+Y estos TRIGGERS EMOCIONALES que funcionan:
+{_triggers_t}
+
+Genera exactamente 5 temas específicos para videos de YouTube en este subnicho.
+Cada tema debe ser concreto y accionable (no genérico), que pueda convertirse en un video viral.
+Los temas deben explotar los patrones y triggers detectados.
+Cada tema debe ser corto (máximo 8 palabras) para que funcione como botón de selección.
+
+Responde SOLO en JSON válido sin markdown:
+{{"temas":["tema 1","tema 2","tema 3","tema 4","tema 5"]}}"""
+                        _resp_temas = _c_temas.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role":"user","content":_prompt_temas}],
+                            temperature=0.7,max_tokens=500)
+                        _raw_temas = _resp_temas.choices[0].message.content.strip()
+                        if "```" in _raw_temas:
+                            for _pt in _raw_temas.split("```"):
+                                _pt=_pt.strip()
+                                if _pt.startswith("{"): _raw_temas=_pt; break
+                                elif _pt.startswith("json"): _raw_temas=_pt[4:].strip(); break
+                        s["temas_sugeridos"] = json.loads(_raw_temas).get("temas", [])[:5]
+                    except Exception:
+                        s["temas_sugeridos"] = []
+
+                # Mostrar botones de sugerencias en vertical
+                if s.get("temas_sugeridos"):
+                    for _i_t, _tema_sug in enumerate(s["temas_sugeridos"]):
+                        if st.button(f"💡 {_tema_sug}", key=f"btn_tema_{_i_t}"):
+                            s["tema_video"] = _tema_sug
+                            s["tema_inp"] = _tema_sug
+                            st.rerun()
+
+                tema_video = st.text_input("Tema específico del video",
+                    value=s.get("tema_video",""),
+                    placeholder="ej: señales de que alguien te admira en secreto, hábitos que destruyen tu energía...",
+                    key="tema_inp")
+                n_titulos = st.slider("Títulos a generar",5,15,10)
+            with col_t2:
+                st.markdown('<div class="section-label" style="margin-top:28px">Frameworks del subnicho</div>', unsafe_allow_html=True)
+                for fw in frameworks[:4]: st.caption(f"• {fw['nombre']}: `{fw['plantilla']}`")
+            st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+            if st.button("🎯  Generar títulos virales",use_container_width=True):
+                if not tema_video.strip(): st.error("❌  Ingresa el tema del video")
+                else:
+                    s["tema_video"] = tema_video
+                    with st.spinner(f"🎯  Claude está generando {n_titulos} títulos virales..."):
+                        try:
+                            from shared.claude_client import generar_json_claude
+                            from shared.knowledge_loader import cargar_knowledge
+                            fw_str  = json.dumps(frameworks,ensure_ascii=False,indent=2)
+                            tr_str  = json.dumps(an.get("triggers_emocionales",[]),ensure_ascii=False)
+                            pw_str  = ", ".join(an.get("palabras_power",[]))
+                            pat_str = "\n".join(f"- {p}" for p in an.get("patrones_virales",[]))
+
+                            # Títulos de competencia y patrones exitosos del canal
+                            _titulos_competencia = ""
+                            _patrones_titulo_canal = ""
+                            if _canal_data_guion:
+                                competidores = _canal_data_guion.get("competidores", [])
+                                _comp_lines = []
+                                for _comp in competidores[:5]:
+                                    _comp_nombre = _comp.get("nombre", "")
+                                    for _tv in _comp.get("top_videos", [])[:3]:
+                                        _tv_titulo = _tv.get("titulo", "")
+                                        _tv_vistas = _tv.get("vistas", 0)
+                                        if _tv_titulo:
+                                            _comp_lines.append(f"- \"{_tv_titulo}\" ({_tv_vistas:,} vistas) — {_comp_nombre}")
+                                if _comp_lines:
+                                    _titulos_competencia = "\n".join(_comp_lines)
+                                _pat_canal = _perfil_canal.get("patrones_titulo_exitosos", [])
+                                if _pat_canal:
+                                    _patrones_titulo_canal = "\n".join(f"- {p}" for p in _pat_canal)
+
+                            # Knowledge del curso de YouTube
+                            _knowledge_estrategia = cargar_knowledge("depto_1_estrategia")
+                            _knowledge_titulos = ""
+                            if _knowledge_estrategia:
+                                import re as _re
+                                _match = _re.search(r'## COPYWRITING - TÍTULOS.*?(?=\n## |\Z)', _knowledge_estrategia, _re.DOTALL)
+                                if _match:
+                                    _knowledge_titulos = _match.group(0)
+
+                            # Fecha actual
+                            from datetime import datetime as _dt
+                            _meses = {1:"enero",2:"febrero",3:"marzo",4:"abril",5:"mayo",6:"junio",
+                                      7:"julio",8:"agosto",9:"septiembre",10:"octubre",11:"noviembre",12:"diciembre"}
+                            _now = _dt.now()
+                            _fecha_actual = f"{_now.day} de {_meses[_now.month]} de {_now.year}"
+
+                            _system_titulos = f"""Eres el mejor copywriter de títulos de YouTube en español, especializado en el subnicho de "{s["nicho"]}".
+Tu única misión: crear títulos que generen CLICS MASIVOS. Cada título debe provocar que el espectador
+NECESITE hacer clic para resolver la curiosidad que le genera.
+
+FECHA ACTUAL: {_fecha_actual}. Cualquier referencia temporal debe ser actual o futura, NUNCA pasada.
+
+Responde SOLO en JSON válido sin markdown."""
+
+                            _user_titulos = f"""SUBNICHO: "{s["nicho"]}"
+IDIOMA: {s.get("idioma_canal","Español")}
+TEMA DEL VIDEO: "{tema_video}"
+
+PATRONES VIRALES detectados en este subnicho:
+{pat_str}
+
+FRAMEWORKS DE TÍTULO probados:
+{fw_str}
+
+TRIGGERS EMOCIONALES que funcionan:
+{tr_str}
+
+PALABRAS POWER del subnicho: {pw_str}
+{"" if not _titulos_competencia else f"""
+TÍTULOS EXITOSOS DE LA COMPETENCIA (REFERENCIA de estilo — supéralos):
+{_titulos_competencia}
+"""}{"" if not _patrones_titulo_canal else f"""
+PATRONES DE TÍTULO QUE YA FUNCIONAN EN ESTE CANAL:
+{_patrones_titulo_canal}
+"""}{"" if not _knowledge_titulos else f"""
+CONOCIMIENTO DE CURSOS ESPECIALIZADOS EN YOUTUBE VIRAL:
+{_knowledge_titulos}
+"""}
+EJEMPLOS DE TÍTULOS VIRALES REALES EN YOUTUBE (estudia el estilo y supéralos):
+- "Si ves el 11:11 constantemente, el universo te está enviando ESTE mensaje" → curiosity gap + identificación personal
+- "Las 5 señales de que tu despertar espiritual ya comenzó (la #3 te sorprenderá)" → listicle + curiosidad específica
+- "El Portal 888: lo que NADIE te dice sobre esta fecha cósmica" → exclusividad + evento temporal
+- "Tu signo revela qué energía cósmica te domina en julio 2026" → personalización + temporalidad
+- "Haz esto durante 7 días y tu energía cósmica cambiará para siempre" → promesa concreta + urgencia
+- "¿Por qué sientes que algo GRANDE está a punto de pasar? La respuesta te dejará sin palabras" → validación emocional + misterio
+
+Genera {n_titulos} títulos virales para el tema "{tema_video}".
+
+REGLAS OBLIGATORIAS:
+1) ESPECÍFICO, nunca genérico. Incluye cifras, fechas actuales, eventos concretos del subnicho
+2) Curiosity gap FUERTE: el espectador debe sentir que se pierde algo importante si no hace clic
+3) Entre 40 y 70 caracteres idealmente
+4) En {s.get("idioma_canal","Español")}
+5) Que suenen como títulos REALES de YouTube viral (estudia los ejemplos arriba)
+6) Varía los frameworks — no repitas la misma estructura
+7) Fechas y meses ACTUALES o FUTUROS (estamos en {_fecha_actual})
+8) Aplica las reglas del curso: activar curiosidad inmediata, no revelar todo, destacar beneficio/sorpresa/conflicto
+9) PROHIBIDO: títulos que suenen a libro de autoayuda, blog, o coaching genérico
+
+JSON de respuesta:
+{{"titulos":[{{"titulo":"título viral completo","framework_usado":"nombre fw","trigger":"emoción principal",
+"por_que_funciona":"por qué genera clic","potencial_viral":"alto/medio","ctr_estimado":"% CTR"}}]}}"""
+
+                            resultado = generar_json_claude(_system_titulos, _user_titulos)
+                            s["titulos_generados"] = resultado.get("titulos", [])
+                            st.success(f"✅  {len(resultado.get('titulos',[]))} títulos generados con Claude")
+                            st.rerun()
+                        except Exception as e: st.error(f"❌  {str(e)}")
+
+            if s.get("titulos_generados"):
+                st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="section-label">Elige el mejor título</div>', unsafe_allow_html=True)
+                for i,t in enumerate(s["titulos_generados"]):
+                    pot = t.get("potencial_viral","medio")
+                    col_pot = "#1DB954" if pot=="alto" else "#FF9500"
+                    col_tit,col_btn = st.columns([5,1])
+                    with col_tit:
+                        st.markdown(f"""<div style="background:var(--dark2);border:1px solid var(--border);
+border-radius:8px;padding:11px 14px;margin-bottom:7px;border-left:3px solid {col_pot}">
+<div style="font-size:.87rem;font-weight:600;color:var(--text);margin-bottom:3px">{t["titulo"]}</div>
+<div style="font-size:.7rem;color:var(--text3);display:flex;gap:14px;flex-wrap:wrap">
+<span>📐 {t.get("framework_usado","")}</span><span>⚡ {t.get("trigger","")}</span>
+<span>📊 CTR ~{t.get("ctr_estimado","—")}</span>
+<span style="color:{col_pot}">● {pot.upper()}</span></div>
+<div style="font-size:.7rem;color:var(--text2);margin-top:3px;font-style:italic">{t.get("por_que_funciona","")}</div>
+</div>""",unsafe_allow_html=True)
+                    with col_btn:
+                        st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
+                        if st.button("✅",key=f"use_t_{i}",use_container_width=True):
+                            s["titulo_elegido"]    = t["titulo"]
+                            s["titulo_framework"]  = t.get("framework_usado","")
+                            s["titulo_trigger"]    = t.get("trigger","")
+                            st.rerun()
+
+                st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
+                titulo_custom = st.text_input("O escribe tu propio título:",placeholder="Título personalizado...")
+                if titulo_custom and st.button("✅  Usar este título",use_container_width=True,key="use_custom"):
+                    s["titulo_elegido"]   = titulo_custom
+                    s["titulo_framework"] = "personalizado"
+                    st.rerun()
+
+    if s.get("titulo_elegido"):
+        st.markdown(f"""<div style="background:var(--green-dim);border:1px solid rgba(29,185,84,.25);
+border-radius:10px;padding:12px 16px;margin:10px 0;display:flex;align-items:center;gap:10px">
+<span style="font-size:1.1rem">📺</span>
+<div><div style="font-size:.68rem;color:var(--green);text-transform:uppercase;letter-spacing:.8px;
+font-weight:700;margin-bottom:2px">Título elegido</div>
+<div style="font-size:.9rem;font-weight:700;color:var(--text)">{s["titulo_elegido"]}</div></div>
+</div>""",unsafe_allow_html=True)
+
+    # ══ FASE 3 ════════════════════════════════════════════════
+    if s.get("titulo_elegido"):
+        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+        with st.expander("✍️  Fase 3 — Generar guión",expanded=(fase_actual==3)):
+            st.markdown('<div class="section-label">Configuración del guión</div>', unsafe_allow_html=True)
+            an = s.get("analisis_nicho",{})
+            col_g1,col_g2 = st.columns(2,gap="large")
+            with col_g1:
+                dur_guion = st.selectbox("Duración objetivo",
+                    ["5 min (~800 palabras)","10 min (~1,600 palabras)",
+                     "15 min (~2,400 palabras)","20 min (~3,200 palabras)"])
+                n_puntos = st.slider("Puntos en la lista",5,12,7)
+                tono = st.selectbox("Tono",
+                    ["Conversacional y cercano — como un amigo experto",
+                     "Autoritativo y directo — experto con datos",
+                     "Narrativo y dramático — storytelling",
+                     "Motivacional e inspirador — coach"])
+                tono_id = tono.split(" — ")[0]
+            with col_g2:
+                inc_datos  = st.checkbox("📊 Incluir datos y estadísticas",value=True)
+                inc_midret = st.checkbox("🎯 Mid-video retention device",value=True)
+                inc_ejemplos = st.checkbox("💬 Ejemplos y diálogos",value=True)
+                cta_tipo = st.selectbox("CTA al final",
+                    ["Suscribirse + ver otro video","Comentar su experiencia",
+                     "Guardar el video","Aplicar + suscribirse"])
+            st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+            if st.button("✍️  Generar guión completo",use_container_width=True):
+                with st.spinner("✍️  Generando guión con estructura viral..."):
+                    try:
+                        from groq import Groq
+                        c = Groq(api_key=GROQ_KEY)
+                        palabras_obj = int(dur_guion.split("~")[1].split(" ")[0].replace(",",""))
+                        tr_str = ", ".join([t["emocion"] for t in an.get("triggers_emocionales",[])])
+                        pw_str = ", ".join(an.get("palabras_power",[]))
+                        pat_str = " | ".join(an.get("patrones_virales",[]))
+
+                        mid_txt = (f'A mitad del guión, antes del punto {n_puntos}, agrega:\n'
+                                   f'"Y el punto {n_puntos}... este es el que la mayoría pasa por alto. Quédate."') if inc_midret else ""
+
+                        prompt_g = f"""Ghostwriter experto en YouTube viral.
+NICHO: "{s["nicho"]}" | TÍTULO: "{s["titulo_elegido"]}" | IDIOMA: {s.get("idioma_canal","Español")}
+DURACIÓN: {dur_guion} (~{palabras_obj:,} palabras) | PUNTOS: {n_puntos} | TONO: {tono_id}
+TRIGGERS: {tr_str} | PALABRAS POWER: {pw_str}
+PATRONES VIRALES: {pat_str}
+AUDIENCIA: {an.get("analisis",{}).get("tipo_audiencia","general")}
+
+ESTRUCTURA OBLIGATORIA:
+1. HOOK (10-15s): escenario relatable → pregunta directa → promesa → transición
+2. {n_puntos} PUNTOS, cada uno con:
+   a) Título corto del punto
+   b) Ejemplo relatable o micro-historia
+   c) Explicación psicológica simplificada
+   d) Takeaway claro y accionable
+   e) Reframe de identidad del espectador
+3. {mid_txt}
+4. CIERRE: resumen + tease próximo video + {cta_tipo}
+
+ESTILO: {tono_id} | {'Incluye datos específicos.' if inc_datos else ''} {'Incluye micro-ejemplos y diálogos breves.' if inc_ejemplos else ''}
+Frases cortas directas + párrafos de explicación. Lenguaje conversacional, nunca académico.
+~{palabras_obj:,} palabras. Solo el texto listo para narrar, continuo y fluido."""
+
+                        resp = c.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role":"user","content":prompt_g}],
+                            temperature=0.7,max_tokens=4000)
+                        guion_txt = resp.choices[0].message.content.strip()
+                        parrafos = [p.strip() for p in guion_txt.split("\n\n") if p.strip()]
+                        escenas  = [{"numero":i+1,"narracion":p,"descripcion_visual":p[:80]+"..."}
+                                    for i,p in enumerate(parrafos)]
+                        s["guion_aprobado"] = {
+                            "titulo":  s["titulo_elegido"],
+                            "hook":    parrafos[0][:120]+"..." if parrafos else "",
+                            "escenas": escenas,
+                            "tags":    [s["nicho"]],
+                            "descripcion_youtube": f"Video sobre {s.get('tema_video','')}"
+                        }
+                        s["guion_texto_completo"] = guion_txt
+                        st.success(f"✅  Guión generado — {len(escenas)} párrafos · {len(guion_txt.split())} palabras")
+                        st.rerun()
+                    except Exception as e: st.error(f"❌  {str(e)}")
+
+    if s.get("guion_aprobado") and s.get("guion_texto_completo"):
+        g = s["guion_aprobado"]
+        st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+        c1,c2,c3,c4 = st.columns(4)
+        c1.metric("📝 Estado","Generado ✅")
+        c2.metric("🎬 Párrafos",len(g["escenas"]))
+        c3.metric("📝 Palabras",len(s["guion_texto_completo"].split()))
+        c4.metric("⏱️ ~Duración",f"{len(s['guion_texto_completo'].split())//160} min")
+
+        with st.expander("📖  Ver guión completo",expanded=False):
+            st.markdown(f"""<div style="background:var(--dark3);border-radius:10px;
+padding:18px;font-size:.83rem;line-height:1.85;color:var(--text2);
+max-height:380px;overflow-y:auto;white-space:pre-wrap">
+{s["guion_texto_completo"]}</div>""",unsafe_allow_html=True)
+
+        col_b1,col_b2 = st.columns(2)
+        with col_b1:
+            if st.button("✅  Aprobar guión → Audio",use_container_width=True):
+                st.success("✅  Guión aprobado — continúa en Audio →")
+                st.rerun()
+        with col_b2:
+            if st.button("🔄  Regenerar guión",use_container_width=True,key="regen_g"):
+                s["guion_aprobado"] = None
+                s["guion_texto_completo"] = None
+                st.rerun()
+
+
+# ══════════════════════════════════════════════════════════════
+# TAB 2 — AUDIO
+# ══════════════════════════════════════════════════════════════
+with tab2:
+    st.markdown('<div class="step-title">Audio</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Genera la narración con voz natural y descarga música de fondo libre de derechos para YouTube.</div>', unsafe_allow_html=True)
+
+    if not s['guion_aprobado']:
+        st.info("⚠️  Aprueba un guión primero en el tab Guión")
+    else:
+        g = s['guion_aprobado']
+        col1, col2 = st.columns(2, gap="large")
+
+        with col1:
+            st.markdown('<div class="section-label">Narración</div>', unsafe_allow_html=True)
+            st.markdown('<div class="card"><div class="card-title">🎙️ Edge TTS</div><div class="card-sub">400+ voces naturales en español, inglés y portugués — gratis y sin límites de uso</div></div>', unsafe_allow_html=True)
+            st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+
+            idioma = st.selectbox("Idioma", ["Español","Inglés","Portugués"])
+            voces_m = {
+                "Español": ["es-CO-SalomeNeural — Colombia (F)","es-CO-GonzaloNeural — Colombia (M)",
+                            "es-MX-DaliaNeural — México (F)","es-MX-JorgeNeural — México (M)",
+                            "es-ES-ElviraNeural — España (F)","es-ES-AlvaroNeural — España (M)",
+                            "es-AR-ElenaNeural — Argentina (F)","es-AR-TomasNeural — Argentina (M)"],
+                "Inglés":  ["en-US-JennyNeural — US (F)","en-US-GuyNeural — US (M)",
+                            "en-GB-SoniaNeural — UK (F)","en-GB-RyanNeural — UK (M)",
+                            "en-AU-NatashaNeural — AU (F)","en-AU-WilliamNeural — AU (M)"],
+                "Portugués":["pt-BR-FranciscaNeural — Brasil (F)","pt-BR-AntonioNeural — Brasil (M)"]
+            }
+            voz_d  = st.selectbox("Voz", voces_m[idioma])
+            voz_id = voz_d.split(" — ")[0]
+            vel    = st.select_slider("Velocidad de narración",
+                                       ["-20%","-10%","Normal","+10%","+20%"], value="Normal")
+            rate_m = {"-20%":"-20%","-10%":"-10%","Normal":"+0%","+10%":"+10%","+20%":"+20%"}
+            st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+            if st.button("▶️  Generar narración", use_container_width=True):
+                try:
+                    import edge_tts
+                    adir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/audio")
+                    adir.mkdir(parents=True, exist_ok=True)
+                    prog = st.progress(0); stat = st.empty()
+                    for i,e in enumerate(g['escenas']):
+                        stat.caption(f"🎙️  Escena {i+1}/{len(g['escenas'])}...")
+                        ruta = adir/f"escena_{i+1:02d}.mp3"
+                        async def gen_a(txt,r,v,ra):
+                            com = edge_tts.Communicate(txt,v,rate=ra)
+                            await com.save(str(r))
+                        asyncio.run(gen_a(e['narracion'],ruta,voz_id,rate_m[vel]))
+                        prog.progress((i+1)/len(g['escenas']))
+                    stat.empty()
+                    s['audio_generado'] = True
+                    st.success(f"✅  {len(g['escenas'])} audios con {voz_d.split(' — ')[1]}")
+                except ImportError:
+                    st.error("❌  Ejecuta: `py -m pip install edge-tts`")
+                except Exception as e:
+                    st.error(f"❌  {str(e)}")
+
+        with col2:
+            st.markdown('<div class="section-label">Música de fondo</div>', unsafe_allow_html=True)
+            st.markdown('<div class="card"><div class="card-title">🎵 Pixabay Music</div><div class="card-sub">Música libre de derechos, 100% legal para monetizar en YouTube. Descarga automática por mood</div></div>', unsafe_allow_html=True)
+            st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+
+            mood   = st.selectbox("Mood del video",
+                                   ["epic","calm","mysterious","inspiring",
+                                    "dramatic","ambient","happy","sad","action"])
+            vol_m  = st.slider("Volumen de la música (relativo a la voz)", 5, 40, 15)
+            st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+            if st.button("🎵  Buscar y descargar", use_container_width=True):
+                if not PIXABAY_KEY:
+                    st.warning("⚠️  PIXABAY_KEY no encontrada en `.env`")
+                else:
+                    with st.spinner(f"🔍  Buscando música '{mood}'..."):
+                        try:
+                            data = requests.get(
+                                f"https://pixabay.com/api/music/?key={PIXABAY_KEY}&q={mood}&per_page=5",
+                                timeout=10).json()
+                            if data.get('hits'):
+                                au = data['hits'][0].get('audio',{}).get('url','')
+                                if au:
+                                    mdir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/musica")
+                                    mdir.mkdir(parents=True, exist_ok=True)
+                                    r = requests.get(au, stream=True, timeout=30)
+                                    with open(mdir/"background.mp3",'wb') as f:
+                                        for ch in r.iter_content(8192): f.write(ch)
+                                    s['musica_lista'] = True
+                                    st.success(f"✅  Música '{mood}' descargada")
+                        except Exception as e:
+                            st.error(f"❌  {str(e)}")
+
+            st.markdown("**O sube tu propio MP3:**")
+            mp3_up = st.file_uploader("Arrastra aquí tu MP3 libre de derechos",
+                                       type=['mp3'], label_visibility="collapsed")
+            if mp3_up:
+                mdir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/musica")
+                mdir.mkdir(parents=True, exist_ok=True)
+                (mdir/"background.mp3").write_bytes(mp3_up.read())
+                s['musica_lista'] = True
+                st.success(f"✅  Música subida: {mp3_up.name}")
+
+# ══════════════════════════════════════════════════════════════
+# TAB 3 — KAGGLE
+# ══════════════════════════════════════════════════════════════
+with tab3:
+    st.markdown('<div class="step-title">Kaggle</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Lanza la generación de imágenes y videos en Kaggle. La GPU genera todas las escenas automáticamente.</div>', unsafe_allow_html=True)
+
+    if not s['guion_aprobado']:
+        st.info("⚠️  Aprueba un guión primero")
+    else:
+        g = s['guion_aprobado']
+        col1, col2 = st.columns([1,1], gap="large")
+
+        with col1:
+            st.markdown('<div class="section-label">Parámetros</div>', unsafe_allow_html=True)
+
+            from shared.visual_styles import CATALOGO_ESTILOS, CATEGORIAS, obtener_estilo
+
+            cat_sel = st.selectbox("Categoria de estilo", [c["nombre"] for c in CATEGORIAS],
+                key="kat_cat_sel")
+            cat_slug = next((c["slug"] for c in CATEGORIAS if c["nombre"] == cat_sel), None)
+            estilos_filtrados = [e for e in CATALOGO_ESTILOS if e["categoria"] == cat_slug]
+
+            canal_estilo_default = None
+            if s.get("canal_id_pipeline") and API_DISPONIBLE:
+                try:
+                    canal_info_k = api_client.estado_canal(s["canal_id_pipeline"])
+                    id_vis = canal_info_k.get("identidad_visual", {})
+                    if id_vis.get("configurado"):
+                        canal_estilo_default = id_vis.get("estilo_slug")
+                        st.caption(f"Estilo del canal: **{canal_estilo_default}** (puedes hacer override)")
+                except Exception:
+                    pass
+
+            opciones_estilo = [f"{e['slug']} — {e['nombre']}" for e in estilos_filtrados]
+            estilo = st.selectbox("Estilo visual", opciones_estilo, key="kat_estilo_sel")
+            estilo_id = estilo.split(" — ")[0] if estilo else "cinematic"
+
+            estilo_info = obtener_estilo(estilo_id)
+            if estilo_info:
+                st.caption(f"Caso de uso: {estilo_info['caso_uso']}")
+
+            with st.expander("⚙️  Configuración avanzada"):
+                c_mi, c_mv = st.columns(2)
+                mi = c_mi.selectbox("Modelo imagen",
+                    ["juggernaut — Mayor calidad","sdxl — Más rápido"])
+                mv = c_mv.selectbox("Modelo video",
+                    ["wan21 — Recomendado","skyreels — Máxima calidad",
+                     "zoom — Más rápido","comparar — Prueba los 3"])
+                mi_id = mi.split(" — ")[0]; mv_id = mv.split(" — ")[0]
+                er = st.number_input("Escenas con video real (hook)",
+                                      min_value=1, max_value=30, value=12,
+                                      help="Las primeras N escenas tendrán video con IA (~primer minuto)")
+
+            st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+            n_t = len(g['escenas'])
+            c1,c2,c3 = st.columns(3)
+            c1.metric("📝 Total", n_t)
+            c2.metric("🎥 Video IA", min(er,n_t))
+            c3.metric("🖼️ Zoom", max(n_t-er,0))
+
+            st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+            hu = st.slider("⏱️  Horas GPU usadas esta semana", 0.0, 30.0, s['horas_usadas'], 0.5)
+            s['horas_usadas'] = hu
+            hr = 30.0-hu; pct = min((hu/30)*100,100)
+            bc = "#1DB954" if pct<60 else ("#FF9500" if pct<85 else "#FF0000")
+            st.markdown(f"""
+            <div class="gpu-w">
+              <div class="gpu-lbl">GPU Kaggle — Semana actual</div>
+              <div class="gpu-bg"><div class="gpu-f" style="width:{pct:.0f}%;background:{bc}"></div></div>
+              <div class="gpu-row">
+                <span>Usado <b>{hu:.1f}h</b></span>
+                <span>Restante <b style="color:{'#1DB954' if hr>5 else '#FF9500'}">{hr:.1f}h</b></span>
+                <span>Total <b>30h</b></span>
+              </div>
+            </div>""", unsafe_allow_html=True)
+            if hr > 0:
+                mins = hr*60
+                st.caption(f"~{int(mins/0.35)} imgs · ~{int(mins/2.5)} clips Wan 2.1 · ~{int(mins/35)} videos completos (240 esc.)")
+
+        with col2:
+            st.markdown('<div class="section-label">Lanzar y monitorear</div>', unsafe_allow_html=True)
+
+            kernel_slug = st.text_input("Nombre del notebook en Kaggle",
+                                         value="youtube-ai-studio-v7",
+                                         help="Nombre exacto del notebook en tu cuenta de Kaggle")
+
+            config_k = {
+                "nombre_proyecto": nombre_proyecto, "estilo": estilo_id, "modo": "ambos",
+                "modelo_imagen": mi_id, "modelo_video": mv_id, "escenas_video_real": er,
+                "escenas": [e['descripcion_visual'] for e in g['escenas']],
+                "narracion": [e['narracion'] for e in g['escenas']],
+                "titulo": g.get('titulo',''), "tags": g.get('tags',[])
+            }
+            pdir2 = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}")
+            pdir2.mkdir(parents=True, exist_ok=True)
+            (pdir2/"config_kaggle.json").write_text(
+                json.dumps(config_k, ensure_ascii=False, indent=2))
+
+            st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+            def get_headers():
+                if KAGGLE_KEY.startswith('KGAT_'):
+                    return {"Authorization":f"Bearer {KAGGLE_KEY}","Content-Type":"application/json"}
+                import base64
+                t = base64.b64encode(f"{KAGGLE_USER}:{KAGGLE_KEY}".encode()).decode()
+                return {"Authorization":f"Basic {t}","Content-Type":"application/json"}
+
+            cb1, cb2 = st.columns(2)
+            with cb1:
+                if st.button("🚀  Lanzar en Kaggle", use_container_width=True,
+                              disabled=not(KAGGLE_USER and KAGGLE_KEY)):
+                    with st.spinner("Lanzando..."):
+                        try:
+                            h = get_headers()
+                            r = requests.get(
+                                f"https://www.kaggle.com/api/v1/kernels/{KAGGLE_USER}/{kernel_slug}",
+                                headers=h, timeout=10)
+                            if r.status_code == 200:
+                                r2 = requests.post(
+                                    f"https://www.kaggle.com/api/v1/kernels/{KAGGLE_USER}/{kernel_slug}/run",
+                                    headers=h, json={"gpu":True,"internet":True}, timeout=15)
+                                if r2.status_code in [200,201]:
+                                    s['kaggle_running'] = True
+                                    s['kaggle_logs'].append("🚀 Notebook lanzado")
+                                    st.success("✅  Lanzado en Kaggle")
+                                else:
+                                    s['kaggle_logs'].append(f"⚠️ Error {r2.status_code}")
+                                    st.warning("⚠️  No se pudo lanzar automáticamente")
+                                    with st.expander("📋  Copia este config al notebook"):
+                                        st.code(json.dumps(config_k,ensure_ascii=False,indent=2),language="json")
+                            elif r.status_code == 404:
+                                st.error(f"❌  Notebook '{kernel_slug}' no encontrado")
+                            else:
+                                st.error(f"❌  Error {r.status_code}")
+                        except Exception as e:
+                            st.error(f"❌  {str(e)}")
+                            with st.expander("📋  Config para copiar manualmente"):
+                                st.code(json.dumps(config_k,ensure_ascii=False,indent=2),language="json")
+
+            with cb2:
+                if st.button("🔄  Ver estado", use_container_width=True):
+                    if KAGGLE_USER and KAGGLE_KEY:
+                        try:
+                            h = get_headers()
+                            r = requests.get(
+                                f"https://www.kaggle.com/api/v1/kernels/{KAGGLE_USER}/{kernel_slug}",
+                                headers=h, timeout=10)
+                            if r.status_code == 200:
+                                st_val = r.json().get('currentRunningVersion',{}).get('status','unknown')
+                                icons  = {"complete":"✅","running":"⏳","error":"❌","queued":"🕐"}
+                                st.info(f"{icons.get(st_val,'○')}  Estado: **{st_val}**")
+                                if st_val == "complete": s['kaggle_running'] = False
+                            else:
+                                st.warning(f"No se pudo obtener estado ({r.status_code})")
+                        except Exception as e:
+                            st.error(f"❌  {str(e)}")
+
+            st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-label">Clips generados</div>', unsafe_allow_html=True)
+
+            if st.button("📥  Descargar clips automáticamente", use_container_width=True):
+                with st.spinner("Descargando outputs..."):
+                    try:
+                        h = get_headers()
+                        r = requests.get(
+                            f"https://www.kaggle.com/api/v1/kernels/{KAGGLE_USER}/{kernel_slug}/output",
+                            headers=h, timeout=60, stream=True)
+                        if r.status_code == 200:
+                            dest = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/videos")
+                            dest.mkdir(parents=True, exist_ok=True)
+                            zp = dest/"output.zip"
+                            with open(zp,'wb') as f:
+                                for ch in r.iter_content(8192): f.write(ch)
+                            with zipfile.ZipFile(zp) as zf: zf.extractall(dest)
+                            zp.unlink()
+                            clips2 = list(dest.glob("*.mp4"))
+                            s['kaggle_completado'] = True
+                            st.success(f"✅  {len(clips2)} clips descargados")
+                        else:
+                            st.warning("⚠️  No hay outputs disponibles aún")
+                    except Exception as e:
+                        st.error(f"❌  {str(e)}")
+
+            clips_up = st.file_uploader("O sube los clips manualmente",
+                                         type=['mp4'], accept_multiple_files=True,
+                                         label_visibility="visible")
+            if clips_up:
+                vdir2 = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/videos")
+                vdir2.mkdir(parents=True, exist_ok=True)
+                for c in clips_up: (vdir2/c.name).write_bytes(c.read())
+                s['kaggle_completado'] = True
+                st.success(f"✅  {len(clips_up)} clips listos")
+
+            if s['kaggle_logs']:
+                st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+                lh = "".join(
+                    f'<div class="{"lok" if "✅" in l or "🚀" in l else "lerr" if "❌" in l else "linf"}">{l}</div>'
+                    for l in s['kaggle_logs'][-8:])
+                st.markdown(f'<div class="mon">{lh}</div>', unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════
+# TAB 4 — SUBTÍTULOS
+# ══════════════════════════════════════════════════════════════
+with tab4:
+    st.markdown('<div class="step-title">Subtítulos</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Genera subtítulos automáticos sincronizados con la narración. Whisper transcribe el audio y crea los archivos .SRT listos para el video final.</div>', unsafe_allow_html=True)
+
+    if not s['audio_generado']:
+        st.info("⚠️  Genera la narración primero en el tab Audio")
+    else:
+        col1, col2 = st.columns(2, gap="large")
+
+        with col1:
+            st.markdown('<div class="section-label">Generación automática</div>', unsafe_allow_html=True)
+            st.markdown('<div class="card"><div class="card-title">🤖 Whisper — OpenAI</div><div class="card-sub">Transcripción automática sincronizada con el audio. Genera archivos .SRT para cada escena</div></div>', unsafe_allow_html=True)
+            st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+
+            modelo_w = st.selectbox("Modelo Whisper",
+                ["base — Rápido (recomendado)","small — Más preciso","medium — Alta precisión"],
+                help="'base' es suficiente para la mayoría de los casos")
+            modelo_w_id = modelo_w.split(" — ")[0]
+
+            idioma_w = st.selectbox("Idioma del audio",
+                ["es — Español","en — Inglés","pt — Portugués","auto — Detectar automáticamente"])
+            idioma_w_id = idioma_w.split(" — ")[0]
+            if idioma_w_id == "auto": idioma_w_id = None
+
+            st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+            if st.button("💬  Generar subtítulos con Whisper", use_container_width=True):
+                adir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/audio")
+                sdir = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/subs")
+                sdir.mkdir(parents=True, exist_ok=True)
+                audios_list = sorted(adir.glob("*.mp3")) if adir.exists() else []
+
+                if not audios_list:
+                    st.error("❌  No se encontraron archivos de audio")
+                else:
+                    try:
+                        import whisper
+                        prog = st.progress(0); stat = st.empty()
+                        stat.caption(f"⏳  Cargando modelo Whisper {modelo_w_id}...")
+                        model_wh = whisper.load_model(modelo_w_id)
+
+                        for i, af in enumerate(audios_list):
+                            stat.caption(f"💬  Transcribiendo {af.name} ({i+1}/{len(audios_list)})...")
+                            opts = {"language": idioma_w_id} if idioma_w_id else {}
+                            result = model_wh.transcribe(str(af), **opts)
+
+                            # Generar SRT
+                            srt_lines = []
+                            for j, seg in enumerate(result['segments'], 1):
+                                def fmt_t(t):
+                                    h=int(t//3600); m=int((t%3600)//60)
+                                    sc=int(t%60); ms=int((t%1)*1000)
+                                    return f"{h:02d}:{m:02d}:{sc:02d},{ms:03d}"
+                                srt_lines.append(str(j))
+                                srt_lines.append(f"{fmt_t(seg['start'])} --> {fmt_t(seg['end'])}")
+                                srt_lines.append(seg['text'].strip())
+                                srt_lines.append("")
+
+                            srt_path = sdir/f"{af.stem}.srt"
+                            srt_path.write_text("\n".join(srt_lines), encoding='utf-8')
+                            prog.progress((i+1)/len(audios_list))
+
+                        stat.empty()
+                        s['subs_generados'] = True
+                        st.success(f"✅  {len(audios_list)} archivos SRT generados")
+
+                    except ImportError:
+                        st.error("❌  Ejecuta: `py -m pip install openai-whisper`")
+                    except Exception as e:
+                        st.error(f"❌  {str(e)}")
+
+        with col2:
+            st.markdown('<div class="section-label">Apariencia en el video</div>', unsafe_allow_html=True)
+            st.markdown('<div class="card"><div class="card-title">🎨 Estilo de subtítulos</div><div class="card-sub">Configura la apariencia de los subtítulos en el video final</div></div>', unsafe_allow_html=True)
+            st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+
+            fuente_s   = st.selectbox("Fuente", ["Arial","Impact","Verdana","Tahoma","Georgia"],
+                                       help="Impact y Arial son las más usadas en YouTube")
+            tamaño_s   = st.slider("Tamaño de fuente", 24, 72, 42)
+            color_t    = st.color_picker("Color del texto", "#FFFFFF")
+            color_b    = st.color_picker("Color del borde/sombra", "#000000")
+            posicion_s = st.selectbox("Posición en pantalla", ["bottom","center","top"])
+            estilo_s   = st.selectbox("Estilo", ["borde negro","fondo semitransparente","solo texto"])
+
+            # Guardar config de subtítulos
+            subs_config = {"fuente": fuente_s, "tamaño": tamaño_s,
+                           "color_texto": color_t, "color_borde": color_b,
+                           "posicion": posicion_s, "estilo": estilo_s}
+            sdir2 = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}/subs")
+            sdir2.mkdir(parents=True, exist_ok=True)
+            (sdir2/"config_subs.json").write_text(json.dumps(subs_config, indent=2))
+
+            if s['subs_generados']:
+                srt_files = sorted(sdir2.glob("*.srt"))
+                st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+                st.success(f"✅  {len(srt_files)} archivos SRT listos")
+                if srt_files:
+                    with st.expander("Ver subtítulos generados"):
+                        sel = st.selectbox("Escena", [f.name for f in srt_files])
+                        if sel:
+                            content = (sdir2/sel).read_text(encoding='utf-8')
+                            st.text(content[:500]+"..." if len(content)>500 else content)
+
+# ══════════════════════════════════════════════════════════════
+# TAB 5 — ENSAMBLAR
+# ══════════════════════════════════════════════════════════════
+with tab5:
+    st.markdown('<div class="step-title">Ensamblar</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Combina clips + narración + música + subtítulos en un video final listo para subir a YouTube.</div>', unsafe_allow_html=True)
+
+    pdir3     = Path(f"proyectos/{_canal_id_activo}/{nombre_proyecto}")
+    ck        = sorted((pdir3/"videos").glob("*.mp4")) if (pdir3/"videos").exists() else []
+    ak        = sorted((pdir3/"audio").glob("*.mp3"))  if (pdir3/"audio").exists()  else []
+    mk_path   = (list((pdir3/"musica").glob("*.mp3"))[0]
+                 if (pdir3/"musica").exists() and list((pdir3/"musica").glob("*.mp3")) else None)
+    sk        = sorted((pdir3/"subs").glob("*.srt"))   if (pdir3/"subs").exists()   else []
+
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("🎬 Clips",   len(ck))
+    c2.metric("🎙️ Audios",  len(ak))
+    c3.metric("🎵 Música",  "✅" if mk_path else "⬜")
+    c4.metric("💬 Subtítulos", len(sk))
+
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+
+    if not ck:
+        st.warning("⚠️  No hay clips de video. Completa el paso de Kaggle primero.")
+    else:
+        col1, col2 = st.columns(2, gap="large")
+        with col1:
+            st.markdown('<div class="section-label">Configuración de video</div>', unsafe_allow_html=True)
+            usar_musica = st.checkbox("🎵 Agregar música de fondo", value=bool(mk_path))
+            usar_subs   = st.checkbox("💬 Agregar subtítulos", value=bool(sk))
+            vol_mus     = st.slider("Volumen música", 5, 40, 15)
+            crossfade   = st.slider("Crossfade entre escenas (seg)", 0.0, 1.0, 0.3, 0.1)
+            fps_f       = st.selectbox("FPS del video final", [24, 30], index=1)
+            res_f       = st.selectbox("Resolución", ["1920x1080 — Full HD","1280x720 — HD"])
+
+        with col2:
+            st.markdown('<div class="section-label">Vista previa de configuración</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="card">
+              <div class="card-title">📋 Resumen</div>
+              <div style="font-size:.8rem;color:var(--text2);line-height:2">
+                <div>🎬 Clips: <b style="color:var(--text)">{len(ck)}</b></div>
+                <div>🎙️ Audios: <b style="color:var(--text)">{len(ak)}</b></div>
+                <div>🎵 Música: <b style="color:var(--text)">{'Sí' if usar_musica and mk_path else 'No'}</b></div>
+                <div>💬 Subtítulos: <b style="color:var(--text)">{'Sí' if usar_subs and sk else 'No'}</b></div>
+                <div>⚡ FPS: <b style="color:var(--text)">{fps_f}</b></div>
+                <div>🎯 Crossfade: <b style="color:var(--text)">{crossfade}s</b></div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+
+        if st.button("🎬  ENSAMBLAR VIDEO FINAL", use_container_width=True):
+            try:
+                from moviepy.editor import (VideoFileClip, AudioFileClip,
+                    CompositeAudioClip, concatenate_videoclips)
+
+                odir = pdir3/"output"; odir.mkdir(exist_ok=True)
+                prog = st.progress(0); stat = st.empty(); cp = []
+
+                for i, c in enumerate(ck):
+                    stat.caption(f"⚙️  {c.name} ({i+1}/{len(ck)})...")
+                    v = VideoFileClip(str(c))
+                    ap = (pdir3/"audio")/f"{c.stem}.mp3"
+                    if ap.exists():
+                        vz = AudioFileClip(str(ap))
+                        if vz.duration > v.duration:
+                            from moviepy.editor import vfx
+                            v = v.fx(vfx.loop, duration=vz.duration)
+                        else:
+                            v = v.subclip(0, vz.duration)
+                        if mk_path and usar_musica:
+                            ms = AudioFileClip(str(mk_path)).volumex(vol_mus/100).subclip(0,vz.duration)
+                            v = v.set_audio(CompositeAudioClip([vz,ms]))
+                        else:
+                            v = v.set_audio(vz)
+                    cp.append(v)
+                    prog.progress((i+1)/len(ck))
+
+                stat.caption("🔗  Concatenando escenas...")
+                fv = concatenate_videoclips(cp, method="compose",
+                                             padding=-crossfade if crossfade>0 else 0)
+                rf = odir/f"{nombre_proyecto}_FINAL.mp4"
+                stat.caption("📤  Exportando video final...")
+                fv.write_videofile(str(rf), fps=fps_f, codec="libx264",
+                                    audio_codec="aac", verbose=False, logger=None)
+                s['video_final'] = str(rf)
+                stat.empty(); prog.empty()
+                st.success("🎉  ¡Video final listo para YouTube!")
+                with open(rf,"rb") as f:
+                    st.download_button(
+                        "⬇️  Descargar video final", f.read(),
+                        file_name=f"{nombre_proyecto}_FINAL.mp4",
+                        mime="video/mp4", use_container_width=True)
+
+            except ImportError:
+                st.error("❌  Ejecuta: `py -m pip install moviepy`")
+            except Exception as e:
+                st.error(f"❌  {str(e)}")
+                st.exception(e)
+
+        # Proyectos anteriores
+        st.divider()
+        st.markdown('<div class="section-label">Proyectos anteriores</div>', unsafe_allow_html=True)
+        pbase = Path("proyectos")
+        if pbase.exists():
+            for p in sorted(pbase.iterdir(), reverse=True):
+                if not p.is_dir(): continue
+                cl = list((p/"videos").glob("*.mp4")) if (p/"videos").exists() else []
+                fi = list((p/"output").glob("*.mp4")) if (p/"output").exists() else []
+                sz = sum(f.stat().st_size for f in p.rglob("*") if f.is_file())//1024//1024
+                with st.expander(f"{'✅' if fi else '🔄'}  {p.name}  —  {sz} MB"):
+                    c1,c2,c3 = st.columns(3)
+                    c1.metric("Clips", len(cl))
+                    c2.metric("Final", "✅" if fi else "⬜")
+                    c3.metric("Tamaño", f"{sz} MB")
+                    if fi:
+                        with open(fi[0],"rb") as f:
+                            st.download_button(f"⬇️  Descargar", f.read(),
+                                file_name=fi[0].name, mime="video/mp4",
+                                key=f"dl_{p.name}", use_container_width=True)
+
+# ══════════════════════════════════════════════════════════════
+# TAB 6 — MONITOR (Dashboard de monitoreo en tiempo real)
+# ══════════════════════════════════════════════════════════════
+with tab6:
+    st.markdown('<div class="step-title">Monitor del Sistema</div>', unsafe_allow_html=True)
+    st.markdown('<div class="step-sub">Estado en tiempo real de todos los servicios, pipelines activos y logs del sistema.</div>', unsafe_allow_html=True)
+
+    if not API_DISPONIBLE:
+        st.warning("Los agentes no están conectados. Levanta los servicios con `python run_dev.py` para ver health y cola.")
+        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+    else:
+        import api_client as _mc
+
+        # ── Cargar datos ──
+        _health_data = None
+        _health_error = None
+
+        try:
+            _health_data = _mc.health_servicios()
+        except Exception as _e:
+            _health_error = str(_e)
+
+        # ════════════════════════════════════════════════
+        # SECCION 1 — Health del sistema
+        # ════════════════════════════════════════════════
+        st.markdown('<div class="section-label">Estado del sistema</div>', unsafe_allow_html=True)
+
+        if _health_error:
+            st.error(f"No se pudo obtener health de servicios: {_health_error}")
+        elif _health_data:
+            _score = _health_data.get("score", 0)
+            _nivel = _health_data.get("nivel", "critico")
+            _vivos = _health_data.get("vivos", 0)
+            _total = _health_data.get("total", 0)
+            _mem = _health_data.get("memoria_total_mb")
+            _puede = _health_data.get("puede_pipeline", False)
+            _criticos_caidos = _health_data.get("criticos_caidos", [])
+
+            _col_score, _col_m1, _col_m2, _col_m3, _col_m4 = st.columns([1.2, 1, 1, 1, 1])
+
+            with _col_score:
+                st.markdown(f"""
+                <div class="mon-score mon-{_nivel}">
+                  <div class="mon-score-num">{_score}%</div>
+                  <div class="mon-score-label">{_nivel.upper()}</div>
+                </div>""", unsafe_allow_html=True)
+
+            _col_m1.metric("Servicios", f"{_vivos}/{_total}")
+            _col_m2.metric("Memoria", f"{_mem} MB" if _mem else "N/A")
+            _col_m3.metric("Pipeline", "LISTO" if _puede else "NO LISTO")
+            _col_m4.metric("Críticos caídos", len(_criticos_caidos))
+
+            if _criticos_caidos:
+                st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+                _cc_html = " · ".join(
+                    f'<span style="color:var(--red);font-family:\'JetBrains Mono\',monospace;font-size:.75rem">{c}</span>'
+                    for c in _criticos_caidos
+                )
+                st.markdown(
+                    f'<div style="background:var(--red-dim);border:1px solid rgba(255,0,0,.2);'
+                    f'border-radius:8px;padding:10px 14px">'
+                    f'<span style="font-size:.72rem;font-weight:700;color:var(--red);margin-right:8px">SERVICIOS CRÍTICOS CAÍDOS:</span>'
+                    f'{_cc_html}</div>',
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-label">Departamentos</div>', unsafe_allow_html=True)
+
+            _desglose = _health_data.get("desglose_departamentos", {})
+            _servicios = _health_data.get("servicios", {})
+
+            _DEPTO_LABELS = {
+                "depto_0_inteligencia": ("🧠", "Inteligencia de Canal"),
+                "depto_1_estrategia": ("🎯", "Estrategia"),
+                "depto_2_guion": ("📝", "Guión"),
+                "depto_3_visual": ("🎨", "Visual"),
+                "depto_4_audio": ("🎙️", "Audio"),
+                "depto_5_cierre": ("🎬", "Cierre & Publicación"),
+                "orquestador": ("🧠", "Orquestador Central"),
+            }
+            _DEPTO_AGENTES = {
+                "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
+                "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
+                "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
+                "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],
+                "depto_4_audio": ["4.1_locucion", "4.2_musica", "4.3_subtitulos", "sub_orq_audio"],
+                "depto_5_cierre": ["5.1_editor", "5.2_seo", "5.3_compliance", "5.4_policy_monitor", "5.5_publicador", "sub_orq_cierre"],
+                "orquestador": ["orquestador_central"],
+            }
+            _depto_keys = list(_DEPTO_LABELS.keys())
+            for _row_deptos in [_depto_keys[:4], _depto_keys[4:]]:
+                _cols = st.columns(len(_row_deptos), gap="medium")
+                for _col, _dk in zip(_cols, _row_deptos):
+                    with _col:
+                        _icon, _label = _DEPTO_LABELS.get(_dk, ("⚙️", _dk))
+                        _info = _desglose.get(_dk, {"vivos": 0, "total": 0})
+                        _dv, _dt = _info["vivos"], _info["total"]
+                        _dpct = round((_dv / _dt) * 100) if _dt > 0 else 0
+                        _dcls = "mon-depto-ok" if _dpct == 100 else ("mon-depto-warn" if _dpct >= 50 else "mon-depto-down")
+                        _dbar_color = "var(--green)" if _dpct == 100 else ("var(--orange)" if _dpct >= 50 else "var(--red)")
+                        _srv_html = ""
+                        for _aid in _DEPTO_AGENTES.get(_dk, []):
+                            _srv = _servicios.get(_aid, {})
+                            _srv_estado = _srv.get("estado", "caido")
+                            _srv_color = "#1DB954" if _srv_estado == "ok" else ("#FF9500" if _srv_estado == "error" else "#FF0000")
+                            _srv_puerto = _srv.get("puerto", "?")
+                            _srv_mem = _srv.get("memoria_mb")
+                            _srv_info = f":{_srv_puerto}" + (f" · {_srv_mem}MB" if _srv_mem else "")
+                            _srv_html += f'<div class="mon-srv"><span class="mon-srv-dot" style="background:{_srv_color}"></span><span class="mon-srv-name">{_aid}</span><span class="mon-srv-info">{_srv_info}</span></div>'
+                        st.markdown(f'<div class="mon-depto {_dcls}"><div class="mon-depto-head"><span class="mon-depto-name">{_icon} {_label}</span><span class="mon-depto-badge">{_dv}/{_dt}</span></div><div class="mon-depto-bar"><div class="mon-depto-fill" style="width:{_dpct}%;background:{_dbar_color}"></div></div>{_srv_html}</div>', unsafe_allow_html=True)
+                st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        # ════════════════════════════════════════════════
+        # SECCION 2 — Cola de publicación
+        # ════════════════════════════════════════════════
+        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">Cola de publicación</div>', unsafe_allow_html=True)
+
+        _cola_data = _cached_pipeline_cola()
+        _FASE_COLORS = {
+            "estrategia": "var(--blue)", "guion": "var(--purple)",
+            "visual": "var(--orange)", "audio": "var(--green)",
+            "cierre": "#FF6B9D", "completado": "var(--green)",
+            "publicado": "var(--green)", "error": "var(--red)",
+            "desconocido": "var(--text4)",
+        }
+        _FASE_BG = {
+            "estrategia": "var(--blue-dim)", "guion": "var(--purple-dim)",
+            "visual": "var(--orange-dim)", "audio": "var(--green-dim)",
+            "cierre": "rgba(255,107,157,.08)", "completado": "var(--green-dim)",
+            "publicado": "var(--green-dim)", "error": "var(--red-dim)",
+            "desconocido": "var(--dark5)",
+        }
+        _FASES_PIPELINE = ["estrategia", "guion", "visual", "audio", "cierre", "completado"]
+
+        if not _cola_data:
+            st.info("No se pudo obtener la cola de publicación.")
+        else:
+            _cq_buf = _cola_data.get("buffer", {})
+            _cq_buf_actual = _cq_buf.get("actual", 0)
+            _cq_buf_max = _cq_buf.get("max", 3)
+            _cq_en_proc = _cola_data.get("en_proceso", [])
+            _cq_listos = _cola_data.get("listos_para_publicar", [])
+            _cq_pubs = _cola_data.get("publicados", [])
+            _cq_errs = _cola_data.get("con_error", [])
+
+            _cq_c1, _cq_c2, _cq_c3, _cq_c4, _cq_c5 = st.columns(5)
+            _cq_c1.metric("En proceso", len(_cq_en_proc))
+            _cq_c2.metric("Listos", len(_cq_listos))
+            _cq_c3.metric("Publicados", len(_cq_pubs))
+            _cq_c4.metric("Con error", len(_cq_errs))
+            _cq_buf_color = "normal" if _cq_buf_actual < _cq_buf_max else "inverse"
+            _cq_c5.metric("Buffer", f"{_cq_buf_actual}/{_cq_buf_max}", delta="lleno" if _cq_buf_actual >= _cq_buf_max else f"{_cq_buf_max - _cq_buf_actual} libres", delta_color=_cq_buf_color)
+
+            st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+
+            def _render_proyecto_card(_proj, _card_idx):
+                _pid = _proj.get("proyecto_id", "?")
+                _titulo = _proj.get("titulo", _pid)
+                _fase = _proj.get("fase_actual", "desconocido")
+                _canal = _proj.get("canal", "")
+                _nicho = _proj.get("nicho", "")
+                _agente = _proj.get("agente_actual")
+                _progreso = _proj.get("progreso_pct", 0)
+                _err_list = _proj.get("errores", [])
+                _creado = _proj.get("creado_en", "")
+                _pub_en = _proj.get("publicado_en", "")
+                _yt_id = _proj.get("youtube_video_id", "")
+                _fc = _FASE_COLORS.get(_fase, "var(--text3)")
+                _fb = _FASE_BG.get(_fase, "var(--dark5)")
+
+                _seg_html = ""
+                for _fp in _FASES_PIPELINE:
+                    _fp_done = _fase in ("completado", "publicado") if _fp == "completado" else (
+                        _FASES_PIPELINE.index(_fp) < _FASES_PIPELINE.index(_fase) if _fase in _FASES_PIPELINE else False
+                    )
+                    _seg_color = "var(--green)" if _fp_done else ("var(--orange)" if _fase == _fp else "var(--dark5)")
+                    _seg_html += f'<div class="mon-proj-seg" style="background:{_seg_color}" title="{_fp}"></div>'
+
+                _extra_html = ""
+                if _agente:
+                    _extra_html += f'<div style="font-size:.7rem;color:var(--orange);margin-top:4px;font-family:\'JetBrains Mono\',monospace">▶ {_html_escape(str(_agente))}</div>'
+                if _yt_id:
+                    _extra_html += f'<div style="font-size:.7rem;color:var(--blue);margin-top:4px;font-family:\'JetBrains Mono\',monospace">📺 {_html_escape(_yt_id)}{" · pub " + _pub_en[:10] if _pub_en else ""}</div>'
+                if _err_list:
+                    _last_err = str(_err_list[-1])[:120]
+                    _extra_html += f'<div style="font-size:.7rem;color:var(--red);margin-top:4px;font-family:\'JetBrains Mono\',monospace">✗ {_html_escape(_last_err)}</div>'
+
+                _meta_parts = [_html_escape(x) for x in [_canal, _nicho] if x]
+                if _creado:
+                    _meta_parts.append(_creado[:16].replace("T", " "))
+                _meta_html = f'<div style="font-size:.7rem;color:var(--text3);margin-top:2px;font-family:\'JetBrains Mono\',monospace">{" · ".join(_meta_parts)}</div>' if _meta_parts else ""
+
+                st.markdown(f"""<div class="mon-proj"><div class="mon-proj-head"><span class="mon-proj-id">{_html_escape(_titulo)}</span><span class="mon-proj-fase" style="background:{_fb};color:{_fc};border:1px solid {_fc}">{_fase}</span><span style="font-size:.72rem;color:var(--text3);margin-left:auto;font-family:'JetBrains Mono',monospace">{_progreso}%</span></div>{_meta_html}<div class="mon-proj-bar">{_seg_html}</div>{_extra_html}</div>""", unsafe_allow_html=True)
+
+                _hist = _proj.get("historial", [])
+                if _hist:
+                    with st.expander(f"⏱️  Timeline & historial — {_pid} ({len(_hist)} agentes)", expanded=False):
+                        _tl_html = _renderizar_timeline_html(_hist, titulo=_titulo)
+                        if _tl_html:
+                            st.markdown(_tl_html, unsafe_allow_html=True)
+                        st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+                        st.markdown('<div class="section-label">Detalle por agente</div>', unsafe_allow_html=True)
+
+                        _h_total_dur = sum(h.get("duracion_seg") or 0 for h in _hist)
+                        _h_total_ok = sum(1 for h in _hist if h.get("estado") == "completado")
+                        _h_total_err = sum(1 for h in _hist if h.get("estado") == "error")
+                        _h_total_retries = sum((h.get("intentos") or 1) - 1 for h in _hist)
+
+                        _hm1, _hm2, _hm3, _hm4 = st.columns(4)
+                        _hm1.metric("Agentes", len(_hist))
+                        _h_dur_fmt = f"{_h_total_dur/60:.1f} min" if _h_total_dur >= 60 else f"{_h_total_dur:.0f} seg"
+                        _hm2.metric("Tiempo total", _h_dur_fmt)
+                        _hm3.metric("Exitosos", _h_total_ok)
+                        if _h_total_err > 0 or _h_total_retries > 0:
+                            _hm4.metric("Errores / Reintentos", f"{_h_total_err} / {_h_total_retries}")
+                        else:
+                            _hm4.metric("Errores", "0")
+
+                        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+
+                        for _hi, _hag in enumerate(_hist):
+                            _hag_id = _hag.get("agente_id", "?")
+                            _hag_estado = _hag.get("estado", "?")
+                            _hag_dur = _hag.get("duracion_seg")
+                            _hag_intentos = _hag.get("intentos", 1)
+                            _hag_error = _hag.get("error")
+                            _hag_inicio = _hag.get("inicio", "")
+                            _hag_fin = _hag.get("fin", "")
+
+                            _hag_cls = "a-ok" if _hag_estado == "completado" else ("a-err" if _hag_estado == "error" else "a-run")
+                            _hag_icon = "✓" if _hag_estado == "completado" else ("✗" if _hag_estado == "error" else "▶")
+
+                            _hag_dur_fmt = ""
+                            if _hag_dur is not None:
+                                if _hag_dur >= 60:
+                                    _hag_dur_fmt = f"{_hag_dur/60:.1f}m"
+                                else:
+                                    _hag_dur_fmt = f"{_hag_dur:.1f}s"
+
+                            _hag_meta_parts = []
+                            if _hag_dur_fmt:
+                                _hag_meta_parts.append(_hag_dur_fmt)
+                            if _hag_intentos > 1:
+                                _hag_meta_parts.append(f"{_hag_intentos} intentos")
+                            if _hag_inicio:
+                                _t = _hag_inicio
+                                if "T" in _t:
+                                    _t = _t.split("T")[1][:8]
+                                _hag_meta_parts.append(_t)
+
+                            _hag_meta = " · ".join(_hag_meta_parts)
+
+                            _hag_pct = ""
+                            if _hag_dur is not None and _h_total_dur > 0:
+                                _hag_pct_val = round((_hag_dur / _h_total_dur) * 100)
+                                _hag_pct = f"{_hag_pct_val}%"
+
+                            _hag_err_html = ""
+                            if _hag_error:
+                                _hag_err_short = _hag_error[:150] + "..." if len(_hag_error) > 150 else _hag_error
+                                _hag_err_html = (
+                                    f'<div style="font-size:.67rem;color:var(--red);margin-left:32px;'
+                                    f'margin-top:2px;font-family:\'JetBrains Mono\',monospace">'
+                                    f'{_html_escape(_hag_err_short)}</div>'
+                                )
+
+                            st.markdown(f"""
+                            <div class="mon-agent-row {_hag_cls}">
+                              <div class="mon-agent-icon">{_hag_icon}</div>
+                              <span class="mon-agent-name">{_html_escape(_hag_id)}</span>
+                              <span class="mon-agent-meta">{_hag_meta}</span>
+                              <span style="font-size:.65rem;color:var(--text4);font-family:'JetBrains Mono',monospace;
+                                min-width:30px;text-align:right">{_hag_pct}</span>
+                            </div>
+                            {_hag_err_html}""", unsafe_allow_html=True)
+
+            if _cq_en_proc:
+                st.markdown(f'<div style="font-size:.75rem;font-weight:700;color:var(--orange);padding:8px 0 4px;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:var(--orange);display:inline-block"></span>En proceso ({len(_cq_en_proc)})</div>', unsafe_allow_html=True)
+                for _ci, _cp in enumerate(_cq_en_proc):
+                    _render_proyecto_card(_cp, f"proc_{_ci}")
+            if _cq_listos:
+                st.markdown(f'<div style="font-size:.75rem;font-weight:700;color:var(--green);padding:12px 0 4px">✓ Listos para publicar ({len(_cq_listos)})</div>', unsafe_allow_html=True)
+                for _ci, _cl in enumerate(_cq_listos):
+                    _render_proyecto_card(_cl, f"listo_{_ci}")
+            if _cq_errs:
+                st.markdown(f'<div style="font-size:.75rem;font-weight:700;color:var(--red);padding:12px 0 4px">✗ Con error ({len(_cq_errs)})</div>', unsafe_allow_html=True)
+                for _ci, _ce in enumerate(_cq_errs):
+                    _render_proyecto_card(_ce, f"err_{_ci}")
+            if _cq_pubs:
+                with st.expander(f"📺  Publicados ({len(_cq_pubs)})", expanded=False):
+                    for _ci, _cpb in enumerate(_cq_pubs):
+                        _render_proyecto_card(_cpb, f"pub_{_ci}")
+            if not _cq_en_proc and not _cq_listos and not _cq_errs and not _cq_pubs:
+                st.info("No hay proyectos en el sistema todavía. Lanza un pipeline para empezar.")
+
+    # ════════════════════════════════════════════════════════════
+    # SECCION 3 — API Reference
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+
+    _gw_url = os.getenv("GATEWAY_URL", "http://localhost:7861")
+
+    with st.expander("🔌  API Reference — Endpoints del Gateway", expanded=False):
+        st.markdown(f"""<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:.78rem;color:var(--text2)">Base URL: <code style="color:var(--blue)">{_html_escape(_gw_url)}</code></div>
+        <div style="display:flex;gap:8px">
+          <a href="{_html_escape(_gw_url)}/docs" target="_blank"
+            style="font-size:.7rem;color:var(--blue);text-decoration:none;
+            padding:3px 10px;border:1px solid rgba(62,166,255,.25);border-radius:6px;
+            font-family:'JetBrains Mono',monospace">Swagger UI ↗</a>
+          <a href="{_html_escape(_gw_url)}/openapi.json" target="_blank"
+            style="font-size:.7rem;color:var(--text3);text-decoration:none;
+            padding:3px 10px;border:1px solid var(--border);border-radius:6px;
+            font-family:'JetBrains Mono',monospace">OpenAPI JSON ↗</a>
+        </div></div>""", unsafe_allow_html=True)
+
+        _API_ENDPOINTS = [
+            ("Pipeline", [
+                ("POST", "/pipeline/ejecutar", "Ejecutar pipeline completo", True),
+                ("POST", "/pipeline/webhook", "Trigger async (para n8n)", True),
+                ("GET", "/pipeline/estado/{proyecto_id}", "Estado detallado del pipeline", True),
+                ("GET", "/pipeline/cola", "Cola de publicación completa", True),
+                ("POST", "/pipeline/kaggle-callback", "Callback de Kaggle", True),
+                ("GET", "/download/{proyecto_id}/final", "Descargar video final", True),
+            ]),
+            ("Proyectos", [
+                ("POST", "/proyectos", "Crear proyecto nuevo", True),
+                ("GET", "/proyectos", "Listar todos los proyectos", True),
+                ("GET", "/proyectos/{proyecto_id}", "Leer estado de un proyecto", True),
+            ]),
+            ("Agentes", [
+                ("POST", "/agentes/{agente_id}/ejecutar", "Ejecutar un agente individual", True),
+            ]),
+            ("Channel Intelligence", [
+                ("POST", "/canales/conectar", "Conectar y escanear canal", True),
+                ("GET", "/canales", "Listar canales conectados", True),
+                ("GET", "/canales/{canal_id}", "Datos completos del canal", True),
+                ("POST", "/canales/{canal_id}/refrescar", "Refrescar datos del canal", True),
+                ("DELETE", "/canales/{canal_id}", "Eliminar canal", True),
+                ("POST", "/canales/{canal_id}/competidores", "Agregar competidor", True),
+                ("DELETE", "/canales/{canal_id}/competidores/{comp_id}", "Eliminar competidor", True),
+                ("GET", "/canales/{canal_id}/ideas", "Obtener ideas de video", True),
+                ("POST", "/canales/{canal_id}/ideas/refrescar", "Re-generar ideas", True),
+                ("GET", "/canales/{canal_id}/identidad-visual", "Leer identidad visual", True),
+                ("POST", "/canales/{canal_id}/identidad-visual", "Guardar identidad visual", True),
+            ]),
+            ("Estilos & Recursos", [
+                ("GET", "/estilos", "Catálogo de estilos visuales", False),
+                ("GET", "/estilos/{slug}", "Detalle de un estilo", False),
+                ("GET", "/quota/hoy", "Quota YouTube API del día", True),
+            ]),
+            ("Scheduling & Health", [
+                ("GET", "/health", "Health check del gateway", False),
+                ("GET", "/scheduling/health_servicios", "Health de todos los servicios", True),
+                ("POST", "/scheduling/puede_generar", "¿Se puede generar un video?", True),
+            ]),
+        ]
+
+        for _grp_name, _grp_endpoints in _API_ENDPOINTS:
+            _grp_rows = ""
+            for _method, _path, _desc, _auth in _grp_endpoints:
+                _m_cls = f"api-{_method.lower()}"
+                _auth_badge = '<span class="api-auth">API Key</span>' if _auth else ""
+                _grp_rows += (
+                    f'<div class="api-row">'
+                    f'<span class="api-method {_m_cls}">{_method}</span>'
+                    f'<span class="api-path">{_html_escape(_path)}</span>'
+                    f'<span class="api-desc">{_html_escape(_desc)}</span>'
+                    f'{_auth_badge}'
+                    f'</div>'
+                )
+
+            st.markdown(f"""
+            <div class="api-group">
+              <div class="api-group-title">{_html_escape(_grp_name)} ({len(_grp_endpoints)})</div>
+              {_grp_rows}
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown(f"""<div style="margin-top:8px;padding:10px 12px;background:var(--dark3);
+        border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:.72rem;font-weight:700;color:var(--text3);margin-bottom:6px;
+          font-family:'JetBrains Mono',monospace">Autenticación</div>
+        <div style="font-size:.73rem;color:var(--text2);line-height:1.7">
+          Endpoints con <span class="api-auth" style="display:inline">API Key</span> requieren el header
+          <code style="color:var(--blue)">X-API-Key</code> con el valor de
+          <code style="color:var(--text3)">YTCREATOR_API_KEY</code> de tu <code>.env</code>.<br>
+          Endpoints sin badge son públicos.
+        </div></div>""", unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════
+    # SECCION 4 — Eventos de automatización
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Eventos de automatización</div>', unsafe_allow_html=True)
+
+    _mon_eventos = _cached_eventos_recientes()
+
+    if _mon_eventos is None and not API_DISPONIBLE:
+        st.info("Conecta los agentes para ver el historial de eventos del sistema.")
+    elif _mon_eventos is None:
+        st.warning("No se pudieron obtener los eventos.")
+    elif not _mon_eventos:
+        st.info("No hay eventos registrados aún. Se registrarán automáticamente al ejecutar pipelines.")
+    else:
+        _mev_c1, _mev_c2, _mev_c3 = st.columns([1, 1, 1])
+        try:
+            _mev_stats = api_client.eventos_stats() if API_DISPONIBLE else {}
+        except Exception:
+            _mev_stats = {}
+
+        _mev_total = _mev_stats.get("total", len(_mon_eventos))
+        _mev_por_status = _mev_stats.get("por_status", {})
+        _mev_exitos = _mev_por_status.get("success", 0)
+        _mev_errores = _mev_por_status.get("error", 0)
+
+        _mev_c1.metric("Total eventos", _mev_total)
+        _mev_c2.metric("Exitosos", _mev_exitos)
+        _mev_c3.metric("Errores", _mev_errores)
+
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        _mev_filter_col1, _mev_filter_col2 = st.columns([1, 1])
+        with _mev_filter_col1:
+            _mev_type_filter = st.selectbox(
+                "Filtrar por tipo",
+                ["Todos", "pipeline_started", "pipeline_completed", "pipeline_failed",
+                 "pipeline_phase", "agent_completed", "agent_failed"],
+                key="mon_ev_type_filter",
+            )
+        with _mev_filter_col2:
+            _mev_status_filter = st.selectbox(
+                "Filtrar por estado",
+                ["Todos", "success", "error"],
+                key="mon_ev_status_filter",
+            )
+
+        _mev_filtered = _mon_eventos
+        if _mev_type_filter != "Todos":
+            _mev_filtered = [e for e in _mev_filtered if e.get("event_type") == _mev_type_filter]
+        if _mev_status_filter != "Todos":
+            _mev_filtered = [e for e in _mev_filtered if e.get("status") == _mev_status_filter]
+
+        if not _mev_filtered:
+            st.info("No hay eventos que coincidan con los filtros.")
+        else:
+            _mev_rows = ""
+            for _mev in _mev_filtered:
+                _mev_ts = _mev.get("timestamp", "")
+                _mev_type = _mev.get("event_type", "?")
+                _mev_st = _mev.get("status", "?")
+                _mev_src = _mev.get("source", "—")
+                _mev_pid = _mev.get("proyecto_id", "—")
+                _mev_dur = _mev.get("duration_seg")
+                _mev_data = _mev.get("data") or {}
+
+                _mev_type_cls = "met-pipeline" if "pipeline" in _mev_type else ("met-agent" if "agent" in _mev_type else "met-system")
+                _mev_st_cls = "mes-success" if _mev_st == "success" else "mes-error"
+                _mev_dur_str = f"{_mev_dur:.1f}s" if _mev_dur else "—"
+
+                _mev_detail = ""
+                if isinstance(_mev_data, dict):
+                    if _mev_data.get("fase"):
+                        _mev_detail = _mev_data["fase"]
+                    elif _mev_data.get("nicho"):
+                        _mev_detail = _html_escape(str(_mev_data["nicho"])[:30])
+                    elif _mev_data.get("error"):
+                        _mev_detail = _html_escape(str(_mev_data["error"])[:40])
+
+                _mev_rows += (
+                    f'<tr>'
+                    f'<td style="white-space:nowrap;color:var(--text3);font-size:.68rem">{_html_escape(_mev_ts[5:19] if len(_mev_ts)>=19 else _mev_ts)}</td>'
+                    f'<td><span class="mon-ev-type {_mev_type_cls}">{_html_escape(_mev_type)}</span></td>'
+                    f'<td><span class="mon-ev-status {_mev_st_cls}">{_mev_st}</span></td>'
+                    f'<td style="color:var(--text2)">{_html_escape(_mev_src)}</td>'
+                    f'<td style="color:var(--text3)">{_html_escape(_mev_pid[:16] if _mev_pid else "—")}</td>'
+                    f'<td style="color:var(--text3)">{_mev_dur_str}</td>'
+                    f'<td style="color:var(--text3);font-size:.68rem">{_mev_detail}</td>'
+                    f'</tr>'
+                )
+
+            st.markdown(f"""
+            <div style="background:var(--dark2);border:1px solid var(--border);border-radius:10px;
+                 padding:2px;overflow-x:auto;max-height:400px;overflow-y:auto;
+                 scrollbar-width:thin;scrollbar-color:#1A2535 var(--dark2)">
+              <table class="mon-events-table">
+                <thead><tr>
+                  <th>Hora</th><th>Tipo</th><th>Estado</th>
+                  <th>Origen</th><th>Proyecto</th><th>Dur.</th><th>Detalle</th>
+                </tr></thead>
+                <tbody>{_mev_rows}</tbody>
+              </table>
+            </div>""", unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════
+    # SECCION 5 — Scheduler (tareas programadas)
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Tareas programadas</div>', unsafe_allow_html=True)
+
+    # ── Control global de pausa ──
+    _mon_pausa = _cached_pausa()
+    _mon_esta_pausado = _mon_pausa is not None and _mon_pausa.get("pausado", False)
+
+    if _mon_esta_pausado:
+        _mp_en = _mon_pausa.get("pausado_en", "")
+        _mp_razon = _mon_pausa.get("razon", "")
+        _mp_por = _mon_pausa.get("pausado_por", "")
+        _mp_time_str = _mp_en[0:19].replace("T", " ") if _mp_en else "?"
+
+        st.markdown(f"""
+        <div class="mon-pause-card mon-pause-active">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span style="font-size:1.8rem">⏸️</span>
+            <div>
+              <div style="font-size:1rem;font-weight:800;color:var(--orange)">AUTOMATIZACIÓN PAUSADA</div>
+              <div style="font-size:.75rem;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px">
+                Desde {_html_escape(_mp_time_str)} · por {_html_escape(_mp_por)}
+                {(' — ' + _html_escape(_mp_razon)) if _mp_razon else ''}
+              </div>
+            </div>
+          </div>
+          <div style="font-size:.78rem;color:var(--text3);line-height:1.6">
+            Mientras la automatización está pausada, n8n no podrá lanzar nuevos pipelines.
+            Los pipelines manuales desde la UI tampoco se ejecutarán via webhook.
+            Los servicios siguen activos — solo se bloquea la generación automática.
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+        if st.button("▶  Reanudar automatización", key="mon_resume_auto", use_container_width=True):
+            try:
+                api_client.scheduler_reanudar()
+                _cached_pausa.clear()
+                _cached_scheduler.clear()
+                st.rerun()
+            except Exception as _mp_err:
+                st.error(f"Error: {_mp_err}")
+    elif _mon_pausa is not None:
+        st.markdown("""
+        <div class="mon-pause-card mon-pause-inactive">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:1.8rem">▶️</span>
+            <div>
+              <div style="font-size:1rem;font-weight:800;color:var(--green)">AUTOMATIZACIÓN ACTIVA</div>
+              <div style="font-size:.75rem;color:var(--text3);margin-top:2px">
+                Las tareas programadas se ejecutan según su horario configurado.
+              </div>
+            </div>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+        _mp_col1, _mp_col2 = st.columns([2, 1])
+        with _mp_col1:
+            _mp_razon_input = st.text_input(
+                "Razón (opcional)", placeholder="ej: mantenimiento, debug...",
+                key="mon_pause_reason", label_visibility="collapsed",
+            )
+        with _mp_col2:
+            if st.button("⏸  Pausar todo", key="mon_pause_auto", use_container_width=True):
+                try:
+                    api_client.scheduler_pausar(razon=_mp_razon_input.strip() or None)
+                    _cached_pausa.clear()
+                    _cached_scheduler.clear()
+                    st.rerun()
+                except Exception as _mp_err:
+                    st.error(f"Error: {_mp_err}")
+
+    st.markdown('<div style="height:14px"></div>', unsafe_allow_html=True)
+
+    _mon_sched = _cached_scheduler()
+
+    if _mon_sched is None and not API_DISPONIBLE:
+        st.info("Conecta los agentes para ver las tareas programadas.")
+    elif _mon_sched is None:
+        st.warning("No se pudo obtener el schedule.")
+    else:
+        _ms_tareas = _mon_sched.get("tareas", [])
+        _ms_hab = _mon_sched.get("habilitadas", 0)
+        _ms_prox = _mon_sched.get("proxima_ejecucion")
+        _ms_prox_nombre = _mon_sched.get("proxima_tarea", "")
+
+        _ms_c1, _ms_c2, _ms_c3 = st.columns(3)
+        _ms_c1.metric("Total tareas", len(_ms_tareas))
+        _ms_c2.metric("Habilitadas", _ms_hab)
+        _ms_prox_display = f"{_ms_prox[11:16]}" if _ms_prox and len(_ms_prox) >= 16 else ("PAUSADO" if _mon_esta_pausado else "—")
+        _ms_c3.metric("Próxima ejecución", _ms_prox_display)
+
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        for _mst_idx, _mst in enumerate(_ms_tareas):
+            _mst_hab = _mst.get("habilitado", False)
+            _mst_name = _mst.get("nombre", "?")
+            _mst_desc = _mst.get("descripcion", "")
+            _mst_cron = _mst.get("cron", "?")
+            _mst_freq = _mst.get("frecuencia", "?")
+            _mst_orq = _mst.get("orquestador", "?")
+            _mst_endpoint = _mst.get("endpoint", "?")
+            _mst_last = _mst.get("ultima_ejecucion")
+            _mst_last_dur = _mst.get("ultima_duracion_seg")
+            _mst_last_st = _mst.get("ultimo_estado", "")
+            _mst_prox = _mst.get("proxima_ejecucion")
+            _mst_tid = _mst.get("task_id", "?")
+
+            _mst_dot = "🟢" if _mst_hab else "🔴"
+            _mst_last_str = _mst_last[0:19].replace("T", " ") if _mst_last else "Nunca"
+            _mst_dur_str = f"{_mst_last_dur:.1f}s" if _mst_last_dur else "—"
+            _mst_prox_str = _mst_prox[11:16] if _mst_prox and len(_mst_prox) >= 16 else "—"
+            _mst_st_icon = "✅" if _mst_last_st == "success" else ("❌" if _mst_last_st == "error" else "—")
+
+            st.markdown(f"""
+            <div class="mon-sched-card" style="margin-bottom:10px">
+              <div class="mon-sched-card-head">
+                <span class="mon-sched-card-name">{_mst_dot} {_html_escape(_mst_name)}</span>
+                <span class="mon-sched-card-cron">{_html_escape(_mst_cron)}</span>
+              </div>
+              <div class="mon-sched-card-desc">{_html_escape(_mst_desc)}</div>
+              <div class="mon-sched-card-meta">
+                <span class="mon-sched-meta-item">📅 <strong>{_html_escape(_mst_freq)}</strong></span>
+                <span class="mon-sched-meta-item">🔧 <strong>{_html_escape(_mst_orq)}</strong></span>
+                <span class="mon-sched-meta-item">📍 <strong>{_html_escape(_mst_endpoint)}</strong></span>
+                <span class="mon-sched-meta-item">⏰ Próx: <strong>{_mst_prox_str}</strong></span>
+                <span class="mon-sched-meta-item">📊 Último: <strong>{_mst_last_str}</strong> {_mst_st_icon} ({_mst_dur_str})</span>
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+            _mst_col1, _mst_col2 = st.columns([1, 3])
+            with _mst_col1:
+                _mst_new_state = not _mst_hab
+                _mst_btn_label = "⏸ Deshabilitar" if _mst_hab else "▶ Habilitar"
+                if st.button(_mst_btn_label, key=f"sched_toggle_{_mst_tid}", use_container_width=True):
+                    try:
+                        api_client.scheduler_toggle(_mst_tid, _mst_new_state)
+                        _cached_scheduler.clear()
+                        st.rerun()
+                    except Exception as _mst_err:
+                        st.error(f"Error: {_mst_err}")
+
+    # ════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════
+    # SECCION 6 — Keyword Performance Tracking
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Keyword Performance</div>', unsafe_allow_html=True)
+
+    _mon_kw_stats = _cached_keywords_stats()
+    _mon_kw_top = _cached_keywords_top()
+
+    if _mon_kw_stats is None and not API_DISPONIBLE:
+        st.info("Conecta los agentes para ver el tracking de keywords.")
+    elif _mon_kw_stats is None:
+        st.warning("No se pudo obtener datos de keywords.")
+    elif _mon_kw_stats.get("total_keywords", 0) == 0:
+        st.info("No hay datos de keywords aún. Se registrarán automáticamente cuando el tracker de performance (agente 0.5) evalúe videos publicados en los checkpoints T+7d y T+30d.")
+    else:
+        _kw_c1, _kw_c2, _kw_c3, _kw_c4 = st.columns(4)
+        _kw_c1.metric("Keywords trackeadas", _mon_kw_stats.get("total_keywords", 0))
+        _kw_c2.metric("Videos analizados", _mon_kw_stats.get("total_videos_trackeados", 0))
+        _kw_c3.metric("Registros totales", _mon_kw_stats.get("total_registros", 0))
+        _kw_mejor = _mon_kw_stats.get("mejor_keyword")
+        _kw_mejor_str = _kw_mejor["keyword"] if _kw_mejor else "—"
+        _kw_c4.metric("Mejor keyword", _kw_mejor_str)
+
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+
+        _kw_sort_col1, _kw_sort_col2 = st.columns([1, 1])
+        with _kw_sort_col1:
+            _kw_sort = st.selectbox(
+                "Ordenar por",
+                ["vistas_promedio", "ctr_promedio", "engagement_promedio", "usos", "mejor_vistas"],
+                key="mon_kw_sort",
+            )
+        with _kw_sort_col2:
+            _kw_min_usos = st.selectbox(
+                "Mínimo de usos",
+                [1, 2, 3, 5],
+                key="mon_kw_min_usos",
+            )
+
+        if _kw_sort != "vistas_promedio" or _kw_min_usos != 1:
+            try:
+                _mon_kw_top = api_client.keywords_top(limit=30, ordenar_por=_kw_sort, min_usos=_kw_min_usos)
+            except Exception:
+                pass
+
+        if _mon_kw_top:
+            _kw_max_vistas = max((k.get("vistas_promedio", 0) or 0) for k in _mon_kw_top) if _mon_kw_top else 1
+            if _kw_max_vistas == 0:
+                _kw_max_vistas = 1
+
+            _kw_rows = ""
+            for _kw in _mon_kw_top:
+                _kw_name = _html_escape(_kw.get("keyword", "?"))
+                _kw_usos = _kw.get("usos", 0)
+                _kw_vistas_avg = _kw.get("vistas_promedio", 0) or 0
+                _kw_vistas_total = _kw.get("vistas_total", 0) or 0
+                _kw_ctr = _kw.get("ctr_promedio")
+                _kw_eng = _kw.get("engagement_promedio")
+                _kw_mejor_v = _kw.get("mejor_vistas", 0) or 0
+                _kw_mejor_t = _html_escape(_kw.get("mejor_titulo", "") or "")
+                if len(_kw_mejor_t) > 30:
+                    _kw_mejor_t = _kw_mejor_t[:30] + "…"
+
+                _kw_bar_pct = min((_kw_vistas_avg / _kw_max_vistas) * 100, 100)
+                _kw_bar_color = "var(--green)" if _kw_bar_pct >= 60 else ("var(--orange)" if _kw_bar_pct >= 30 else "var(--blue)")
+
+                _kw_ctr_str = f"{_kw_ctr:.1f}%" if _kw_ctr is not None else "—"
+                _kw_eng_str = f"{_kw_eng:.1f}%" if _kw_eng is not None else "—"
+
+                _kw_rows += (
+                    f'<tr>'
+                    f'<td><span class="kw-tag">{_kw_name}</span></td>'
+                    f'<td style="text-align:center">{_kw_usos}</td>'
+                    f'<td style="text-align:right">{_kw_vistas_avg:,.0f}</td>'
+                    f'<td><div class="kw-bar"><div class="kw-bar-fill" style="width:{_kw_bar_pct:.1f}%;background:{_kw_bar_color}"></div></div></td>'
+                    f'<td style="text-align:right">{_kw_vistas_total:,}</td>'
+                    f'<td style="text-align:center">{_kw_ctr_str}</td>'
+                    f'<td style="text-align:center">{_kw_eng_str}</td>'
+                    f'<td style="text-align:right">{_kw_mejor_v:,}</td>'
+                    f'<td style="color:var(--text3);font-size:.68rem" title="{_kw_mejor_t}">{_kw_mejor_t}</td>'
+                    f'</tr>'
+                )
+
+            st.markdown(f"""
+            <div style="background:var(--dark2);border:1px solid var(--border);border-radius:10px;
+                 padding:2px;overflow-x:auto;max-height:450px;overflow-y:auto;
+                 scrollbar-width:thin;scrollbar-color:#1A2535 var(--dark2)">
+              <table class="kw-table">
+                <thead><tr>
+                  <th>Keyword</th><th style="text-align:center">Usos</th>
+                  <th style="text-align:right">Vistas avg</th><th></th>
+                  <th style="text-align:right">Vistas total</th>
+                  <th style="text-align:center">CTR avg</th>
+                  <th style="text-align:center">Engage avg</th>
+                  <th style="text-align:right">Mejor</th><th>Video</th>
+                </tr></thead>
+                <tbody>{_kw_rows}</tbody>
+              </table>
+            </div>""", unsafe_allow_html=True)
+        else:
+            st.info("No hay keywords que coincidan con los filtros seleccionados.")
+
+    # ════════════════════════════════════════════════════════════
+    # SECCION 7 — Logs en vivo (siempre visible, con o sin agentes)
+    # ════════════════════════════════════════════════════════════
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Logs del sistema</div>', unsafe_allow_html=True)
+
+    from shared.config import STORAGE_DIR as _LOG_STORAGE_DIR
+
+    # Toolbar de controles
+    _lc1, _lc2, _lc3, _lc4 = st.columns([1, 1, 1, 2])
+    with _lc1:
+        _log_n_lines = st.selectbox("Líneas", [50, 100, 200, 500], index=1, key="mon_log_lines")
+    with _lc2:
+        _log_level_filter = st.selectbox("Nivel", ["Todos", "Solo errores", "Solo warnings", "Errores + warnings"], key="mon_log_filter")
+    with _lc3:
+        _log_include_rotated = st.checkbox("Incluir historial", value=False, key="mon_log_rotated",
+            help="Incluye archivos de log rotados (.1, .2, .3) para ver historial más antiguo")
+
+    # Leer logs
+    _all_raw_lines = _leer_logs(_LOG_STORAGE_DIR, incluir_rotados=_log_include_rotated)
+
+    if not _all_raw_lines:
+        st.info("No hay archivo de logs todavía. Se creará al ejecutar el primer pipeline.")
+    else:
+        # Parsear todas las líneas
+        _all_parsed = [_parsear_linea_log(l) for l in _all_raw_lines]
+
+        # Filtro por servicio
+        _servicios_en_log = _extraer_servicios_unicos(_all_parsed)
+        with _lc4:
+            _log_srv_filter = st.selectbox("Servicio", ["Todos"] + _servicios_en_log, key="mon_log_srv")
+
+        # Búsqueda
+        _log_search = st.text_input("Buscar en logs", placeholder="proyecto_id, error, texto...", key="mon_log_search", label_visibility="collapsed")
+
+        # Aplicar filtros
+        _filtered = _all_parsed
+
+        if _log_level_filter == "Solo errores":
+            _filtered = [l for l in _filtered if "ERROR" in l["level"]]
+        elif _log_level_filter == "Solo warnings":
+            _filtered = [l for l in _filtered if "WARNING" in l["level"]]
+        elif _log_level_filter == "Errores + warnings":
+            _filtered = [l for l in _filtered if "ERROR" in l["level"] or "WARNING" in l["level"]]
+
+        if _log_srv_filter != "Todos":
+            _filtered = [l for l in _filtered if l["name"] == _log_srv_filter]
+
+        if _log_search.strip():
+            _sq = _log_search.strip().lower()
+            _filtered = [l for l in _filtered if _sq in (l["ts"] + l["name"] + l["level"] + l["msg"]).lower()]
+
+        # Estadísticas
+        _total_shown = len(_filtered)
+        _n_errors = sum(1 for l in _filtered if "ERROR" in l["level"])
+        _n_warnings = sum(1 for l in _filtered if "WARNING" in l["level"])
+        _n_info = _total_shown - _n_errors - _n_warnings
+
+        st.markdown(f"""
+        <div class="mon-log-stats">
+          <div class="mon-log-stat">
+            <span class="mon-log-stat-num" style="color:var(--text2)">{_total_shown}</span>
+            <span style="color:var(--text3)">líneas</span>
+          </div>
+          <div class="mon-log-stat">
+            <span class="mon-log-stat-num" style="color:var(--red)">{_n_errors}</span>
+            <span style="color:var(--text3)">errores</span>
+          </div>
+          <div class="mon-log-stat">
+            <span class="mon-log-stat-num" style="color:var(--orange)">{_n_warnings}</span>
+            <span style="color:var(--text3)">warnings</span>
+          </div>
+          <div class="mon-log-stat">
+            <span class="mon-log-stat-num" style="color:var(--blue)">{_n_info}</span>
+            <span style="color:var(--text3)">info</span>
+          </div>
+          <div class="mon-log-stat" style="margin-left:auto">
+            <span style="color:var(--text4)">{len(_all_raw_lines)} total en archivo</span>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        # Recortar al número pedido
+        _display_lines = _filtered[-_log_n_lines:]
+
+        if _display_lines:
+            _logs_html = _renderizar_logs_html(_display_lines, busqueda=_log_search.strip())
+            st.markdown(f'<div class="mon-log">{_logs_html}</div>', unsafe_allow_html=True)
+        else:
+            st.info("No hay logs que coincidan con los filtros seleccionados.")
+
+        # Descarga
+        _col_dl1, _col_dl2 = st.columns([1, 4])
+        with _col_dl1:
+            _dl_text = "\n".join(
+                f"{l['ts']} | {l['name']} | {l['level']} | {l['msg']}" if l["name"] else l["msg"]
+                for l in _filtered
+            )
+            st.download_button(
+                "⬇️  Exportar logs",
+                data=_dl_text,
+                file_name="ytcreator_logs.txt",
+                mime="text/plain",
+                key="mon_log_download",
+                use_container_width=True,
+            )
