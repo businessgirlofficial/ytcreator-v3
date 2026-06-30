@@ -116,10 +116,51 @@ Patrones virales detectados: {", ".join(estrategia.patrones_virales) or "ninguno
         if ctx.get("tono"):
             contexto_estrategia += f"\nEstilo de comunicacion del canal: {ctx['tono']}"
 
+    # ── Contexto del cronograma (modo dirigido) ──
+    contexto_cronograma = ""
+    if estado.modo_dirigido:
+        c = estado.cronograma
+        contexto_cronograma = f"""
+
+=== CONTEXTO DEL CRONOGRAMA (modo dirigido) ===
+Tema definido: {c.tema}
+Angulo especifico: {c.angulo}
+Formato esperado: {c.formato}
+Duracion sugerida: ~{c.duracion_sugerida_min} minutos
+Tipo de contenido: {c.tipo_contenido}
+Keywords a integrar naturalmente: {', '.join(c.keywords_recomendadas) if c.keywords_recomendadas else 'N/A'}
+Razon de este tema: {c.razon_tema}"""
+
+        if c.datos_soporte:
+            comp = c.datos_soporte.get("competidor_referencia", "")
+            fuente = c.datos_soporte.get("fuente", "")
+            if comp:
+                contexto_cronograma += f"\nCompetidor de referencia: {comp} (hacer mejor, no copiar)"
+            if fuente:
+                contexto_cronograma += f"\nFuente de la idea: {fuente}"
+
+        formato_guias = {
+            "tutorial": "Estructura paso a paso. Cada escena de cuerpo es un paso. Ser concreto y accionable.",
+            "listicle": "Cada escena de cuerpo es un item de la lista. Numerar claramente. El mas impactante NO va primero (guardar para el final).",
+            "storytime": "Narrativa con arco dramatico. Tension creciente. El climax en el ultimo tercio.",
+            "comparacion": "Presentar ambas opciones con pros/contras. Dar un veredicto claro al final.",
+            "caso_estudio": "Presentar el caso, analizar que paso, extraer lecciones concretas.",
+            "reaccion": "Tono espontaneo pero informado. Reaccionar con datos, no solo opiniones.",
+            "explicacion": "De lo simple a lo complejo. Usar analogias del dia a dia. Cerrar con implicacion practica.",
+        }
+        if c.formato in formato_guias:
+            contexto_cronograma += f"\n\nGUIA DE FORMATO ({c.formato}): {formato_guias[c.formato]}"
+
+        contexto_cronograma += """
+
+IMPORTANTE: Las keywords del cronograma deben aparecer de forma NATURAL en
+el guion (no forzadas). Esto ayuda al SEO desde la produccion.
+=== FIN CONTEXTO CRONOGRAMA ==="""
+
     es_reescritura = bool(guion_previo.feedback_evaluador) and not guion_previo.aprobado
 
     if es_reescritura:
-        user_prompt = f"""{contexto_estrategia}
+        user_prompt = f"""{contexto_estrategia}{contexto_cronograma}
 
 Este es tu intento numero {guion_previo.intentos_reescritura + 1}.
 
@@ -132,7 +173,13 @@ Guion anterior (para que no repitas los mismos errores):
 Reescribe el guion completo atacando DIRECTAMENTE el feedback de arriba.
 No cambies lo que ya funcionaba si el feedback no lo menciono."""
     else:
-        user_prompt = f"""{contexto_estrategia}
+        if estado.modo_dirigido:
+            user_prompt = f"""{contexto_estrategia}{contexto_cronograma}
+
+Escribe el guion completo. Ya tienes el tema, angulo, formato y keywords
+definidos. No necesitas descubrir de que hablar — construye sobre esa base."""
+        else:
+            user_prompt = f"""{contexto_estrategia}
 
 Escribe el guion completo desde cero."""
 

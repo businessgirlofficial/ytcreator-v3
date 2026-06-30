@@ -17,6 +17,8 @@ logs/
 analytics/
 events/
 scheduler/
+channels/
+rate_limits/
 
 # Archivos generados por el pipeline
 projects/*.json

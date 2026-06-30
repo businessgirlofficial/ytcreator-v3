@@ -325,3 +325,192 @@ def _resumen_final(
 
     msg += "\n✅✅✅✅✅ Pipeline completo"
     return msg
+
+
+# ── Notificaciones de Cronograma ──────────────────────────────
+
+
+def notificar_cronograma_generado(
+    canal: str,
+    cronograma_id: str,
+    periodo_dias: int,
+    total_videos: int,
+    fase: str,
+    primer_video: str | None = None,
+):
+    if not _habilitado():
+        return
+    try:
+        msg = (
+            f"{_pc()}📅 <b>CRONOGRAMA GENERADO</b>\n"
+            f"📺 {_e(canal)} · Fase: {_e(fase)}\n"
+            f"📋 {total_videos} videos para {periodo_dias} días\n"
+            f"🆔 <code>{_e(cronograma_id)}</code>\n"
+        )
+        if primer_video:
+            msg += f'\n▶️ Primer video: "{_e(primer_video)}"'
+        _enviar(msg)
+    except Exception as exc:
+        log.warning("telegram cronograma_generado: %s", exc)
+
+
+def notificar_followup_inyectado(
+    canal: str,
+    video_exitoso: str,
+    ratio: float | None,
+    followup_titulo: str,
+    followup_fecha: str,
+):
+    if not _habilitado():
+        return
+    try:
+        msg = (
+            f"{_pc()}🔥 <b>FOLLOW-UP INYECTADO</b>\n"
+            f"📺 {_e(canal)}\n\n"
+            f"📈 Video exitoso: \"{_e(video_exitoso)}\"\n"
+            f"   Rendimiento: {ratio or '?'}% vs promedio\n\n"
+            f"➕ Follow-up programado:\n"
+            f'   📝 "{_e(followup_titulo)}"\n'
+            f"   📅 Fecha: {_e(followup_fecha)}\n\n"
+            f"⚡ Producir lo antes posible para capitalizar momentum"
+        )
+        _enviar(msg)
+    except Exception as exc:
+        log.warning("telegram followup_inyectado: %s", exc)
+
+
+def notificar_entradas_flagged(
+    canal: str,
+    video_pobre: str,
+    ratio: float | None,
+    total_flagged: int,
+):
+    if not _habilitado():
+        return
+    try:
+        msg = (
+            f"{_pc()}⚠️ <b>CRONOGRAMA AJUSTADO</b>\n"
+            f"📺 {_e(canal)}\n\n"
+            f"📉 Video bajo rendimiento: \"{_e(video_pobre)}\"\n"
+            f"   Rendimiento: {ratio or '?'}% vs promedio\n\n"
+            f"🔍 {total_flagged} entrada(s) similares marcadas para revisión\n"
+            f"   Se evaluarán antes de producirse"
+        )
+        _enviar(msg)
+    except Exception as exc:
+        log.warning("telegram entradas_flagged: %s", exc)
+
+
+def notificar_revision_vigencia(
+    canal: str,
+    dia: int,
+    titulo: str,
+    decision: str,
+    score: float | None,
+):
+    if not _habilitado():
+        return
+    try:
+        iconos = {"proceder": "✅", "ajustar": "🔄", "sustituir": "🔀"}
+        icono = iconos.get(decision, "❓")
+        msg = (
+            f"{_pc()}{icono} <b>REVISIÓN DE VIGENCIA</b>\n"
+            f"📺 {_e(canal)} · Día {dia}\n"
+            f'📝 "{_e(titulo)}"\n\n'
+            f"Decisión: <b>{_e(decision).upper()}</b>"
+        )
+        if score is not None:
+            msg += f" · Vigencia: {score}/10"
+        _enviar(msg)
+    except Exception as exc:
+        log.warning("telegram revision_vigencia: %s", exc)
+
+
+def notificar_video_hoy_semiauto(
+    canal: str,
+    dia: int,
+    titulo: str,
+    decision: str,
+    score: float | None,
+    tipo_contenido: str = "",
+    formato: str = "",
+):
+    if not _habilitado():
+        return
+    try:
+        iconos = {"proceder": "✅", "ajustar": "🔄", "sustituir": "🔀"}
+        icono = iconos.get(decision, "📝")
+        msg = (
+            f"{_pc()}📅 <b>VIDEO DEL DIA — ESPERANDO TU OK</b>\n"
+            f"📺 {_e(canal)} · Dia {dia}\n\n"
+            f'{icono} "{_e(titulo)}"\n'
+            f"Tipo: {_e(tipo_contenido)} · Formato: {_e(formato)}\n"
+        )
+        if score is not None:
+            msg += f"Vigencia: {score}/10\n"
+        msg += (
+            f"Decision de revision: <b>{_e(decision).upper()}</b>\n\n"
+            f"👉 Entra al Dashboard para iniciar produccion o ajustar"
+        )
+        _enviar(msg)
+    except Exception as exc:
+        log.warning("telegram video_hoy_semiauto: %s", exc)
+
+
+def notificar_video_auto_iniciado(
+    canal: str,
+    dia: int,
+    titulo: str,
+    tipo_contenido: str = "",
+):
+    if not _habilitado():
+        return
+    try:
+        msg = (
+            f"{_pc()}🤖 <b>PRODUCCION AUTOMATICA INICIADA</b>\n"
+            f"📺 {_e(canal)} · Dia {dia}\n\n"
+            f'🎬 "{_e(titulo)}"\n'
+            f"Tipo: {_e(tipo_contenido)}\n\n"
+            f"El pipeline esta corriendo. Te notificare cuando termine."
+        )
+        _enviar(msg)
+    except Exception as exc:
+        log.warning("telegram video_auto_iniciado: %s", exc)
+
+
+def notificar_cronograma_agotandose(
+    canal: str,
+    entradas_restantes: int,
+    modo: str,
+):
+    if not _habilitado():
+        return
+    try:
+        if modo == "auto":
+            accion = "Se generara uno nuevo automaticamente."
+        else:
+            accion = "Entra al Dashboard para generar uno nuevo."
+        msg = (
+            f"{_pc()}⚠️ <b>CRONOGRAMA CASI AGOTADO</b>\n"
+            f"📺 {_e(canal)}\n\n"
+            f"Solo quedan {entradas_restantes} entrada(s) pendiente(s).\n"
+            f"{accion}"
+        )
+        _enviar(msg)
+    except Exception as exc:
+        log.warning("telegram cronograma_agotandose: %s", exc)
+
+
+def notificar_modo_sin_cronograma(canal: str):
+    if not _habilitado():
+        return
+    try:
+        msg = (
+            f"{_pc()}📅 <b>SIN CRONOGRAMA ACTIVO</b>\n"
+            f"📺 {_e(canal)}\n\n"
+            f"El modo automatico/semi-auto esta activo pero no hay cronograma.\n"
+            f"Entra al Dashboard para generar uno."
+        )
+        _enviar(msg)
+    except Exception as exc:
+        log.warning("telegram modo_sin_cronograma: %s", exc)

@@ -26,9 +26,11 @@ from shared.config import REGISTRO_AGENTES, url_agente
 from shared import event_store
 from shared.health_checks import HealthCheckError, validar_fase, validar_todo
 from shared.logger import get_logger
-from shared.schemas import AgenteRequest
+from shared.schemas import AgenteRequest, ContextoCronograma
 from shared.state_manager import StateManager
 from shared import telegram_notifier as telegram
+
+import json as _json
 
 log = get_logger("orquestador_central")
 
@@ -205,8 +207,147 @@ _NICHO_PERMITIDO = re.compile(r"^[\w\sáéíóúñüÁÉÍÓÚÑÜ\-,.\&/\(\)]+$
 _NICHO_PROHIBIDO = re.compile(r"[<>\{\}\"\';`\\|]")
 
 
+def _vincular_cronograma(
+    proyecto_id: str,
+    canal_id: str,
+    entrada_dia: int | None = None,
+) -> bool:
+    """Si el canal tiene cronograma activo y se indica un dia,
+    vincula el proyecto con la entrada del cronograma y la marca en_produccion."""
+    try:
+        canal = channel_mgr.leer(canal_id)
+        if not canal.cronograma_activo:
+            return False
+
+        cronograma = canal.cronograma_activo
+
+        entrada = None
+        if entrada_dia is not None:
+            for e in cronograma.entradas:
+                if e.dia == entrada_dia:
+                    entrada = e
+                    break
+        else:
+            for e in sorted(cronograma.entradas, key=lambda x: x.fecha_programada):
+                if e.status in ("aprobado", "pendiente"):
+                    entrada = e
+                    break
+
+        if not entrada:
+            return False
+
+        ctx = ContextoCronograma(
+            cronograma_id=cronograma.cronograma_id,
+            entrada_dia=entrada.dia,
+            titulo_sugerido=entrada.titulo_sugerido,
+            tema=entrada.tema,
+            angulo=entrada.angulo,
+            tipo_contenido=entrada.tipo_contenido,
+            formato=entrada.formato,
+            duracion_sugerida_min=entrada.duracion_sugerida_min,
+            keywords_recomendadas=list(entrada.keywords_recomendadas),
+            datos_soporte=dict(entrada.datos_soporte),
+            potencial_viral=entrada.potencial_viral,
+            razon_tema=entrada.razon_tema,
+        )
+        state.actualizar(proyecto_id, cronograma=ctx.model_dump())
+
+        for i, e in enumerate(cronograma.entradas):
+            if e.dia == entrada.dia and e.status in ("aprobado", "pendiente"):
+                cronograma.entradas[i].status = "en_produccion"
+                cronograma.entradas[i].proyecto_id = proyecto_id
+                break
+
+        channel_mgr.actualizar(
+            canal_id,
+            cronograma_activo=_json.loads(cronograma.model_dump_json()),
+        )
+
+        log.info(
+            "cronograma vinculado | proyecto=%s | dia=%d | titulo='%s'",
+            proyecto_id, entrada.dia, entrada.titulo_sugerido,
+        )
+        return True
+    except Exception as exc:
+        log.warning("error vinculando cronograma: %s", exc)
+        return False
+
+
+def _marcar_publicado_en_cronograma(proyecto_id: str):
+    """Marca la entrada del cronograma como publicada tras completar el pipeline."""
+    try:
+        proyecto = state.leer(proyecto_id)
+        if not proyecto.modo_dirigido:
+            return
+
+        canal_id = proyecto.canal_id or proyecto.estrategia.canal_id
+        if not canal_id:
+            return
+
+        canal = channel_mgr.leer(canal_id)
+        if not canal.cronograma_activo:
+            return
+
+        cronograma = canal.cronograma_activo
+        dia = proyecto.cronograma.entrada_dia
+        titulo_final = proyecto.estrategia.titulo_ganador or ""
+
+        for i, e in enumerate(cronograma.entradas):
+            if e.dia == dia:
+                cronograma.entradas[i].status = "publicado"
+                cronograma.entradas[i].titulo_final = titulo_final
+                cronograma.entradas[i].proyecto_id = proyecto_id
+                cronograma.videos_publicados += 1
+
+                pendientes = sum(
+                    1 for ent in cronograma.entradas
+                    if ent.status in ("pendiente", "en_revision", "aprobado", "en_produccion")
+                )
+                if pendientes == 0:
+                    cronograma.status = "completado"
+                    log.info("cronograma %s completado", cronograma.cronograma_id)
+                break
+
+        channel_mgr.actualizar(
+            canal_id,
+            cronograma_activo=_json.loads(cronograma.model_dump_json()),
+        )
+
+        log.info(
+            "cronograma actualizado | dia=%d | status=publicado | titulo_final='%s'",
+            dia, titulo_final,
+        )
+    except Exception as exc:
+        log.warning("error marcando publicado en cronograma: %s", exc)
+
+
+def _disparar_tracker_post_publicacion(proyecto_id: str):
+    """Programa el primer checkpoint (T+24h) para un video recien publicado."""
+    try:
+        proyecto = state.leer(proyecto_id)
+        if not proyecto.publicado or not proyecto.youtube_video_id:
+            return
+
+        canal_id = proyecto.canal_id or proyecto.estrategia.canal_id
+        if not canal_id:
+            return
+
+        log.info(
+            "tracker programado t_24h | proyecto=%s | video=%s",
+            proyecto_id, proyecto.youtube_video_id,
+        )
+    except Exception as exc:
+        log.warning("error programando tracker: %s", exc)
+
+
 @app.post("/pipeline/ejecutar")
-def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", canal_id: str | None = None):
+def ejecutar_pipeline(
+    proyecto_id: str,
+    nicho: str,
+    canal: str = "mi_canal",
+    canal_id: str | None = None,
+    cronograma_dia: int | None = None,
+):
     """Corre el pipeline completo con tracking de fase, reintentos y recovery."""
 
     nicho = nicho.strip()
@@ -253,15 +394,34 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
             telegram.notificar_error(proyecto_id, "pre-check", str(exc), round(time.time() - pipeline_inicio, 2))
             raise HTTPException(status_code=422, detail=str(exc))
 
+        # 0.3 Vincular con cronograma (si hay uno activo para este canal)
+        if canal_id:
+            _vincular_cronograma(proyecto_id, canal_id, cronograma_dia)
+
         # 0.5 Channel Intelligence (si canal_id proporcionado)
         if canal_id:
             try:
                 validar_fase("inteligencia")
-                _llamar("sub_orq_inteligencia", proyecto_id, {
-                    "canal_id": canal_id,
-                    "canal_input": canal_id,
-                    "modo": "quick_refresh",
-                })
+
+                proyecto_actual = state.leer(proyecto_id)
+                if proyecto_actual.modo_dirigido:
+                    dia_cron = proyecto_actual.cronograma.entrada_dia
+                    log.info(
+                        "modo dirigido: ejecutando pre-produccion dia %d | proyecto=%s",
+                        dia_cron, proyecto_id,
+                    )
+                    _llamar("sub_orq_inteligencia", proyecto_id, {
+                        "canal_id": canal_id,
+                        "modo": "pre_produccion",
+                        "dia": dia_cron,
+                    })
+                else:
+                    _llamar("sub_orq_inteligencia", proyecto_id, {
+                        "canal_id": canal_id,
+                        "canal_input": canal_id,
+                        "modo": "quick_refresh",
+                    })
+
                 canal_data = channel_mgr.leer(canal_id)
                 state.actualizar(proyecto_id, estrategia={
                     "canal_id": canal_id,
@@ -340,6 +500,11 @@ def ejecutar_pipeline(proyecto_id: str, nicho: str, canal: str = "mi_canal", can
             data={"nicho": nicho},
             duration_seg=duracion_total,
         )
+
+        # Post-pipeline: actualizar cronograma y programar tracker
+        _marcar_publicado_en_cronograma(proyecto_id)
+        _disparar_tracker_post_publicacion(proyecto_id)
+
         estado_final = state.leer(proyecto_id)
         telegram.notificar_completado(proyecto_id, estado_final, duracion_total, tiempos_fases)
         return estado_final
@@ -448,13 +613,33 @@ def evaluar_pendientes():
                     canal_id = proyecto.canal_id or proyecto.estrategia.canal_id
                     if not canal_id:
                         continue
-                    _llamar("0.5_tracker_performance", pid, {
+                    tracker_result = _llamar("0.5_tracker_performance", pid, {
                         "video_id": proyecto.youtube_video_id,
                         "canal_id": canal_id,
                         "checkpoint": tipo.value,
                     })
                     resultados.append({"proyecto_id": pid, "checkpoint": tipo.value, "estado": "ok"})
                     log.info("auto-checkpoint %s | proyecto=%s", tipo.value, pid)
+
+                    # Ejecutar acciones adaptar_cronograma si el tracker las genero
+                    acciones_cron = [
+                        a for a in tracker_result.get("output", {}).get("acciones", [])
+                        if a.get("tipo") == "adaptar_cronograma"
+                    ]
+                    for accion in acciones_cron:
+                        try:
+                            _llamar("sub_orq_inteligencia", pid, {
+                                "canal_id": canal_id,
+                                "modo": "adaptar_cronograma",
+                                "senal": accion.get("datos", {}),
+                            })
+                            log.info(
+                                "accion adaptar_cronograma ejecutada | proyecto=%s | senal=%s",
+                                pid, accion.get("datos", {}).get("tipo_senal", "?"),
+                            )
+                        except Exception as exc_a:
+                            log.warning("accion adaptar_cronograma fallo: %s", exc_a)
+
                 except Exception as exc:
                     resultados.append({"proyecto_id": pid, "checkpoint": tipo.value, "estado": "error", "error": str(exc)})
                     log.warning("auto-checkpoint fallo %s | proyecto=%s | %s", tipo.value, pid, exc)
@@ -641,7 +826,7 @@ def health_servicios():
 
     # Desglose por departamento
     deptos = {
-        "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "sub_orq_inteligencia"],
+        "depto_0_inteligencia": ["0.1_escaner_canal", "0.2_analizador_canal", "0.3_monitor_mercado", "0.4_asesor_estrategico", "0.5_tracker_performance", "0.6_planificador_contenido", "sub_orq_inteligencia"],
         "depto_1_estrategia": ["1.1_investigador", "1.2_copywriter", "1.3_director_arte", "1.4_generador_miniatura", "sub_orq_estrategia"],
         "depto_2_guion": ["2.1_guionista", "sub_orq_guion"],
         "depto_3_visual": ["3.1_prompt_maker", "3.2_generador_visual", "sub_orq_visual"],

@@ -243,6 +243,73 @@ def pipeline_cola() -> dict:
     return _get("/pipeline/cola", timeout=30)
 
 
+# ── Cronograma de contenido ──────────────────────────────────────
+
+
+def cronograma_generar(
+    canal_id: str,
+    periodo_dias: int = 30,
+    frecuencia_semanal: int = 4,
+) -> dict:
+    return _post(
+        f"/cronograma/{canal_id}/generar",
+        json={
+            "periodo_dias": periodo_dias,
+            "frecuencia_semanal": frecuencia_semanal,
+        },
+        timeout=TIMEOUT_PIPELINE,
+    )
+
+
+def cronograma_progreso(canal_id: str) -> dict:
+    return _get(f"/cronograma/{canal_id}/progreso")
+
+
+def cronograma_gestionar(
+    canal_id: str,
+    dia: int,
+    nuevo_status: str,
+    razon: str = "",
+    proyecto_id: str | None = None,
+    titulo_final: str | None = None,
+    nueva_fecha: str | None = None,
+) -> dict:
+    payload: dict = {
+        "dia": dia,
+        "nuevo_status": nuevo_status,
+        "razon": razon,
+    }
+    if proyecto_id:
+        payload["proyecto_id"] = proyecto_id
+    if titulo_final:
+        payload["titulo_final"] = titulo_final
+    if nueva_fecha:
+        payload["nueva_fecha"] = nueva_fecha
+    return _post(
+        f"/cronograma/{canal_id}/gestionar",
+        json=payload,
+        timeout=TIMEOUT_AGENTE,
+    )
+
+
+def cronograma_revisar(canal_id: str, dia: int) -> dict:
+    return _post(
+        f"/cronograma/{canal_id}/revisar/{dia}",
+        timeout=TIMEOUT_PIPELINE,
+    )
+
+
+def cronograma_set_modo(canal_id: str, modo: str) -> dict:
+    return _post(
+        f"/cronograma/{canal_id}/modo",
+        json={"modo": modo},
+    )
+
+
+def cronograma_ejecutar_diario() -> dict:
+    return _post("/cronograma/ejecutar_diario", timeout=TIMEOUT_PIPELINE)
+
+
 def listar_proyectos_detalle() -> list[dict]:
     ids = listar_proyectos()
     proyectos = []

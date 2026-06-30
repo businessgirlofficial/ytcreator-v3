@@ -41,7 +41,7 @@ channels = ChannelManager()
 LONGITUD_MIN_IDEAL = 40
 LONGITUD_MAX_IDEAL = 70
 
-SYSTEM_PROMPT = """Eres un copywriter viral especializado en titulos de YouTube en espanol.
+SYSTEM_PROMPT_LIBRE = """Eres un copywriter viral especializado en titulos de YouTube en espanol.
 Conoces los frameworks: AIDA, brecha de curiosidad, contraintuitivo,
 listicle numerico, urgencia/FOMO.
 
@@ -57,6 +57,26 @@ Reglas: cada titulo debe tener idealmente entre 40 y 70 caracteres,
 ser ESPECIFICO al nicho dado (nada generico), y la promesa del
 titulo debe ser cumplible por el contenido real (sin clickbait
 enganoso)."""
+
+SYSTEM_PROMPT_DIRIGIDO = """Eres un copywriter viral especializado en titulos de YouTube en espanol.
+Se te proporciona un TITULO BASE de un cronograma de contenido. Tu trabajo
+NO es generar titulos desde cero, sino REFINAR ese titulo base con 5 variaciones.
+
+SIEMPRE respondes en JSON valido con este formato exacto:
+{
+  "titulo_base_evaluacion": "breve evaluacion del titulo base (1 frase: que tiene de bueno y que se puede mejorar)",
+  "titulos": [
+    {"texto": "el titulo base original tal cual, si sigue siendo bueno", "framework": "original", "score_creativo": 0-100, "variacion": "original"},
+    {"texto": "mismo tema, angulo ajustado por tendencia actual", "framework": "...", "score_creativo": 0-100, "variacion": "tendencia"},
+    {"texto": "mismo tema, hook diferente", "framework": "...", "score_creativo": 0-100, "variacion": "hook"},
+    {"texto": "mismo tema, formato pregunta o afirmacion (el opuesto al base)", "framework": "...", "score_creativo": 0-100, "variacion": "formato"},
+    {"texto": "variacion mas agresiva/clickbait si los datos lo sugieren", "framework": "...", "score_creativo": 0-100, "variacion": "agresiva"}
+  ]
+}
+
+Las 5 variaciones DEBEN mantener la ESENCIA del titulo base (mismo tema, misma promesa).
+No reinventar el video — refinar el empaque.
+Cada titulo debe tener idealmente entre 40 y 70 caracteres."""
 
 
 def _validar_y_puntuar(titulos_raw: list[dict]) -> list[dict]:
@@ -94,23 +114,144 @@ def _validar_y_puntuar(titulos_raw: list[dict]) -> list[dict]:
     return validados
 
 
+def _construir_contexto_performance(canal_id: str | None) -> str:
+    if not canal_id:
+        return ""
+    partes = []
+    try:
+        canal = channels.leer(canal_id)
+        if canal.patrones_exitosos:
+            exitosos = [
+                f"- \"{p.get('titulo', '?')}\" (CTR {p.get('ctr', '?')}%)"
+                for p in canal.patrones_exitosos[-5:] if p.get("ctr")
+            ]
+            if exitosos:
+                partes.append(
+                    "Titulos con ALTO CTR (REPLICA el estilo):\n"
+                    + chr(10).join(exitosos)
+                )
+        if canal.patrones_a_evitar:
+            evitar = [
+                f"- \"{p.get('titulo', '?')}\" (CTR {p.get('ctr', '?')}%)"
+                for p in canal.patrones_a_evitar[-3:] if p.get("ctr")
+            ]
+            if evitar:
+                partes.append(
+                    "Titulos con BAJO CTR (EVITA este estilo):\n"
+                    + chr(10).join(evitar)
+                )
+    except FileNotFoundError:
+        pass
+    return "\n\n".join(partes)
+
+
 def logica(request: AgenteRequest) -> dict:
     estado = state.leer(request.proyecto_id)
     nicho = estado.estrategia.nicho
     patrones = estado.estrategia.patrones_virales
+    entrada_cron = request.parametros.get("entrada_cronograma")
 
     if not nicho:
         raise ValueError("No hay nicho en el estado: corre primero el Agente 1.1 (Investigador)")
 
-    patrones_texto = "\n".join(f"- {p}" for p in patrones) if patrones else "(ninguno detectado)"
-    user_prompt = f"""Nicho: {nicho}
+    canal_id = estado.estrategia.canal_id or estado.canal_id
+    ctx_performance = _construir_contexto_performance(canal_id)
+
+    if entrada_cron:
+        # ── MODO DIRIGIDO: refinar titulo base del cronograma ──
+        titulo_base = request.parametros.get(
+            "titulo_base_cronograma",
+            entrada_cron.get("titulo_sugerido", ""),
+        )
+        angulo = request.parametros.get(
+            "angulo_cronograma",
+            entrada_cron.get("angulo", ""),
+        )
+        formato = request.parametros.get(
+            "formato_cronograma",
+            entrada_cron.get("formato", ""),
+        )
+        keywords = request.parametros.get(
+            "keywords_cronograma",
+            entrada_cron.get("keywords_recomendadas", []),
+        )
+
+        patrones_texto = "\n".join(f"- {p}" for p in patrones) if patrones else "(ninguno)"
+
+        user_prompt = f"""MODO DIRIGIDO — Refinar titulo base del cronograma.
+
+TITULO BASE A REFINAR: "{titulo_base}"
+TEMA: {entrada_cron.get('tema', nicho)}
+ANGULO: {angulo}
+FORMATO DEL VIDEO: {formato}
+KEYWORDS PLANEADAS: {', '.join(keywords) if keywords else 'N/A'}
+NICHO: {nicho}
+
+Patrones virales detectados:
+{patrones_texto}"""
+
+        ctx = estado.estrategia.contexto_canal
+        if ctx and ctx.get("patrones_titulo_exitosos"):
+            user_prompt += f"""
+
+Formulas de titulo probadas del canal:
+{chr(10).join(f'- {p}' for p in ctx['patrones_titulo_exitosos'])}"""
+
+        if ctx_performance:
+            user_prompt += f"\n\n{ctx_performance}"
+
+        user_prompt += f"""
+
+Genera exactamente 5 variaciones del titulo base. La primera DEBE ser
+el titulo original tal cual. Las otras 4 son refinamientos que mantienen
+la misma esencia pero con diferentes enfoques de copywriting.
+Incorpora las keywords '{', '.join(keywords)}' de forma natural."""
+
+        user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
+        resultado = generar_json_claude(SYSTEM_PROMPT_DIRIGIDO, user_prompt)
+
+        titulos_raw = resultado.get("titulos", [])
+        if not titulos_raw:
+            raise ValueError("Claude no devolvio titulos en el formato esperado")
+
+        validados = _validar_y_puntuar(titulos_raw)
+        if not validados:
+            raise ValueError("Ningun titulo paso la validacion")
+
+        titulos_candidatos = [t["texto"] for t in validados]
+        titulo_ganador = validados[0]["texto"]
+        titulo_score = validados[0]["score_final"]
+        titulo_subcampeon = validados[1]["texto"] if len(validados) > 1 else None
+
+        state.actualizar(
+            request.proyecto_id,
+            estrategia={
+                "titulos_candidatos": titulos_candidatos,
+                "titulo_ganador": titulo_ganador,
+                "titulo_score": titulo_score,
+                "titulo_subcampeon": titulo_subcampeon,
+            },
+        )
+        return {
+            "modo": "dirigido",
+            "titulo_base_cronograma": titulo_base,
+            "titulo_base_evaluacion": resultado.get("titulo_base_evaluacion", ""),
+            "titulos_validados": validados,
+            "titulo_ganador": titulo_ganador,
+            "titulo_subcampeon": titulo_subcampeon,
+        }
+
+    else:
+        # ── MODO LIBRE: generar 10 titulos desde cero (comportamiento original) ──
+        patrones_texto = "\n".join(f"- {p}" for p in patrones) if patrones else "(ninguno detectado)"
+        user_prompt = f"""Nicho: {nicho}
 
 Patrones virales detectados para este nicho:
 {patrones_texto}"""
 
-    ctx = estado.estrategia.contexto_canal
-    if ctx and ctx.get("patrones_titulo_exitosos"):
-        user_prompt += f"""
+        ctx = estado.estrategia.contexto_canal
+        if ctx and ctx.get("patrones_titulo_exitosos"):
+            user_prompt += f"""
 
 Formulas de titulo que ya funcionan en este canal y su competencia:
 {chr(10).join(f'- {p}' for p in ctx['patrones_titulo_exitosos'])}
@@ -118,68 +259,41 @@ Formulas de titulo que ya funcionan en este canal y su competencia:
 Usa estas formulas como referencia para generar titulos que encajen con
 el estilo probado del canal, pero con variaciones frescas."""
 
-    # Performance feedback: patrones de CTR de videos anteriores
-    canal_id = estado.estrategia.canal_id or estado.canal_id
-    if canal_id:
-        try:
-            canal = channels.leer(canal_id)
-            if canal.patrones_exitosos:
-                exitosos = canal.patrones_exitosos[-5:]
-                titulos_exitosos = [
-                    f"- \"{p.get('titulo', '?')}\" (CTR {p.get('ctr', '?')}%)"
-                    for p in exitosos if p.get("ctr")
-                ]
-                if titulos_exitosos:
-                    user_prompt += f"""
+        if ctx_performance:
+            user_prompt += f"\n\n{ctx_performance}"
 
-Titulos que tuvieron ALTO CTR en videos anteriores del canal (REPLICA el estilo):
-{chr(10).join(titulos_exitosos)}"""
+        user_prompt += "\n\nGenera 10 titulos usando frameworks distintos."
 
-            if canal.patrones_a_evitar:
-                evitar = canal.patrones_a_evitar[-3:]
-                titulos_evitar = [
-                    f"- \"{p.get('titulo', '?')}\" (CTR {p.get('ctr', '?')}%)"
-                    for p in evitar if p.get("ctr")
-                ]
-                if titulos_evitar:
-                    user_prompt += f"""
+        user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
+        resultado = generar_json_claude(SYSTEM_PROMPT_LIBRE, user_prompt)
+        titulos_raw = resultado.get("titulos", [])
+        if not titulos_raw:
+            raise ValueError("Claude no devolvio titulos en el formato esperado")
 
-Titulos que tuvieron BAJO CTR (EVITA este estilo):
-{chr(10).join(titulos_evitar)}"""
-        except FileNotFoundError:
-            pass
+        validados = _validar_y_puntuar(titulos_raw)
+        if not validados:
+            raise ValueError("Ningun titulo paso la validacion (todos vacios o duplicados)")
 
-    user_prompt += "\n\nGenera 10 titulos usando frameworks distintos."
+        titulos_candidatos = [t["texto"] for t in validados]
+        titulo_ganador = validados[0]["texto"]
+        titulo_score = validados[0]["score_final"]
+        titulo_subcampeon = validados[1]["texto"] if len(validados) > 1 else None
 
-    user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
-    resultado = generar_json_claude(SYSTEM_PROMPT, user_prompt)
-    titulos_raw = resultado.get("titulos", [])
-    if not titulos_raw:
-        raise ValueError("Claude no devolvio titulos en el formato esperado")
-
-    validados = _validar_y_puntuar(titulos_raw)
-    if not validados:
-        raise ValueError("Ningun titulo paso la validacion (todos vacios o duplicados)")
-
-    titulos_candidatos = [t["texto"] for t in validados]
-    titulo_ganador = validados[0]["texto"]
-    titulo_score = validados[0]["score_final"]
-    titulo_subcampeon = validados[1]["texto"] if len(validados) > 1 else None
-
-    state.actualizar(
-        request.proyecto_id,
-        estrategia={
-            "titulos_candidatos": titulos_candidatos,
+        state.actualizar(
+            request.proyecto_id,
+            estrategia={
+                "titulos_candidatos": titulos_candidatos,
+                "titulo_ganador": titulo_ganador,
+                "titulo_score": titulo_score,
+                "titulo_subcampeon": titulo_subcampeon,
+            },
+        )
+        return {
+            "modo": "libre",
+            "titulos_validados": validados,
             "titulo_ganador": titulo_ganador,
-            "titulo_score": titulo_score,
             "titulo_subcampeon": titulo_subcampeon,
-        },
-    )
-    return {
-        "titulos_validados": validados,
-        "titulo_ganador": titulo_ganador,
-        "titulo_subcampeon": titulo_subcampeon,
-    }
+        }
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

@@ -788,6 +788,139 @@ def keywords_stats():
     return keyword_tracker.stats()
 
 
+# ── Cronograma de contenido ────────────────────────────────────────
+
+PLANIFICADOR_URL = url_agente("0.6_planificador_contenido")
+TIMEOUT_CRONOGRAMA = 600
+
+
+def _llamar_planificador(parametros: dict, timeout: int = TIMEOUT_CRONOGRAMA) -> dict:
+    resp = httpx.post(
+        f"{PLANIFICADOR_URL}/ejecutar",
+        json={"proyecto_id": "cronograma_gw", "parametros": parametros},
+        timeout=timeout,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    data = resp.json()
+    if data.get("estado") == "error":
+        raise HTTPException(status_code=422, detail=data.get("error", "Error del planificador"))
+    return data
+
+
+class CronogramaGenerarRequest(BaseModel):
+    periodo_dias: int = 30
+    frecuencia_semanal: int = 4
+    fecha_inicio: str | None = None
+
+
+class CronogramaGestionarRequest(BaseModel):
+    dia: int
+    nuevo_status: str
+    razon: str = ""
+    proyecto_id: str | None = None
+    titulo_final: str | None = None
+    nueva_fecha: str | None = None
+
+
+class CronogramaModoRequest(BaseModel):
+    modo: str
+
+
+@app.post("/cronograma/{canal_id}/generar", dependencies=[Depends(verificar_api_key)])
+def cronograma_generar(canal_id: str, req: CronogramaGenerarRequest):
+    params: dict = {
+        "canal_id": canal_id,
+        "modo": "generar",
+        "periodo_dias": req.periodo_dias,
+        "frecuencia_semanal": req.frecuencia_semanal,
+    }
+    if req.fecha_inicio:
+        params["fecha_inicio"] = req.fecha_inicio
+    return _llamar_planificador(params)
+
+
+@app.get("/cronograma/{canal_id}/progreso", dependencies=[Depends(verificar_api_key)])
+def cronograma_progreso(canal_id: str):
+    return _llamar_planificador({"canal_id": canal_id, "modo": "progreso"}, timeout=30)
+
+
+@app.post("/cronograma/{canal_id}/revisar/{dia}", dependencies=[Depends(verificar_api_key)])
+def cronograma_revisar(canal_id: str, dia: int):
+    return _llamar_planificador({"canal_id": canal_id, "modo": "revisar", "dia": dia})
+
+
+@app.post("/cronograma/{canal_id}/gestionar", dependencies=[Depends(verificar_api_key)])
+def cronograma_gestionar(canal_id: str, req: CronogramaGestionarRequest):
+    params: dict = {
+        "canal_id": canal_id,
+        "modo": "gestionar",
+        "dia": req.dia,
+        "nuevo_status": req.nuevo_status,
+        "razon": req.razon,
+    }
+    if req.proyecto_id:
+        params["proyecto_id"] = req.proyecto_id
+    if req.titulo_final:
+        params["titulo_final"] = req.titulo_final
+    if req.nueva_fecha:
+        params["nueva_fecha"] = req.nueva_fecha
+    return _llamar_planificador(params)
+
+
+@app.post("/cronograma/{canal_id}/modo", dependencies=[Depends(verificar_api_key)])
+def cronograma_set_modo(canal_id: str, req: CronogramaModoRequest):
+    if req.modo not in ("manual", "semi_auto", "auto"):
+        raise HTTPException(status_code=422, detail="Modo debe ser: manual, semi_auto, auto")
+    return _llamar_planificador({
+        "canal_id": canal_id,
+        "modo": "set_modo",
+        "modo_cronograma": req.modo,
+    }, timeout=30)
+
+
+@app.post("/cronograma/ejecutar_diario", dependencies=[Depends(verificar_api_key)])
+def cronograma_ejecutar_diario(background_tasks: BackgroundTasks):
+    """Ejecuta la tarea diaria del cronograma para TODOS los canales con modo != manual."""
+    canales = channel_mgr.listar_canales()
+    resultados = []
+
+    for canal in canales:
+        canal_id = canal.get("canal_id")
+        if not canal_id:
+            continue
+        try:
+            estado = channel_mgr.leer(canal_id)
+            if estado.modo_cronograma == "manual":
+                continue
+
+            data = _llamar_planificador({
+                "canal_id": canal_id,
+                "modo": "ejecutar_diario",
+            })
+            resultados.append({
+                "canal_id": canal_id,
+                "nombre": canal.get("nombre", ""),
+                "modo": estado.modo_cronograma,
+                "resultado": data.get("output", {}),
+            })
+        except Exception as exc:
+            resultados.append({
+                "canal_id": canal_id,
+                "nombre": canal.get("nombre", ""),
+                "error": str(exc),
+            })
+            log.warning("cronograma_diario fallo canal %s: %s", canal_id, exc)
+
+    from shared import scheduler as _sched
+    _sched.registrar_ejecucion("cronograma_diario", "ok" if resultados else "sin_canales")
+
+    return {
+        "canales_procesados": len(resultados),
+        "resultados": resultados,
+    }
+
+
 # ── Main ────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

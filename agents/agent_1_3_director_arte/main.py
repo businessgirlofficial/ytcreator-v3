@@ -81,8 +81,41 @@ def logica(request: AgenteRequest) -> dict:
         except FileNotFoundError:
             pass
 
+    entrada_cron = request.parametros.get("entrada_cronograma")
+    tipo_contenido_cron = request.parametros.get("tipo_contenido_cronograma", "")
+    formato_cron = request.parametros.get("formato_cronograma", "")
+    datos_soporte_cron = request.parametros.get("datos_soporte_cronograma", {})
+
     user_prompt = f"""Nicho: {nicho}
 Titulo ganador: {titulo}"""
+
+    if entrada_cron:
+        user_prompt += f"""
+
+CONTEXTO DEL CRONOGRAMA (modo dirigido):
+Tipo de contenido: {tipo_contenido_cron or entrada_cron.get('tipo_contenido', '')}
+Formato del video: {formato_cron or entrada_cron.get('formato', '')}
+Angulo: {entrada_cron.get('angulo', '')}"""
+
+        if datos_soporte_cron:
+            comp_ref = datos_soporte_cron.get("competidor_referencia", "")
+            if comp_ref:
+                user_prompt += f"\nCompetidor de referencia: {comp_ref} (diferenciarse visualmente)"
+            fuente = datos_soporte_cron.get("fuente", "")
+            if fuente:
+                user_prompt += f"\nFuente de la idea: {fuente}"
+
+        tipo_guias = {
+            "trending": "Usa colores URGENTES (rojo, amarillo). Expresiones de sorpresa/impacto. Sensacion de novedad.",
+            "brecha": "Tono EXCLUSIVO, como si revelaras un secreto. Contraste fuerte. Elemento de misterio.",
+            "evergreen": "Tono PROFESIONAL y limpio. Claridad visual. Que se vea atemporal, no efimero.",
+            "follow_up": "Conectar visualmente con el video anterior. Usar 'Parte 2' o continuidad visual.",
+            "serie": "Mantener formato visual consistente con otros videos de la serie. Numeracion visible.",
+            "viral_reaccion": "Expresion facial exagerada. Colores llamativos. Elemento de sorpresa visual.",
+        }
+        tipo_key = tipo_contenido_cron or entrada_cron.get("tipo_contenido", "")
+        if tipo_key in tipo_guias:
+            user_prompt += f"\n\nGUIA VISUAL POR TIPO ({tipo_key}): {tipo_guias[tipo_key]}"
 
     if identidad:
         constraints = []
@@ -114,22 +147,61 @@ Mantén coherencia con este estilo pero hazlo atractivo para el tema actual."""
     if canal_id:
         try:
             canal_data = channels.leer(canal_id)
-            if canal_data.patrones_exitosos:
-                alto_ctr = [p for p in canal_data.patrones_exitosos[-5:] if p.get("ctr")]
-                if alto_ctr:
-                    user_prompt += f"""
 
-Miniaturas con ALTO CTR en videos anteriores (referencia de estilo que funciona):
-{chr(10).join(f'- "{p.get("titulo", "?")}" → CTR {p.get("ctr")}%' for p in alto_ctr)}
-Intenta capturar elementos visuales similares al estilo que genera alto CTR."""
+            # ── Patrones visuales REALES de miniaturas exitosas ──
+            patron_mini = canal_data.patrones_miniatura_exitosos
+            if patron_mini and patron_mini.total_videos_analizados > 0:
+                user_prompt += f"""
 
-            if canal_data.patrones_a_evitar:
-                bajo_ctr = [p for p in canal_data.patrones_a_evitar[-3:] if p.get("ctr")]
-                if bajo_ctr:
-                    user_prompt += f"""
+=== PATRONES VISUALES REALES DE MINIATURAS EXITOSAS (basado en {patron_mini.total_videos_analizados} miniaturas analizadas) ===
+Colores dominantes en el nicho: {', '.join(patron_mini.colores_frecuentes) if patron_mini.colores_frecuentes else 'N/A'}
+Uso de texto overlay: {patron_mini.usa_texto_overlay_pct}% de las miniaturas exitosas lo usan
+Uso de rostros: {patron_mini.usa_rostro_pct}% de las miniaturas exitosas lo usan
+Expresiones faciales comunes: {', '.join(patron_mini.expresiones_comunes) if patron_mini.expresiones_comunes else 'N/A'}
+Composiciones que funcionan: {', '.join(patron_mini.composiciones_comunes[:3]) if patron_mini.composiciones_comunes else 'N/A'}
+Elementos graficos frecuentes: {', '.join(patron_mini.elementos_frecuentes) if patron_mini.elementos_frecuentes else 'N/A'}
+Estilos visuales comunes: {', '.join(patron_mini.estilos_comunes[:3]) if patron_mini.estilos_comunes else 'N/A'}
+Resumen: {patron_mini.resumen}
 
-Miniaturas con BAJO CTR (evita este estilo):
-{chr(10).join(f'- "{p.get("titulo", "?")}" → CTR {p.get("ctr")}%' for p in bajo_ctr)}"""
+USA estos patrones como BASE para tu diseno. Las miniaturas exitosas del nicho
+siguen estos patrones — tu miniatura debe seguirlos pero con la identidad propia del canal.
+==="""
+
+            patron_evitar = canal_data.patrones_miniatura_evitar
+            if patron_evitar and patron_evitar.total_videos_analizados > 0:
+                user_prompt += f"""
+
+PATRONES DE MINIATURA A EVITAR ({patron_evitar.total_videos_analizados} miniaturas con bajo CTR):
+Colores: {', '.join(patron_evitar.colores_frecuentes[:3]) if patron_evitar.colores_frecuentes else 'N/A'}
+Estilos: {', '.join(patron_evitar.estilos_comunes[:2]) if patron_evitar.estilos_comunes else 'N/A'}
+Resumen: {patron_evitar.resumen}
+EVITA estos patrones visuales."""
+
+            # ── Analisis de miniaturas individuales de competidores top ──
+            analisis_individuales = []
+            for comp in canal_data.competidores[:3]:
+                for v in comp.top_videos[:2]:
+                    if v.analisis_miniatura:
+                        a = v.analisis_miniatura
+                        analisis_individuales.append(
+                            f"- {comp.nombre}: \"{v.titulo}\" ({v.vistas:,} vistas)\n"
+                            f"    Estilo: {a.estilo_general or '?'}\n"
+                            f"    Colores: {', '.join(a.colores_dominantes[:3])}, "
+                            f"Rostro: {'si' if a.tiene_rostro else 'no'}"
+                            f"{', ' + a.expresion_facial if a.expresion_facial else ''}, "
+                            f"Texto: {'si' if a.tiene_texto_overlay else 'no'}, "
+                            f"Composicion: {a.composicion or '?'}"
+                        )
+
+            if analisis_individuales:
+                user_prompt += f"""
+
+MINIATURAS REALES DE COMPETIDORES TOP (analisis visual):
+{chr(10).join(analisis_individuales)}
+
+Diferenciarte de estas miniaturas MANTENIENDO los elementos que funcionan
+(colores, composicion) pero con un estilo visual propio."""
+
         except FileNotFoundError:
             pass
 

@@ -36,7 +36,7 @@ AGENTE_ID = "1.1_investigador"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Investigador de nicho y patrones virales")
 state = StateManager()
 
-SYSTEM_PROMPT = """Eres un estratega de contenido de YouTube especializado en analizar
+SYSTEM_PROMPT_LIBRE = """Eres un estratega de contenido de YouTube especializado en analizar
 nichos y detectar patrones virales reales y reusables. Trabajas en espanol.
 
 SIEMPRE respondes en JSON valido con este formato exacto:
@@ -54,6 +54,27 @@ Identifica entre 7 y 10 patrones virales. Cada patron debe ser ESPECIFICO y ACCI
 
 NUNCA des consejos genericos como "se mas creativo", "usa buenas miniaturas", "publica contenido de calidad".
 Cada patron debe ser tan concreto que alguien pueda aplicarlo directamente en su proximo video."""
+
+SYSTEM_PROMPT_DIRIGIDO = """Eres un estratega de contenido de YouTube. Trabajas en espanol.
+Se te proporciona un TEMA ESPECIFICO ya definido en un cronograma de contenido.
+Tu trabajo NO es explorar el nicho desde cero, sino VALIDAR y ENRIQUECER este tema concreto.
+
+SIEMPRE respondes en JSON valido con este formato exacto:
+{
+  "patrones_virales": ["patron 1 especifico para ESTE tema", "patron 2", "..."],
+  "canal_tono": "tono recomendado para este video especifico",
+  "mood": "mood musical para este video",
+  "validacion_tema": {
+    "vigente": true,
+    "frescura": "explicacion de por que el tema sigue siendo relevante o no (basado en busqueda web)",
+    "oportunidad_detectada": "dato concreto que refuerza o cuestiona la eleccion de este tema",
+    "ajuste_sugerido": "null si el tema esta perfecto, o una sugerencia concreta de ajuste de angulo"
+  }
+}
+
+Identifica 5-7 patrones virales ESPECIFICOS para este tema (no para el nicho en general).
+Cada patron debe ser aplicable directamente a este video concreto.
+La validacion_tema debe basarse en los datos de busqueda web proporcionados."""
 
 
 def _construir_contexto_busqueda(nicho: str) -> str:
@@ -110,50 +131,121 @@ def _construir_contexto_canal(proyecto_id: str) -> str:
 
 def logica(request: AgenteRequest) -> dict:
     nicho = request.parametros.get("nicho", "")
+    entrada_cron = request.parametros.get("entrada_cronograma")
+
     if not nicho:
         raise ValueError("Falta el parametro 'nicho'")
 
-    contexto = _construir_contexto_busqueda(nicho)
     contexto_canal = _construir_contexto_canal(request.proyecto_id)
 
-    user_prompt = f"""Nicho a analizar: {nicho}
+    if entrada_cron:
+        # ── MODO DIRIGIDO: validar y enriquecer tema del cronograma ──
+        tema = entrada_cron.get("tema", nicho)
+        angulo = entrada_cron.get("angulo", "")
+        keywords = entrada_cron.get("keywords_recomendadas", [])
+        tipo = entrada_cron.get("tipo_contenido", "")
+        razon = entrada_cron.get("razon_tema", "")
+        datos_soporte = entrada_cron.get("datos_soporte", {})
+
+        contexto_web = _construir_contexto_busqueda(f"{tema} {angulo}")
+
+        user_prompt = f"""MODO DIRIGIDO — Tema ya definido en cronograma de contenido.
+
+TEMA A VALIDAR: {tema}
+ANGULO: {angulo}
+TITULO SUGERIDO: {entrada_cron.get('titulo_sugerido', '')}
+TIPO: {tipo}
+KEYWORDS PLANEADAS: {', '.join(keywords) if keywords else 'N/A'}
+RAZON POR LA QUE SE ELIGIO ESTE TEMA: {razon}
+DATOS DE SOPORTE: {datos_soporte}
+
+Busqueda web fresca sobre este tema:
+{contexto_web}"""
+
+        if contexto_canal:
+            user_prompt += f"""
+
+Inteligencia del canal:
+{contexto_canal}"""
+
+        user_prompt += f"""
+
+Tu trabajo:
+1. Busca patrones virales ESPECIFICOS para este tema concreto (no genericos del nicho)
+2. VALIDA si el tema sigue vigente basandote en la busqueda web
+3. Si detectas que algo cambio (competidor lo cubrio, tendencia murio), senalalo
+4. Sugiere ajuste de angulo SOLO si hay evidencia concreta, no por precaucion"""
+
+        user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
+        resultado = generar_json(SYSTEM_PROMPT_DIRIGIDO, user_prompt)
+
+        patrones_virales = resultado.get("patrones_virales", [])
+        canal_tono = resultado.get("canal_tono")
+        mood = resultado.get("mood")
+        validacion = resultado.get("validacion_tema", {})
+
+        state.actualizar(
+            request.proyecto_id,
+            estrategia={
+                "nicho": nicho,
+                "patrones_virales": patrones_virales,
+                "canal_tono": canal_tono,
+                "mood": mood,
+            },
+        )
+        return {
+            "modo": "dirigido",
+            "nicho": nicho,
+            "tema_validado": tema,
+            "patrones_virales": patrones_virales,
+            "canal_tono": canal_tono,
+            "mood": mood,
+            "validacion_tema": validacion,
+        }
+
+    else:
+        # ── MODO LIBRE: explorar desde cero (comportamiento original) ──
+        contexto_web = _construir_contexto_busqueda(nicho)
+
+        user_prompt = f"""Nicho a analizar: {nicho}
 
 Resultados de busqueda reciente sobre este nicho en YouTube:
-{contexto}"""
+{contexto_web}"""
 
-    if contexto_canal:
-        user_prompt += f"""
+        if contexto_canal:
+            user_prompt += f"""
 
 Inteligencia del canal (datos reales de YouTube):
 {contexto_canal}
 
 Usa estos datos reales para fundamentar tus patrones virales. Prioriza
 patrones que ya han demostrado funcionar en este canal y su competencia."""
-    else:
-        user_prompt += "\n\nSintetiza patrones virales concretos a partir de esto."
+        else:
+            user_prompt += "\n\nSintetiza patrones virales concretos a partir de esto."
 
-    user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
-    resultado = generar_json(SYSTEM_PROMPT, user_prompt)
+        user_prompt = inyectar_knowledge(user_prompt, "depto_1_estrategia")
+        resultado = generar_json(SYSTEM_PROMPT_LIBRE, user_prompt)
 
-    patrones_virales = resultado.get("patrones_virales", [])
-    canal_tono = resultado.get("canal_tono")
-    mood = resultado.get("mood")
+        patrones_virales = resultado.get("patrones_virales", [])
+        canal_tono = resultado.get("canal_tono")
+        mood = resultado.get("mood")
 
-    state.actualizar(
-        request.proyecto_id,
-        estrategia={
+        state.actualizar(
+            request.proyecto_id,
+            estrategia={
+                "nicho": nicho,
+                "patrones_virales": patrones_virales,
+                "canal_tono": canal_tono,
+                "mood": mood,
+            },
+        )
+        return {
+            "modo": "libre",
             "nicho": nicho,
             "patrones_virales": patrones_virales,
             "canal_tono": canal_tono,
             "mood": mood,
-        },
-    )
-    return {
-        "nicho": nicho,
-        "patrones_virales": patrones_virales,
-        "canal_tono": canal_tono,
-        "mood": mood,
-    }
+        }
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

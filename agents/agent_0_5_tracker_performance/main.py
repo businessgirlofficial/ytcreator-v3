@@ -166,7 +166,11 @@ def logica(request: AgenteRequest) -> dict:
 
     # ── 6. Generar insights y acciones concretas ──
     insights = _generar_insights(tipo, metricas, vs_promedio, traffic)
-    acciones = _generar_acciones(tipo, metricas, vs_promedio, proyecto.estrategia.titulo_ganador or "")
+    acciones = _generar_acciones(
+        tipo, metricas, vs_promedio,
+        proyecto.estrategia.titulo_ganador or "",
+        proyecto=proyecto, canal_id=canal_id,
+    )
 
     # ── 7. Armar el checkpoint ──
     checkpoint = PerformanceCheckpoint(
@@ -202,6 +206,7 @@ def logica(request: AgenteRequest) -> dict:
         _actualizar_promedios_canal(canal_id, metricas)
         _registrar_patrones(canal_id, metricas, vs_promedio, proyecto)
         _registrar_keywords(proyecto, video_id, metricas, score, tipo)
+        _registrar_feedback_cronograma(proyecto, metricas, vs_promedio, score, grade, tipo)
 
     log.info(
         "checkpoint %s completado | video=%s | score=%s | grade=%s | acciones=%d",
@@ -368,8 +373,12 @@ def _generar_acciones(
     metricas: MetricasVideo,
     vs_promedio: dict,
     titulo_actual: str,
+    proyecto=None,
+    canal_id: str = "",
 ) -> list[AccionCorrectiva]:
     acciones = []
+
+    ratio = vs_promedio.get("vistas_vs_promedio")
 
     # T+24h: Accion rapida sobre thumbnail/titulo
     if tipo == CheckpointTipo.T_24H:
@@ -406,9 +415,24 @@ def _generar_acciones(
                     datos={"titulo_actual": titulo_actual, "ctr_actual": metricas.ctr},
                 ))
 
-    # T+48h: Tendencia
+        # T+24h: Performance excepcional temprana → follow-up urgente
+        if ratio is not None and ratio >= 200:
+            acciones.append(AccionCorrectiva(
+                tipo="adaptar_cronograma",
+                prioridad="alta",
+                descripcion=(
+                    f"Views al {ratio}% del promedio tras solo 24h — momentum excepcional. "
+                    "Inyectar follow-up en el cronograma para capitalizar en los proximos 2-3 dias."
+                ),
+                agente_destino="0.6_planificador_contenido",
+                datos=_build_senal_cronograma(
+                    "excepcional", titulo_actual, metricas, ratio,
+                    tipo.value, proyecto,
+                ),
+            ))
+
+    # T+48h: Tendencia confirmada
     if tipo == CheckpointTipo.T_48H:
-        ratio = vs_promedio.get("vistas_vs_promedio")
         if ratio is not None and ratio < 50:
             acciones.append(AccionCorrectiva(
                 tipo="ajustar_estrategia",
@@ -420,6 +444,43 @@ def _generar_acciones(
                 agente_destino="0.4_asesor_estrategico",
                 datos={"ratio_vistas": ratio},
             ))
+            acciones.append(AccionCorrectiva(
+                tipo="adaptar_cronograma",
+                prioridad="media",
+                descripcion=(
+                    f"Views al {ratio}% del promedio tras 48h — bajo rendimiento confirmado. "
+                    "Revisar entradas similares del cronograma para evitar repetir el patron."
+                ),
+                agente_destino="0.6_planificador_contenido",
+                datos=_build_senal_cronograma(
+                    "pobre", titulo_actual, metricas, ratio,
+                    tipo.value, proyecto,
+                ),
+            ))
+        elif ratio is not None and ratio >= 200:
+            acciones.append(AccionCorrectiva(
+                tipo="replicar_patron",
+                prioridad="media",
+                descripcion=(
+                    f"Views al {ratio}% del promedio — alto potencial. "
+                    "Registrar tema/formato como exitoso para replicar."
+                ),
+                agente_destino="0.4_asesor_estrategico",
+                datos={"ratio_vistas": ratio},
+            ))
+            acciones.append(AccionCorrectiva(
+                tipo="adaptar_cronograma",
+                prioridad="alta",
+                descripcion=(
+                    f"Views al {ratio}% del promedio tras 48h — exito confirmado. "
+                    "Inyectar follow-up en el cronograma dentro de los proximos 3 dias."
+                ),
+                agente_destino="0.6_planificador_contenido",
+                datos=_build_senal_cronograma(
+                    "excepcional", titulo_actual, metricas, ratio,
+                    tipo.value, proyecto,
+                ),
+            ))
         elif ratio is not None and ratio >= 150:
             acciones.append(AccionCorrectiva(
                 tipo="replicar_patron",
@@ -430,6 +491,28 @@ def _generar_acciones(
                 ),
                 agente_destino="0.4_asesor_estrategico",
                 datos={"ratio_vistas": ratio},
+            ))
+
+        # T+48h: CTR bajo + retencion alta = buen contenido, mal empaque
+        if (
+            metricas.ctr is not None
+            and metricas.ctr < UMBRALES["ctr_pobre"]
+            and metricas.retencion_promedio is not None
+            and metricas.retencion_promedio >= UMBRALES["retencion_buena"]
+        ):
+            acciones.append(AccionCorrectiva(
+                tipo="adaptar_cronograma",
+                prioridad="media",
+                descripcion=(
+                    f"CTR {metricas.ctr}% pero retencion {metricas.retencion_promedio}%. "
+                    "Buen contenido mal empacado. Reforzar estrategia de titulos/thumbnails "
+                    "en las proximas entradas del cronograma."
+                ),
+                agente_destino="0.6_planificador_contenido",
+                datos=_build_senal_cronograma(
+                    "ctr_bajo_retencion_alta", titulo_actual, metricas, ratio,
+                    tipo.value, proyecto,
+                ),
             ))
 
     # T+72h: SEO feedback
@@ -463,6 +546,33 @@ def _generar_acciones(
             ))
 
     return acciones
+
+
+def _build_senal_cronograma(
+    tipo_senal: str,
+    titulo: str,
+    metricas: MetricasVideo,
+    ratio: float | None,
+    checkpoint: str,
+    proyecto=None,
+) -> dict:
+    """Construye el dict de senal para acciones de adaptar_cronograma."""
+    senal = {
+        "tipo_senal": tipo_senal,
+        "video_titulo": titulo,
+        "ratio_vs_promedio": ratio,
+        "checkpoint": checkpoint,
+        "vistas": metricas.vistas,
+        "ctr": metricas.ctr,
+        "retencion": metricas.retencion_promedio,
+        "engagement": metricas.engagement_rate,
+    }
+    if proyecto:
+        senal["video_nicho"] = proyecto.estrategia.nicho or ""
+        senal["video_formato"] = ""
+        senal["video_tipo_contenido"] = ""
+        senal["canal_id"] = proyecto.canal_id or ""
+    return senal
 
 
 # ── Actualizacion de promedios del canal ──────────────────────
@@ -562,6 +672,82 @@ def _registrar_keywords(proyecto, video_id: str, metricas: MetricasVideo, score:
         log.info("keywords registradas: %d tags | video=%s", len(tags), video_id)
     except Exception as e:
         log.error("error registrando keywords: %s", e)
+
+
+# ── Cierre del loop: feedback al cronograma ──────────────────
+
+def _registrar_feedback_cronograma(
+    proyecto, metricas: MetricasVideo, vs_promedio: dict,
+    score: float, grade, tipo: CheckpointTipo,
+) -> None:
+    """Registra el performance del video en la entrada del cronograma que lo origino."""
+    try:
+        if not proyecto.modo_dirigido:
+            return
+
+        canal_id = proyecto.canal_id or proyecto.estrategia.canal_id
+        if not canal_id:
+            return
+
+        canal = channels.leer(canal_id)
+        if not canal.cronograma_activo:
+            for hist in reversed(canal.cronogramas_historial):
+                if hist.get("cronograma_id") == proyecto.cronograma.cronograma_id:
+                    break
+            else:
+                return
+
+        cronograma = canal.cronograma_activo
+        if cronograma.cronograma_id != proyecto.cronograma.cronograma_id:
+            return
+
+        dia = proyecto.cronograma.entrada_dia
+        titulo_plan = proyecto.cronograma.titulo_sugerido
+        titulo_final = proyecto.estrategia.titulo_ganador or ""
+        ratio = vs_promedio.get("vistas_vs_promedio")
+
+        for i, e in enumerate(cronograma.entradas):
+            if e.dia != dia:
+                continue
+
+            feedback = {
+                "checkpoint": tipo.value,
+                "fecha": datetime.utcnow().isoformat(timespec="seconds"),
+                "titulo_planeado": titulo_plan,
+                "titulo_ejecutado": titulo_final,
+                "titulo_desviado": titulo_plan.lower() != titulo_final.lower(),
+                "vistas": metricas.vistas,
+                "ctr": metricas.ctr,
+                "retencion": metricas.retencion_promedio,
+                "engagement": metricas.engagement_rate,
+                "score": score,
+                "grade": grade.value if grade else None,
+                "ratio_vs_promedio": ratio,
+                "tipo_contenido": e.tipo_contenido,
+                "formato": e.formato,
+            }
+
+            cronograma.entradas[i].ajustes_historial.append({
+                "decision": f"feedback_performance_{tipo.value}",
+                "fecha": feedback["fecha"],
+                "performance": feedback,
+            })
+            break
+
+        import json
+        channels.actualizar(
+            canal_id,
+            cronograma_activo=json.loads(cronograma.model_dump_json()),
+        )
+
+        desviacion = "SI" if titulo_plan.lower() != titulo_final.lower() else "NO"
+        log.info(
+            "feedback cronograma registrado | dia=%d | checkpoint=%s | "
+            "score=%s | grade=%s | desviacion_titulo=%s",
+            dia, tipo.value, score, grade.value if grade else "?", desviacion,
+        )
+    except Exception as e:
+        log.error("error registrando feedback cronograma: %s", e)
 
 
 # ── Endpoint FastAPI ──────────────────────────────────────────

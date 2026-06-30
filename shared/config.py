@@ -72,6 +72,7 @@ REGISTRO_AGENTES: dict[str, int] = {
     "0.3_monitor_mercado": 8003,
     "0.4_asesor_estrategico": 8004,
     "0.5_tracker_performance": 8005,
+    "0.6_planificador_contenido": 8006,
     # Depto 1 - Estrategia
     "sub_orq_estrategia": 8110,
     "1.1_investigador": 8101,

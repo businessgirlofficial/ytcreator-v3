@@ -39,6 +39,8 @@ from shared.youtube_client import (
     obtener_videos_recientes,
 )
 
+MAX_MINIATURAS_ANALIZAR = 3
+
 AGENTE_ID = "0.3_monitor_mercado"
 app: FastAPI = crear_agente_app(AGENTE_ID, descripcion="Monitorea competencia y detecta tendencias del nicho")
 channels = ChannelManager()
@@ -98,6 +100,7 @@ def _escanear_competidor(channel_id: str) -> CompetidorInfo:
                     likes=v.get("likes", 0),
                     comentarios=v.get("comentarios", 0),
                     duracion_seg=v.get("duracion_seg"),
+                    miniatura_url=v.get("miniatura_url"),
                     tags=v.get("tags", []),
                 )
                 for v in videos_data
@@ -105,7 +108,45 @@ def _escanear_competidor(channel_id: str) -> CompetidorInfo:
             comp.videos_recientes = videos
             comp.top_videos = sorted(videos, key=lambda v: v.vistas, reverse=True)[:5]
 
+            _analizar_miniaturas_top(comp.top_videos)
+
     return comp
+
+
+def _analizar_miniaturas_top(top_videos: list[VideoRendimiento]):
+    """Analiza visualmente las miniaturas de los top videos usando Claude vision."""
+    from shared.claude_client import analizar_miniatura_claude
+    from shared.schemas import AnalisisMiniatura
+
+    analizados = 0
+    for v in top_videos:
+        if analizados >= MAX_MINIATURAS_ANALIZAR:
+            break
+        if not v.miniatura_url:
+            continue
+        if v.analisis_miniatura is not None:
+            analizados += 1
+            continue
+
+        try:
+            resultado = analizar_miniatura_claude(v.miniatura_url)
+            if resultado:
+                v.analisis_miniatura = AnalisisMiniatura(
+                    colores_dominantes=resultado.get("colores_dominantes", []),
+                    tiene_texto_overlay=resultado.get("tiene_texto_overlay", False),
+                    texto_overlay=resultado.get("texto_overlay"),
+                    posicion_texto=resultado.get("posicion_texto"),
+                    tiene_rostro=resultado.get("tiene_rostro", False),
+                    expresion_facial=resultado.get("expresion_facial"),
+                    composicion=resultado.get("composicion"),
+                    contraste=resultado.get("contraste"),
+                    elementos_graficos=resultado.get("elementos_graficos", []),
+                    estilo_general=resultado.get("estilo_general"),
+                    analizado_en=datetime.utcnow(),
+                )
+                analizados += 1
+        except Exception:
+            pass
 
 
 def _cumple_criterios_ganador(comp: CompetidorInfo) -> int:
@@ -267,13 +308,19 @@ Analiza la competencia, detecta tendencias y encuentra oportunidades."""
     user_prompt = inyectar_knowledge(user_prompt, "depto_0_inteligencia")
     resultado = generar_json(SYSTEM_PROMPT, user_prompt)
 
-    channels.actualizar(
-        canal_id,
-        competidores=[c.model_dump() for c in competidores_actualizados],
-        tendencias_nicho=resultado.get("tendencias_nicho", []),
-        brechas_contenido=resultado.get("brechas_contenido", []),
-        competidores_actualizados_en=datetime.utcnow().isoformat(),
-    )
+    # ── Agregar patrones visuales de miniaturas ──
+    patron_exitoso = _agregar_patrones_miniaturas(competidores_actualizados)
+
+    cambios: dict = {
+        "competidores": [c.model_dump() for c in competidores_actualizados],
+        "tendencias_nicho": resultado.get("tendencias_nicho", []),
+        "brechas_contenido": resultado.get("brechas_contenido", []),
+        "competidores_actualizados_en": datetime.utcnow().isoformat(),
+    }
+    if patron_exitoso:
+        cambios["patrones_miniatura_exitosos"] = patron_exitoso.model_dump()
+
+    channels.actualizar(canal_id, **cambios)
 
     return {
         "canal_id": canal_id,
@@ -281,7 +328,74 @@ Analiza la competencia, detecta tendencias y encuentra oportunidades."""
         "tendencias": resultado.get("tendencias_nicho", []),
         "brechas": resultado.get("brechas_contenido", []),
         "oportunidades": resultado.get("oportunidades", []),
+        "miniaturas_analizadas": patron_exitoso.total_videos_analizados if patron_exitoso else 0,
     }
+
+
+def _agregar_patrones_miniaturas(competidores):
+    """Agrega los analisis individuales de miniaturas en patrones comunes."""
+    from collections import Counter
+    from shared.schemas import PatronMiniatura
+
+    todos_analisis = []
+    for comp in competidores:
+        for v in comp.top_videos:
+            if v.analisis_miniatura:
+                todos_analisis.append(v.analisis_miniatura)
+
+    if not todos_analisis:
+        return None
+
+    total = len(todos_analisis)
+    colores = Counter()
+    expresiones = Counter()
+    composiciones = Counter()
+    elementos = Counter()
+    estilos = Counter()
+    con_texto = 0
+    con_rostro = 0
+
+    for a in todos_analisis:
+        for c in a.colores_dominantes:
+            colores[c.lower()] += 1
+        if a.tiene_texto_overlay:
+            con_texto += 1
+        if a.tiene_rostro:
+            con_rostro += 1
+        if a.expresion_facial:
+            expresiones[a.expresion_facial.lower()] += 1
+        if a.composicion:
+            composiciones[a.composicion] += 1
+        for e in a.elementos_graficos:
+            elementos[e.lower()] += 1
+        if a.estilo_general:
+            estilos[a.estilo_general] += 1
+
+    resumen_partes = []
+    if con_rostro / total >= 0.5:
+        resumen_partes.append(f"rostros en {round(con_rostro/total*100)}% de las miniaturas")
+    if con_texto / total >= 0.5:
+        resumen_partes.append(f"texto overlay en {round(con_texto/total*100)}%")
+    top_colores = [c for c, _ in colores.most_common(3)]
+    if top_colores:
+        resumen_partes.append(f"colores dominantes: {', '.join(top_colores)}")
+    top_expr = [e for e, _ in expresiones.most_common(2)]
+    if top_expr:
+        resumen_partes.append(f"expresiones: {', '.join(top_expr)}")
+
+    return PatronMiniatura(
+        tipo="exitoso",
+        total_videos_analizados=total,
+        colores_frecuentes=[c for c, _ in colores.most_common(5)],
+        usa_texto_overlay_pct=round(con_texto / total * 100, 1),
+        usa_rostro_pct=round(con_rostro / total * 100, 1),
+        expresiones_comunes=[e for e, _ in expresiones.most_common(3)],
+        composiciones_comunes=[c for c, _ in composiciones.most_common(3)],
+        elementos_frecuentes=[e for e, _ in elementos.most_common(5)],
+        estilos_comunes=[e for e, _ in estilos.most_common(3)],
+        resumen=". ".join(resumen_partes) if resumen_partes else "",
+        actualizado_en=datetime.utcnow(),
+    )
 
 
 ejecutar = envolver_logica(AGENTE_ID, logica)

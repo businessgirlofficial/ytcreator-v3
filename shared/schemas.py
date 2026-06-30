@@ -143,6 +143,25 @@ class Compliance(BaseModel):
 # Estado completo del proyecto
 # ---------------------------------------------------------------------------
 
+class ContextoCronograma(BaseModel):
+    """Vinculo entre un proyecto de video y la entrada del cronograma que lo origino.
+    Si este objeto esta presente, el pipeline opera en 'modo dirigido'."""
+    cronograma_id: str
+    entrada_dia: int
+    titulo_sugerido: str
+    tema: str = ""
+    angulo: str = ""
+    tipo_contenido: str = ""
+    formato: str = ""
+    duracion_sugerida_min: int = 10
+    keywords_recomendadas: list[str] = Field(default_factory=list)
+    datos_soporte: dict = Field(default_factory=dict)
+    potencial_viral: float = 5.0
+    razon_tema: str = ""
+    decision_vigencia: Optional[str] = None
+    score_vigencia: Optional[float] = None
+
+
 class EstadoProyecto(BaseModel):
     proyecto_id: str
     canal: str
@@ -152,6 +171,8 @@ class EstadoProyecto(BaseModel):
     fase_actual: Literal[
         "estrategia", "guion", "visual", "audio", "cierre", "completado", "publicado", "error"
     ] = "estrategia"
+
+    cronograma: Optional[ContextoCronograma] = None
 
     estrategia: BriefEstrategia = Field(default_factory=BriefEstrategia)
     guion: Guion = Field(default_factory=Guion)
@@ -171,10 +192,28 @@ class EstadoProyecto(BaseModel):
     historial_agentes: list[ResultadoAgente] = Field(default_factory=list)
     errores: list[str] = Field(default_factory=list)
 
+    @property
+    def modo_dirigido(self) -> bool:
+        return self.cronograma is not None
+
 
 # ---------------------------------------------------------------------------
 # Depto 0 - Inteligencia de Canal (Agentes 0.1-0.4)
 # ---------------------------------------------------------------------------
+
+class AnalisisMiniatura(BaseModel):
+    colores_dominantes: list[str] = Field(default_factory=list)
+    tiene_texto_overlay: bool = False
+    texto_overlay: Optional[str] = None
+    posicion_texto: Optional[str] = None
+    tiene_rostro: bool = False
+    expresion_facial: Optional[str] = None
+    composicion: Optional[str] = None
+    contraste: Optional[str] = None
+    elementos_graficos: list[str] = Field(default_factory=list)
+    estilo_general: Optional[str] = None
+    analizado_en: Optional[datetime] = None
+
 
 class VideoRendimiento(BaseModel):
     video_id: str
@@ -187,6 +226,22 @@ class VideoRendimiento(BaseModel):
     miniatura_url: Optional[str] = None
     tags: list[str] = Field(default_factory=list)
     categoria_id: Optional[str] = None
+    analisis_miniatura: Optional[AnalisisMiniatura] = None
+
+
+class PatronMiniatura(BaseModel):
+    """Patron visual agregado de miniaturas exitosas o fallidas."""
+    tipo: Literal["exitoso", "evitar"]
+    total_videos_analizados: int = 0
+    colores_frecuentes: list[str] = Field(default_factory=list)
+    usa_texto_overlay_pct: float = 0.0
+    usa_rostro_pct: float = 0.0
+    expresiones_comunes: list[str] = Field(default_factory=list)
+    composiciones_comunes: list[str] = Field(default_factory=list)
+    elementos_frecuentes: list[str] = Field(default_factory=list)
+    estilos_comunes: list[str] = Field(default_factory=list)
+    resumen: str = ""
+    actualizado_en: Optional[datetime] = None
 
 
 class CompetidorInfo(BaseModel):
@@ -239,6 +294,54 @@ class PromediosCanal(BaseModel):
     actualizado_en: Optional[datetime] = None
 
 
+# ---------------------------------------------------------------------------
+# Depto 0 - Planificacion de Contenido (Agente 0.6 Planificador)
+# ---------------------------------------------------------------------------
+
+class EntradaCronograma(BaseModel):
+    dia: int
+    fecha_programada: str
+    titulo_sugerido: str
+    tema: str
+    angulo: str
+    tipo_contenido: Literal[
+        "trending", "brecha", "evergreen", "follow_up", "serie", "viral_reaccion"
+    ]
+    formato: str
+    duracion_sugerida_min: int = 10
+    prioridad: Literal["alta", "media", "baja"] = "media"
+    potencial_viral: float = 5.0
+    razon_fecha: str = ""
+    razon_tema: str = ""
+    keywords_recomendadas: list[str] = Field(default_factory=list)
+    datos_soporte: dict = Field(default_factory=dict)
+    status: Literal[
+        "pendiente", "en_revision", "aprobado", "en_produccion",
+        "publicado", "ajustado", "pospuesto", "cancelado"
+    ] = "pendiente"
+    proyecto_id: Optional[str] = None
+    titulo_final: Optional[str] = None
+    ajustes_historial: list[dict] = Field(default_factory=list)
+
+
+class CronogramaContenido(BaseModel):
+    cronograma_id: str
+    canal_id: str
+    periodo_dias: int
+    frecuencia_semanal: int
+    fecha_inicio: str
+    fecha_fin: str
+    generado_en: Optional[datetime] = None
+    entradas: list[EntradaCronograma] = Field(default_factory=list)
+    cadencia_competidores: dict = Field(default_factory=dict)
+    estrategia_secuencia: str = ""
+    madurez_canal: str = ""
+    status: Literal["activo", "completado", "reemplazado", "cancelado"] = "activo"
+    total_videos: int = 0
+    videos_publicados: int = 0
+    videos_ajustados: int = 0
+
+
 class EstadoCanal(BaseModel):
     canal_id: str
     nombre: str
@@ -273,10 +376,17 @@ class EstadoCanal(BaseModel):
     ideas_sugeridas: list[dict] = Field(default_factory=list)
     ideas_historial: list[dict] = Field(default_factory=list)
 
+    cronograma_activo: Optional[CronogramaContenido] = None
+    modo_cronograma: Literal["manual", "semi_auto", "auto"] = "manual"
+    cronogramas_historial: list[dict] = Field(default_factory=list)
+
     promedios_canal: PromediosCanal = Field(default_factory=PromediosCanal)
     performance_historial: list[dict] = Field(default_factory=list)
     patrones_exitosos: list[dict] = Field(default_factory=list)
     patrones_a_evitar: list[dict] = Field(default_factory=list)
+
+    patrones_miniatura_exitosos: Optional[PatronMiniatura] = None
+    patrones_miniatura_evitar: Optional[PatronMiniatura] = None
 
 
 class QuotaTracker(BaseModel):
@@ -344,6 +454,7 @@ class AccionCorrectiva(BaseModel):
     tipo: Literal[
         "cambiar_thumbnail", "cambiar_titulo", "mejorar_seo",
         "ajustar_estrategia", "replicar_patron", "informativa",
+        "adaptar_cronograma",
     ]
     prioridad: Literal["alta", "media", "baja"]
     descripcion: str
